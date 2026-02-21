@@ -1,9 +1,8 @@
-﻿using REM.Expensy.Backoffice.Entities.Common;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace REM.Expensy.Backoffice.Entities;
 
-public class User : BaseEntity
+public class User : IdentityUser
 {
-    public string Name { get; set; } = null!;
     public string Avatar { get; set; } = null!;
 }
