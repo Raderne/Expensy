@@ -4,7 +4,7 @@ namespace REM.Expensy.Backoffice.Entities;
 
 public class SavingsGoal : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string? Icon { get; set; }
     public string? Color { get; set; } // Hex color for the goal card

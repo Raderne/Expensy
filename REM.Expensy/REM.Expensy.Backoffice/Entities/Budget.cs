@@ -5,7 +5,7 @@ namespace REM.Expensy.Backoffice.Entities;
 
 public class Budget : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = null!;
     public User User { get; set; } = null!;
     public Guid CategoryId { get; set; }
     public Category Category { get; set; } = null!;

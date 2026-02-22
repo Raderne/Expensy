@@ -4,7 +4,7 @@ namespace REM.Expensy.Backoffice.Entities;
 
 public class BudgetAlert : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = null!;
     public Guid BudgetId { get; set; }
     public Guid CategoryId { get; set; }
     public decimal OverspentBy { get; set; }
