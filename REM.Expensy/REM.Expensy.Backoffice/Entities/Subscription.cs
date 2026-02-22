@@ -5,7 +5,7 @@ namespace REM.Expensy.Backoffice.Entities;
 
 public class Subscription : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = null!;
     public string Name { get; set; } = null!; // Subscription name(e.g., "Netflix Premium")
     public string? Icon { get; set; } //  App logo or icon identifier
     public decimal Amount { get; set; } // Cost per billing cycle

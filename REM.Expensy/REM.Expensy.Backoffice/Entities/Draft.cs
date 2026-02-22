@@ -5,6 +5,6 @@ namespace REM.Expensy.Backoffice.Entities;
 
 public class Draft : BaseEntity
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = null!;
     public JsonDocument Data { get; set; }
 }
