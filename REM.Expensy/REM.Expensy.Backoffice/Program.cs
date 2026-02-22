@@ -1,6 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using REM.Expensy.Backoffice.Application.Budgets;
 using REM.Expensy.Backoffice.Infrastructure;
 using REM.Expensy.Backoffice.Infrastructure.Context;
 using REM.Expensy.Backoffice.Infrastructure.Services;
@@ -28,8 +30,38 @@ try
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-    builder.Services.AddControllers();
-    builder.Services.AddOpenApi();
+    builder.Services.AddControllers()
+        .AddNewtonsoftJson(options =>
+        {
+            options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+        });
+    // Swagger (Development only) — replaces AddOpenApi; document at /swagger/v1/swagger.json
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo { Title = "Expensy Backoffice API", Version = "v1" });
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                In = ParameterLocation.Header,
+                Description = "JWT: enter your bearer token",
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer"
+            });
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
+    }
 
     // JWT
     var jwtSection = builder.Configuration.GetSection("JwtSettings");
@@ -68,6 +100,8 @@ try
     var allowedOrigins = corsSection.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
     var policyName = corsSection["PolicyName"] ?? "ExpensyCors";
 
+    builder.Services.AddScoped<IBudgetQueryService, BudgetQueryService>();
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(policyName, policy =>
@@ -85,7 +119,8 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        app.MapOpenApi();
+        app.UseSwagger();
+        app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "Expensy Backoffice API v1"));
     }
 
     app.UseHttpsRedirection();
