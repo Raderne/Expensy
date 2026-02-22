@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Logging.Abstractions;
 using REM.Expensy.Backoffice.Infrastructure.Services;
 using System.Reflection;
 
@@ -24,16 +25,16 @@ public class ApplicationContextFactory : IDesignTimeDbContextFactory<Application
         return optionsBuilder.Options;
     }
 
-
+    /// <summary>
+    /// Parameters must match ApplicationContext constructor: (DbContextOptions, ILogger, ICurrentUserService).
+    /// </summary>
     protected object?[] GetParams()
     {
         return
         [
-            new NullCurrentUserService(),
-            new NullDateTimeService(),
-            new NullStorageService(),
-            new NullCacheService(),
-            BuildDbContextOptions()
+            BuildDbContextOptions(),
+            NullLogger<ApplicationContext>.Instance,
+            new NullCurrentUserService()
         ];
     }
 

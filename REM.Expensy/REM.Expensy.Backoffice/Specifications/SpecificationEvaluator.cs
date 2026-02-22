@@ -1,4 +1,5 @@
-﻿using REM.Expensy.Backoffice.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using REM.Expensy.Backoffice.Interfaces;
 
 namespace REM.Expensy.Backoffice.Specifications;
 
