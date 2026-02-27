@@ -26,4 +26,5 @@ public interface IReadOnlyContext
     public DbSet<Transaction> Transactions { get; }
     public DbSet<Wallet> Wallets { get; }
     public DbSet<User> Users { get; }
+    public DbSet<RefreshToken> RefreshTokens { get; }
 }
