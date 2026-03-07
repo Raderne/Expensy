@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using REM.Expensy.Backoffice.Entities;
 using REM.Expensy.Backoffice.Entities.Common;
@@ -9,7 +10,7 @@ using System.Data;
 
 namespace REM.Expensy.Backoffice.Infrastructure.Context;
 
-public class ApplicationContext : DbContext, IContext
+public class ApplicationContext : IdentityDbContext<User>, IContext
 {
     private readonly ILogger<ApplicationContext> _logger;
     private readonly ICurrentUserService _currentUserService;
@@ -29,18 +30,12 @@ public class ApplicationContext : DbContext, IContext
     public DbSet<SubscriptionCycle> SubscriptionCycles => Set<SubscriptionCycle>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
-    public DbSet<User> Users => Set<User>();
+    public new DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public ApplicationContext(DbContextOptions<ApplicationContext> options, ILogger<ApplicationContext> logger, ICurrentUserService currentUserService) : base(options)
     {
-        using var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddFilter("System", LogLevel.Warning)
-                   .AddFilter("Microsoft", LogLevel.Warning)
-                   .AddFilter("REM.Expensy.Backoffice", LogLevel.Debug)
-                   .AddConsole();
-        });
-        _logger = loggerFactory.CreateLogger<ApplicationContext>();
+        _logger = logger;
         _currentUserService = currentUserService;
     }
 

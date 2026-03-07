@@ -4,7 +4,7 @@ namespace REM.Expensy.Backoffice.Entities;
 
 public class Transaction : BaseEntity
 {
-    public Guid WaiterId { get; set; }
+    public Guid WalletId { get; set; }
     public Guid CategoryId { get; set; }
     public decimal Amount { get; set; } = new decimal(0);
     public string MerchantName { get; set; } = null!;

@@ -15,6 +15,7 @@ try
     builder.Host.UseSerilog();
 
     builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddIdentityConfiguration();
     builder.Services.AddJwtAuthentication(builder.Configuration);
     builder.Services.AddAppHealthChecks(builder.Configuration);
     builder.Services.AddCorsPolicy(builder.Configuration);
