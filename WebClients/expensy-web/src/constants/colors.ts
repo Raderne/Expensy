@@ -1,25 +1,36 @@
 export const Colors = {
-  primary: {
-    500: '#2563EB',
-    600: '#1D4ED8',
-    700: '#1E40AF',
-  },
-  surface: {
-    0: '#FFFFFF',
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    800: '#1E293B',
-    900: '#0F172A',
-  },
+  // Primary accent
+  purple: { 500: '#B04EFF', 600: '#9333EA', 400: '#C084FC' },
+  magenta: { 500: '#D946EF', 400: '#E879F9' },
+  teal: { 500: '#14B8A6', 400: '#2DD4BF' },
+  mint: '#00E5A0',
+
+  // Semantic
   success: '#22C55E',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  income: '#22C55E',
-  expense: '#EF4444',
+  warning: '#F97316',
+  danger: '#EF4444',
+  info: '#3B82F6',
+
+  // Background layers (dark theme)
+  bg: {
+    base: '#0A0A0F',
+    surface: '#12121A',
+    elevated: '#1A1A26',
+    overlay: '#22222F',
+  },
+
+  // Text
   text: {
-    primary: '#0F172A',
-    secondary: '#64748B',
-    inverse: '#FFFFFF',
+    primary: '#F9FAFB',
+    secondary: '#9CA3AF',
+    muted: '#6B7280',
+    inverse: '#0A0A0F',
+  },
+
+  // Borders
+  border: {
+    subtle: '#1F1F2E',
+    default: '#2D2D3F',
+    strong: '#3D3D52',
   },
 } as const

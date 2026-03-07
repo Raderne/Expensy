@@ -17,7 +17,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.surface[50],
+    backgroundColor: Colors.bg.base,
   },
   container: {
     flex: 1,

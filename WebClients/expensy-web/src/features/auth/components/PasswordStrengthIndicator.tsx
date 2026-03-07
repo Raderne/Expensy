@@ -17,7 +17,7 @@ function getStrength(password: string): Strength {
 }
 
 const STRENGTH_CONFIG: Record<Strength, { filled: number; color: string; label: string }> = {
-  weak: { filled: 1, color: Colors.error, label: 'Weak' },
+  weak: { filled: 1, color: Colors.danger, label: 'Weak' },
   medium: { filled: 2, color: Colors.warning, label: 'Medium' },
   strong: { filled: 3, color: Colors.success, label: 'Strong' },
 }
@@ -40,7 +40,7 @@ export function PasswordStrengthIndicator({ password }: PasswordStrengthIndicato
             key={i}
             style={[
               styles.bar,
-              { backgroundColor: i < filled ? color : Colors.surface[200] },
+              { backgroundColor: i < filled ? color : Colors.border.default },
             ]}
           />
         ))}
