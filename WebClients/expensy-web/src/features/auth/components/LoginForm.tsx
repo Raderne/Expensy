@@ -1,20 +1,20 @@
-import React, { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
-import { Controller, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useRouter } from 'expo-router'
+import React, { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useRouter } from 'expo-router';
 
-import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema'
-import { authApi } from '@/api/auth.api'
-import { useAuthStore } from '@/store/auth.store'
-import { AppTextInput } from '@/components/ui/AppTextInput'
-import { Button } from '@/components/ui/Button'
-import { Colors } from '@/constants/colors'
+import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
+import { authApi } from '@/api/auth.api';
+import { useAuthStore } from '@/store/auth.store';
+import { AppTextInput } from '@/components/ui/AppTextInput';
+import { Button } from '@/components/ui/Button';
+import { Colors } from '@/constants/colors';
 
 export function LoginForm() {
-  const router = useRouter()
-  const setAuth = useAuthStore((s) => s.setAuth)
-  const [serverError, setServerError] = useState<string | null>(null)
+  const router = useRouter();
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     control,
@@ -23,24 +23,22 @@ export function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
-  })
+  });
 
   const onSubmit = async (values: LoginFormValues) => {
-    setServerError(null)
+    setServerError(null);
     try {
-      const data = await authApi.login({ email: values.email, password: values.password })
+      console.log('sending login');
+      const data = await authApi.login({ email: values.email, password: values.password });
+      console.log(data);
       // Generated AuthResponse fields are typed as optional — non-null assertions are safe
       // here because a successful 200 response always includes all token fields.
-      await setAuth(
-        { id: data.userId!, email: data.email! },
-        data.accessToken!,
-        data.refreshToken!,
-      )
-      router.replace('/(app)')
+      await setAuth({ id: data.userId!, email: data.email! }, data.accessToken!, data.refreshToken!);
+      router.replace('/(app)');
     } catch {
-      setServerError('Invalid email or password. Please try again.')
+      setServerError('Invalid email or password. Please try again.');
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -52,53 +50,48 @@ export function LoginForm() {
 
       <Controller
         control={control}
-        name="email"
+        name='email'
         render={({ field: { value, onChange } }) => (
           <AppTextInput
-            label="Email"
+            label='Email'
             value={value}
             onChangeText={onChange}
             error={errors.email?.message}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="you@example.com"
-            autoComplete="email"
+            keyboardType='email-address'
+            autoCapitalize='none'
+            placeholder='you@example.com'
+            autoComplete='email'
           />
         )}
       />
 
       <Controller
         control={control}
-        name="password"
+        name='password'
         render={({ field: { value, onChange } }) => (
           <AppTextInput
-            label="Password"
+            label='Password'
             value={value}
             onChangeText={onChange}
             error={errors.password?.message}
             secureTextEntry
-            autoCapitalize="none"
-            placeholder="Your password"
-            autoComplete="current-password"
+            autoCapitalize='none'
+            placeholder='Your password'
+            autoComplete='current-password'
           />
         )}
       />
 
-      <Button
-        label="Sign In"
-        loading={isSubmitting}
-        onPress={handleSubmit(onSubmit)}
-        style={styles.submitButton}
-      />
+      <Button label='Sign In' loading={isSubmitting} onPress={handleSubmit(onSubmit)} style={styles.submitButton} />
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account? </Text>
-        <Link href="/(auth)/register" style={styles.link}>
+        <Link href='/(auth)/register' style={styles.link}>
           Sign up
         </Link>
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -135,4 +128,4 @@ const styles = StyleSheet.create({
     color: Colors.purple[500],
     fontWeight: '600',
   },
-})
+});
