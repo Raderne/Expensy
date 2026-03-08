@@ -22,10 +22,10 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.purple[500],
-        tabBarInactiveTintColor: Colors.dark.text.muted,
+        tabBarInactiveTintColor: Colors.text.muted,
         tabBarStyle: {
-          backgroundColor: Colors.bg.surface,
-          borderTopColor: Colors.dark.border.subtle,
+          backgroundColor: Colors.bg.elevated,
+          borderTopColor: Colors.border.subtle,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {
