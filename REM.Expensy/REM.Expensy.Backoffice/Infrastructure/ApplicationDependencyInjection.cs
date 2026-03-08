@@ -19,6 +19,7 @@ public static class ApplicationDependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IDataSeeder, DataSeeder>();
 
         // Phase 1
         services.AddScoped<IBudgetQueryService, BudgetQueryService>();

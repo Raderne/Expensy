@@ -7,8 +7,8 @@ import * as SecureStore from 'expo-secure-store'
 import { useAuthStore, getStoredRefreshToken, getStoredUserId } from '@/store/auth.store'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
-// Android emulator: 10.0.2.2 → host machine. iOS simulator: use localhost.
-const API_BASE = 'http://10.0.2.2:5118/api'
+// Must match the BASE_URL in src/api/client.ts (with /api suffix for direct axios calls).
+const API_BASE = 'http://192.168.1.12:5118/api'
 
 const ONBOARDING_KEY = 'expensy_onboarding_done'
 

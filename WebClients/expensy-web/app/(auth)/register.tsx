@@ -128,13 +128,16 @@ export default function RegisterScreen() {
     setTermsError(undefined)
     setServerError(null)
     try {
-      await authApi.register({
+      const data = await authApi.register({
         email: values.email,
         password: values.password,
         userName: values.userName,
       })
-      const data = await authApi.login({ email: values.email, password: values.password })
-      await setAuth({ id: data.userId, email: data.email }, data.accessToken, data.refreshToken)
+      await setAuth(
+        { id: data.userId!, email: data.email! },
+        data.accessToken!,
+        data.refreshToken!,
+      )
       router.replace('/(app)')
     } catch {
       setServerError('Registration failed. The email or username may already be taken.')

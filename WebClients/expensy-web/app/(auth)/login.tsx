@@ -43,7 +43,7 @@ export default function LoginScreen() {
     setServerError(null)
     try {
       const data = await authApi.login({ email: values.email, password: values.password })
-      await setAuth({ id: data.userId, email: data.email }, data.accessToken, data.refreshToken)
+      await setAuth({ id: data.userId!, email: data.email! }, data.accessToken!, data.refreshToken!)
       router.replace('/(app)')
     } catch {
       setServerError('Invalid email or password. Please try again.')

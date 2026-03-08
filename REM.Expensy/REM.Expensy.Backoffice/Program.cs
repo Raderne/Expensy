@@ -1,4 +1,5 @@
 using REM.Expensy.Backoffice.Infrastructure;
+using REM.Expensy.Backoffice.Infrastructure.Services;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -28,6 +29,14 @@ try
     }
 
     var app = builder.Build();
+
+    // Seed required data on every startup (idempotent)
+    using (var scope = app.Services.CreateScope())
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
+        await seeder.SeedAsync();
+    }
+
     app.UseBackofficePipeline();
     app.Run();
 }

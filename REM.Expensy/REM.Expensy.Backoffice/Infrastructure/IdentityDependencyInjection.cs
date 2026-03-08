@@ -17,6 +17,7 @@ public static class IdentityDependencyInjection
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.User.RequireUniqueEmail = true;
         })
+        .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<ApplicationContext>();
 
         return services;
