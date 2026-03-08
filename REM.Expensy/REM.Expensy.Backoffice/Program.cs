@@ -22,7 +22,10 @@ try
     builder.Services.AddApplicationServices();
 
     if (builder.Environment.IsDevelopment())
+    {
         builder.Services.AddSwaggerDocumentation();
+        builder.Services.AddOpenApiDocument(); // required for NSwag code generation
+    }
 
     var app = builder.Build();
     app.UseBackofficePipeline();
