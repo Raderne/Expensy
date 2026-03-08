@@ -5,7 +5,7 @@ import { Colors } from '@/constants/colors'
 export function LoadingSpinner() {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={Colors.primary[500]} />
+      <ActivityIndicator size="large" color={Colors.purple[500]} />
     </View>
   )
 }
@@ -15,6 +15,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface[50],
+    backgroundColor: Colors.bg.base,
   },
 })

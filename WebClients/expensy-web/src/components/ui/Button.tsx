@@ -5,10 +5,12 @@ import {
   Text,
   TouchableOpacity,
   TouchableOpacityProps,
+  View,
 } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Colors } from '@/constants/colors'
 
-type Variant = 'primary' | 'ghost'
+type Variant = 'primary' | 'mint' | 'ghost'
 
 interface ButtonProps extends TouchableOpacityProps {
   label: string
@@ -16,35 +18,72 @@ interface ButtonProps extends TouchableOpacityProps {
   variant?: Variant
 }
 
-export function Button({ label, loading = false, variant = 'primary', style, disabled, ...rest }: ButtonProps) {
+export function Button({
+  label,
+  loading = false,
+  variant = 'primary',
+  style,
+  disabled,
+  ...rest
+}: ButtonProps) {
   const isDisabled = disabled || loading
 
+  const spinnerColor =
+    variant === 'mint' ? Colors.text.inverse : Colors.text.primary
+
+  // Primary uses LinearGradient as the background; wrap in TouchableOpacity
+  if (variant === 'primary') {
+    return (
+      <TouchableOpacity
+        style={[styles.base, isDisabled && styles.disabled, style]}
+        disabled={isDisabled}
+        activeOpacity={0.8}
+        {...rest}
+      >
+        <LinearGradient
+          colors={[Colors.purple[500], Colors.purple[600]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+        {loading ? (
+          <ActivityIndicator size="small" color={Colors.text.primary} />
+        ) : (
+          <Text style={[styles.label, styles.labelPrimary]}>{label}</Text>
+        )}
+      </TouchableOpacity>
+    )
+  }
+
+  if (variant === 'mint') {
+    return (
+      <TouchableOpacity
+        style={[styles.base, styles.mint, isDisabled && styles.disabled, style]}
+        disabled={isDisabled}
+        activeOpacity={0.8}
+        {...rest}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={spinnerColor} />
+        ) : (
+          <Text style={[styles.label, styles.labelMint]}>{label}</Text>
+        )}
+      </TouchableOpacity>
+    )
+  }
+
+  // ghost variant
   return (
     <TouchableOpacity
-      style={[
-        styles.base,
-        variant === 'primary' ? styles.primary : styles.ghost,
-        isDisabled && styles.disabled,
-        style,
-      ]}
+      style={[styles.base, styles.ghost, isDisabled && styles.disabled, style]}
       disabled={isDisabled}
-      activeOpacity={0.75}
+      activeOpacity={0.7}
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'primary' ? Colors.text.inverse : Colors.primary[500]}
-        />
+        <ActivityIndicator size="small" color={Colors.text.primary} />
       ) : (
-        <Text
-          style={[
-            styles.label,
-            variant === 'primary' ? styles.labelPrimary : styles.labelGhost,
-          ]}
-        >
-          {label}
-        </Text>
+        <Text style={[styles.label, styles.labelGhost]}>{label}</Text>
       )}
     </TouchableOpacity>
   )
@@ -52,31 +91,36 @@ export function Button({ label, loading = false, variant = 'primary', style, dis
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
-    borderRadius: 10,
+    borderRadius: 9999,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
-  primary: {
-    backgroundColor: Colors.primary[500],
+  mint: {
+    backgroundColor: Colors.mint,
   },
   ghost: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: Colors.primary[500],
+    borderColor: Colors.border.strong,
   },
   disabled: {
-    opacity: 0.55,
+    opacity: 0.5,
   },
   label: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   labelPrimary: {
+    color: Colors.text.primary,
+  },
+  labelMint: {
     color: Colors.text.inverse,
   },
   labelGhost: {
-    color: Colors.primary[500],
+    color: Colors.text.secondary,
   },
 })

@@ -106,15 +106,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorBox: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: 'rgba(239,68,68,0.12)',
     borderWidth: 1,
-    borderColor: Colors.error,
+    borderColor: Colors.danger,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
   },
   errorBoxText: {
-    color: Colors.error,
+    color: Colors.danger,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   },
   link: {
     fontSize: 14,
-    color: Colors.primary[500],
+    color: Colors.purple[500],
     fontWeight: '600',
   },
 })
