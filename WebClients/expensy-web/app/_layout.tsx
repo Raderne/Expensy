@@ -11,7 +11,12 @@ const API_BASE = 'http://10.0.2.2:5118/api'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
+    queries: {
+      retry: 1,
+      staleTime: 2 * 60 * 1000,     // 2 minutes
+      gcTime: 10 * 60 * 1000,       // 10 minutes
+      refetchOnWindowFocus: false,
+    },
   },
 })
 

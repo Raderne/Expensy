@@ -1,6 +1,12 @@
 import React from 'react'
 import { Redirect, Tabs } from 'expo-router'
-import { LayoutDashboard, Wallet, ArrowLeftRight, PieChart, PiggyBank } from 'lucide-react-native'
+import {
+  LayoutDashboard,
+  Wallet,
+  ArrowLeftRight,
+  PieChart,
+  PiggyBank,
+} from 'lucide-react-native'
 import { useAuthStore } from '@/store/auth.store'
 import { Colors } from '@/constants/colors'
 
@@ -15,11 +21,11 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary[500],
-        tabBarInactiveTintColor: Colors.text.secondary,
+        tabBarActiveTintColor: Colors.purple[500],
+        tabBarInactiveTintColor: Colors.dark.text.muted,
         tabBarStyle: {
-          backgroundColor: Colors.surface[0],
-          borderTopColor: Colors.surface[200],
+          backgroundColor: Colors.bg.surface,
+          borderTopColor: Colors.dark.border.subtle,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {
@@ -71,6 +77,14 @@ export default function AppLayout() {
           tabBarIcon: ({ color, size }) => (
             <PiggyBank size={size} color={color} />
           ),
+        }}
+      />
+      {/* Modal screen — hidden from the tab bar */}
+      <Tabs.Screen
+        name="add-expense"
+        options={{
+          href: null,            // hides from tab bar
+          presentation: 'modal',
         }}
       />
     </Tabs>
