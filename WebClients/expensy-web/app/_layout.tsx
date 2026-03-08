@@ -14,7 +14,12 @@ const ONBOARDING_KEY = 'expensy_onboarding_done'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
+    queries: {
+      retry: 1,
+      staleTime: 2 * 60 * 1000,     // 2 minutes
+      gcTime: 10 * 60 * 1000,       // 10 minutes
+      refetchOnWindowFocus: false,
+    },
   },
 })
 
