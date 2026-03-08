@@ -1,14 +1,8 @@
-import { apiClient } from './client'
+import { CATEGORIES_API } from '@/api/clients'
+import type { CategoryDto } from '@/api/types'
 
-export interface CategoryDto {
-  id: string
-  name: string
-  icon: string
-  color: string
-  isSystem: boolean
-}
+export type { CategoryDto }
 
 export const categoriesApi = {
-  getAll: (): Promise<CategoryDto[]> =>
-    apiClient.get<CategoryDto[]>('/categories').then((r) => r.data),
+  getAll: (): Promise<CategoryDto[]> => CATEGORIES_API.getAll(),
 }

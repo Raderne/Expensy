@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { categoriesApi, CategoryDto } from '@/api/categories.api'
+import { categoriesApi } from '@/api/categories.api'
+import type { CategoryDto } from '@/api/types'
 
 export const CATEGORIES_QUERY_KEY = ['categories'] as const
 

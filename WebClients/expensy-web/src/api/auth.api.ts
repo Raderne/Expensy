@@ -1,41 +1,11 @@
-import { apiClient } from './client'
+import { AUTH_API } from '@/api/clients'
+import type { AuthResponse, LoginRequest, RegisterRequest, RefreshRequest } from '@/api/types'
 
-export interface AuthResponse {
-  accessToken: string
-  refreshToken: string
-  userId: string
-  email: string
-}
-
-export interface RegisterPayload {
-  email: string
-  password: string
-  userName: string
-}
-
-export interface LoginPayload {
-  email: string
-  password: string
-}
-
-export interface RefreshPayload {
-  userId: string
-  refreshToken: string
-}
+export type { AuthResponse, LoginRequest, RegisterRequest, RefreshRequest }
 
 export const authApi = {
-  register: (payload: RegisterPayload): Promise<AuthResponse> =>
-    apiClient.post<AuthResponse>('/auth/register', payload).then((r) => r.data),
-
-  login: (payload: LoginPayload): Promise<AuthResponse> =>
-    apiClient.post<AuthResponse>('/auth/login', payload).then((r) => r.data),
-
-  refresh: (payload: RefreshPayload): Promise<AuthResponse> =>
-    apiClient.post<AuthResponse>('/auth/refresh', payload).then((r) => r.data),
-
-  // Requires Bearer token; body is the raw refresh token string
-  revoke: (refreshToken: string): Promise<void> =>
-    apiClient.post('/auth/revoke', refreshToken, {
-      headers: { 'Content-Type': 'application/json' },
-    }).then(() => undefined),
+  login: (req: LoginRequest): Promise<AuthResponse> => AUTH_API.login(req),
+  register: (req: RegisterRequest): Promise<AuthResponse> => AUTH_API.register(req),
+  refresh: (req: RefreshRequest): Promise<AuthResponse> => AUTH_API.refresh(req),
+  revoke: (token: string): Promise<void> => AUTH_API.revoke(token),
 }

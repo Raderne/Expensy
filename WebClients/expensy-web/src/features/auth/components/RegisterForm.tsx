@@ -32,14 +32,20 @@ export function RegisterForm() {
   const onSubmit = async (values: RegisterFormValues) => {
     setServerError(null)
     try {
-      // Register then auto-login with the same credentials
-      await authApi.register({
+      // Register returns AuthResponse directly — use it to log the user in without a
+      // separate login round-trip.
+      const data = await authApi.register({
         email: values.email,
         password: values.password,
         userName: values.userName,
       })
-      const data = await authApi.login({ email: values.email, password: values.password })
-      await setAuth({ id: data.userId, email: data.email }, data.accessToken, data.refreshToken)
+      // Generated AuthResponse fields are typed as optional — non-null assertions are safe
+      // here because a successful 201 response always includes all token fields.
+      await setAuth(
+        { id: data.userId!, email: data.email! },
+        data.accessToken!,
+        data.refreshToken!,
+      )
       router.replace('/(app)')
     } catch {
       setServerError('Registration failed. The email or username may already be taken.')

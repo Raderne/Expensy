@@ -29,7 +29,13 @@ export function LoginForm() {
     setServerError(null)
     try {
       const data = await authApi.login({ email: values.email, password: values.password })
-      await setAuth({ id: data.userId, email: data.email }, data.accessToken, data.refreshToken)
+      // Generated AuthResponse fields are typed as optional — non-null assertions are safe
+      // here because a successful 200 response always includes all token fields.
+      await setAuth(
+        { id: data.userId!, email: data.email! },
+        data.accessToken!,
+        data.refreshToken!,
+      )
       router.replace('/(app)')
     } catch {
       setServerError('Invalid email or password. Please try again.')

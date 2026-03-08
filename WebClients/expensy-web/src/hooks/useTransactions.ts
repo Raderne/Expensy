@@ -1,18 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  transactionsApi,
-  TransactionDto,
-  PaginatedTransactions,
-  TransactionsQuery,
-  CreateTransactionPayload,
-} from '@/api/transactions.api'
+import { transactionsApi } from '@/api/transactions.api'
+import type { TransactionDto, CreateTransactionRequest } from '@/api/types'
 
 export const TRANSACTIONS_QUERY_KEY = ['transactions'] as const
 
-export function useTransactions(query: TransactionsQuery = {}) {
-  return useQuery<PaginatedTransactions, Error>({
-    queryKey: [...TRANSACTIONS_QUERY_KEY, query],
-    queryFn: () => transactionsApi.getAll(query),
+export function useTransactions() {
+  return useQuery<TransactionDto[], Error>({
+    queryKey: TRANSACTIONS_QUERY_KEY,
+    queryFn: transactionsApi.getAll,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
@@ -23,7 +18,7 @@ export function useTransactions(query: TransactionsQuery = {}) {
 export function useCreateTransaction() {
   const queryClient = useQueryClient()
 
-  return useMutation<TransactionDto, Error, CreateTransactionPayload>({
+  return useMutation<TransactionDto, Error, CreateTransactionRequest>({
     mutationFn: transactionsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_QUERY_KEY })

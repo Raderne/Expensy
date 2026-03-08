@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { walletsApi, WalletDto } from '@/api/wallets.api'
+import { walletsApi } from '@/api/wallets.api'
+import type { WalletDto } from '@/api/types'
 
 export const WALLETS_QUERY_KEY = ['wallets'] as const
 
