@@ -1,38 +1,29 @@
-import React, { useRef, useState } from 'react'
-import {
-  Dimensions,
-  FlatList,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewToken,
-} from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
-import * as SecureStore from 'expo-secure-store'
-import { TrendingUp, BarChart2, Wallet } from 'lucide-react-native'
-import { Colors } from '@/constants/colors'
+import React, { useRef, useState } from 'react';
+import { Dimensions, FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View, ViewToken } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { TrendingUp, BarChart2, Wallet } from 'lucide-react-native';
+import { Colors } from '@/constants/colors';
 
-const ONBOARDING_KEY = 'expensy_onboarding_done'
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+const ONBOARDING_KEY = 'expensy_onboarding_done';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ---------------------------------------------------------------------------
 // Slide data
 // ---------------------------------------------------------------------------
 interface SlideData {
-  id: string
-  title: string
-  titleAccent: string
-  subtitle: string
-  bgColors: readonly [string, string]
-  buttonColor: string
-  buttonLabel: string
-  buttonTextDark?: boolean
-  IllustrationIcon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>
-  illustrationBg: string
+  id: string;
+  title: string;
+  titleAccent: string;
+  subtitle: string;
+  bgColors: readonly [string, string];
+  buttonColor: string;
+  buttonLabel: string;
+  buttonTextDark?: boolean;
+  IllustrationIcon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
+  illustrationBg: string;
 }
 
 const slides: SlideData[] = [
@@ -53,7 +44,7 @@ const slides: SlideData[] = [
     titleAccent: 'Logging',
     subtitle: 'We automatically group your expenses by date, saving you time every day.',
     bgColors: ['#0A1F0E', '#061209'],
-    buttonColor: Colors.mint,
+    buttonColor: Colors.mint[500],
     buttonLabel: 'Next  →',
     buttonTextDark: true,
     IllustrationIcon: TrendingUp,
@@ -70,7 +61,7 @@ const slides: SlideData[] = [
     IllustrationIcon: BarChart2,
     illustrationBg: 'rgba(59,130,246,0.12)',
   },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Dot indicator
@@ -79,16 +70,10 @@ function Dots({ activeIndex }: { activeIndex: number }) {
   return (
     <View style={dotStyles.row}>
       {slides.map((s, i) => (
-        <View
-          key={s.id}
-          style={[
-            dotStyles.dot,
-            i === activeIndex ? dotStyles.dotActive : dotStyles.dotInactive,
-          ]}
-        />
+        <View key={s.id} style={[dotStyles.dot, i === activeIndex ? dotStyles.dotActive : dotStyles.dotInactive]} />
       ))}
     </View>
-  )
+  );
 }
 
 const dotStyles = StyleSheet.create({
@@ -110,13 +95,13 @@ const dotStyles = StyleSheet.create({
     width: 8,
     backgroundColor: Colors.border.strong,
   },
-})
+});
 
 // ---------------------------------------------------------------------------
 // Single slide
 // ---------------------------------------------------------------------------
 function Slide({ item }: { item: SlideData }) {
-  const { IllustrationIcon, illustrationBg } = item
+  const { IllustrationIcon, illustrationBg } = item;
 
   return (
     <View style={[slideStyles.slide, { width: SCREEN_WIDTH }]}>
@@ -134,7 +119,7 @@ function Slide({ item }: { item: SlideData }) {
         <Text style={slideStyles.subtitle}>{item.subtitle}</Text>
       </View>
     </View>
-  )
+  );
 }
 
 const slideStyles = StyleSheet.create({
@@ -177,68 +162,58 @@ const slideStyles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-})
+});
 
 // ---------------------------------------------------------------------------
 // Main onboarding screen
 // ---------------------------------------------------------------------------
 export default function OnboardingScreen() {
-  const router = useRouter()
-  const insets = useSafeAreaInsets()
-  const flatListRef = useRef<FlatList<SlideData>>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList<SlideData>>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const currentSlide = slides[activeIndex]
+  const currentSlide = slides[activeIndex];
 
   const markDoneAndNavigate = async () => {
-    await SecureStore.setItemAsync(ONBOARDING_KEY, 'true')
-    router.replace('/(auth)/login')
-  }
+    await SecureStore.setItemAsync(ONBOARDING_KEY, 'true');
+    router.replace('/(auth)/login');
+  };
 
   const handleNext = async () => {
     if (activeIndex < slides.length - 1) {
-      const nextIndex = activeIndex + 1
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true })
-      setActiveIndex(nextIndex)
+      const nextIndex = activeIndex + 1;
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      setActiveIndex(nextIndex);
     } else {
-      await markDoneAndNavigate()
+      await markDoneAndNavigate();
     }
-  }
+  };
 
   const handleSkip = async () => {
-    await markDoneAndNavigate()
-  }
+    await markDoneAndNavigate();
+  };
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index != null) {
-        setActiveIndex(viewableItems[0].index)
-      }
-    },
-  ).current
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index != null) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }).current;
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle='light-content' />
 
       {/* Dynamic background gradient that follows active slide */}
-      <LinearGradient
-        colors={currentSlide.bgColors}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={currentSlide.bgColors} style={StyleSheet.absoluteFill} />
 
       {/* Skip button — visible on slides 2+ */}
       <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
         <View style={styles.topBarSpacer} />
         {activeIndex > 0 ? (
-          <TouchableOpacity
-            onPress={handleSkip}
-            activeOpacity={0.7}
-            accessibilityLabel="Skip onboarding"
-            accessibilityRole="button"
-          >
+          <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} accessibilityLabel='Skip onboarding' accessibilityRole='button'>
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         ) : (
@@ -267,27 +242,17 @@ export default function OnboardingScreen() {
         <Dots activeIndex={activeIndex} />
 
         <TouchableOpacity
-          style={[
-            styles.nextButton,
-            { backgroundColor: currentSlide.buttonColor },
-          ]}
+          style={[styles.nextButton, { backgroundColor: currentSlide.buttonColor }]}
           onPress={handleNext}
           activeOpacity={0.85}
-          accessibilityRole="button"
+          accessibilityRole='button'
           accessibilityLabel={currentSlide.buttonLabel}
         >
-          <Text
-            style={[
-              styles.nextButtonLabel,
-              currentSlide.buttonTextDark === true && styles.nextButtonLabelDark,
-            ]}
-          >
-            {currentSlide.buttonLabel}
-          </Text>
+          <Text style={[styles.nextButtonLabel, currentSlide.buttonTextDark === true && styles.nextButtonLabelDark]}>{currentSlide.buttonLabel}</Text>
         </TouchableOpacity>
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -335,4 +300,4 @@ const styles = StyleSheet.create({
   nextButtonLabelDark: {
     color: Colors.text.inverse,
   },
-})
+});
