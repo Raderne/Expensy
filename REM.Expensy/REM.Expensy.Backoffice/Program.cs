@@ -1,4 +1,5 @@
 using REM.Expensy.Backoffice.Infrastructure;
+using REM.Expensy.Backoffice.Infrastructure.Services;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -22,9 +23,20 @@ try
     builder.Services.AddApplicationServices();
 
     if (builder.Environment.IsDevelopment())
+    {
         builder.Services.AddSwaggerDocumentation();
+        builder.Services.AddOpenApiDocument(); // required for NSwag code generation
+    }
 
     var app = builder.Build();
+
+    // Seed required data on every startup (idempotent)
+    using (var scope = app.Services.CreateScope())
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
+        await seeder.SeedAsync();
+    }
+
     app.UseBackofficePipeline();
     app.Run();
 }

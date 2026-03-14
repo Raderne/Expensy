@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { SectionList, StyleSheet, Text, View } from 'react-native'
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { Colors } from '@/constants/colors'
-import { TransactionDto } from '@/api/transactions.api'
+import type { TransactionDto } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useRouter } from 'expo-router'
 
 import { registerSchema, RegisterFormValues } from '@/features/auth/schemas/auth.schema'
-import { authApi } from '@/api/auth.api'
+import { nswagAxios, BASE_URL } from '@/api/client'
+import type { AuthResponse, RegisterRequest } from '@/api/types'
 import { useAuthStore } from '@/store/auth.store'
 import { AppTextInput } from '@/components/ui/AppTextInput'
 import { Button } from '@/components/ui/Button'
@@ -32,14 +33,27 @@ export function RegisterForm() {
   const onSubmit = async (values: RegisterFormValues) => {
     setServerError(null)
     try {
-      // Register then auto-login with the same credentials
-      await authApi.register({
+      // Register returns AuthResponse directly — use it to log the user in without a
+      // separate login round-trip. The generated AuthClient does not expose a register
+      // endpoint, so we call the API directly via nswagAxios (raw-string transform
+      // applied) and parse the response ourselves.
+      const req: RegisterRequest = {
         email: values.email,
         password: values.password,
         userName: values.userName,
-      })
-      const data = await authApi.login({ email: values.email, password: values.password })
-      await setAuth({ id: data.userId, email: data.email }, data.accessToken, data.refreshToken)
+      }
+      const { data: rawData } = await nswagAxios.post<string>(
+        `${BASE_URL}/api/Auth/register`,
+        req,
+      )
+      const data: AuthResponse = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
+      // Generated AuthResponse fields are typed as optional — non-null assertions are safe
+      // here because a successful 201 response always includes all token fields.
+      await setAuth(
+        { id: data.userId!, email: data.email! },
+        data.accessToken!,
+        data.refreshToken!,
+      )
       router.replace('/(app)')
     } catch {
       setServerError('Registration failed. The email or username may already be taken.')

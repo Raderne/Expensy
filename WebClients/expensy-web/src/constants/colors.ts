@@ -39,6 +39,7 @@ export const Colors = {
     base: '#0A0A0F',
     surface: '#12121A',
     elevated: '#1A1A26',
+    overlay: '#22222F',
   },
   purple: {
     300: '#D8B4FE',

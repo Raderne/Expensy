@@ -1,34 +1,25 @@
-import React, { useState } from 'react'
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useRouter } from 'expo-router'
-import { Controller, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Mail, Lock, Wallet } from 'lucide-react-native'
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Mail, Lock, Wallet } from 'lucide-react-native';
 
-import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema'
-import { authApi } from '@/api/auth.api'
-import { useAuthStore } from '@/store/auth.store'
-import { AppTextInput } from '@/components/ui/AppTextInput'
-import { PasswordInput } from '@/components/ui/PasswordInput'
-import { Button } from '@/components/ui/Button'
-import { Colors } from '@/constants/colors'
+import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
+import { useAuthStore } from '@/store/auth.store';
+import { AppTextInput } from '@/components/ui/AppTextInput';
+import { PasswordInput } from '@/components/ui/PasswordInput';
+import { Button } from '@/components/ui/Button';
+import { Colors } from '@/constants/colors';
+import { authClient } from '@/api/clients';
 
 export default function LoginScreen() {
-  const router = useRouter()
-  const insets = useSafeAreaInsets()
-  const setAuth = useAuthStore((s) => s.setAuth)
-  const [serverError, setServerError] = useState<string | null>(null)
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     control,
@@ -37,39 +28,32 @@ export default function LoginScreen() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
-  })
+  });
 
   const onSubmit = async (values: LoginFormValues) => {
-    setServerError(null)
+    setServerError(null);
     try {
-      const data = await authApi.login({ email: values.email, password: values.password })
-      await setAuth({ id: data.userId, email: data.email }, data.accessToken, data.refreshToken)
-      router.replace('/(app)')
+      console.log('login start');
+      const data = await authClient.login({ email: values.email, password: values.password });
+      console.log('login resp', data);
+      await setAuth({ id: data.userId!, email: data.email! }, data.accessToken!, data.refreshToken!);
+      router.replace('/(app)');
     } catch {
-      setServerError('Invalid email or password. Please try again.')
+      setServerError('Invalid email or password. Please try again.');
     }
-  }
+  };
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle='light-content' />
 
       {/* Background gradient */}
-      <LinearGradient
-        colors={['#1A0A2E', '#0D0718', '#0A0A0F']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['#1A0A2E', '#0D0718', '#0A0A0F']} style={StyleSheet.absoluteFill} />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 },
-          ]}
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 }]}
+          keyboardShouldPersistTaps='handled'
           showsVerticalScrollIndicator={false}
         >
           {/* Logo area */}
@@ -98,38 +82,34 @@ export default function LoginScreen() {
           <View style={styles.form}>
             <Controller
               control={control}
-              name="email"
+              name='email'
               render={({ field: { value, onChange } }) => (
                 <AppTextInput
-                  label="Email"
+                  label='Email'
                   value={value}
                   onChangeText={onChange}
                   error={errors.email?.message}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  leftIcon={
-                    <Mail size={18} color={Colors.text.muted} strokeWidth={1.8} />
-                  }
+                  keyboardType='email-address'
+                  autoCapitalize='none'
+                  placeholder='you@example.com'
+                  autoComplete='email'
+                  leftIcon={<Mail size={18} color={Colors.text.muted} strokeWidth={1.8} />}
                 />
               )}
             />
 
             <Controller
               control={control}
-              name="password"
+              name='password'
               render={({ field: { value, onChange } }) => (
                 <PasswordInput
-                  label="Password"
+                  label='Password'
                   value={value}
                   onChangeText={onChange}
                   error={errors.password?.message}
-                  placeholder="Your password"
-                  autoComplete="current-password"
-                  leftIcon={
-                    <Lock size={18} color={Colors.text.muted} strokeWidth={1.8} />
-                  }
+                  placeholder='Your password'
+                  autoComplete='current-password'
+                  leftIcon={<Lock size={18} color={Colors.text.muted} strokeWidth={1.8} />}
                 />
               )}
             />
@@ -141,13 +121,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Login button */}
-          <Button
-            label="Login  →"
-            variant="primary"
-            loading={isSubmitting}
-            onPress={handleSubmit(onSubmit)}
-            style={styles.loginButton}
-          />
+          <Button label='Login  →' variant='primary' loading={isSubmitting} onPress={handleSubmit(onSubmit)} style={styles.loginButton} />
 
           {/* Divider */}
           <View style={styles.dividerRow}>
@@ -167,19 +141,10 @@ export default function LoginScreen() {
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/register')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.footerLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -341,4 +306,4 @@ const styles = StyleSheet.create({
     color: Colors.purple[500],
     fontWeight: '600',
   },
-})
+});

@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   PieChart,
   PiggyBank,
+  BarChart2,
 } from 'lucide-react-native'
 import { useAuthStore } from '@/store/auth.store'
 import { Colors } from '@/constants/colors'
@@ -76,6 +77,15 @@ export default function AppLayout() {
           title: 'Savings',
           tabBarIcon: ({ color, size }) => (
             <PiggyBank size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: 'Analytics',
+          tabBarIcon: ({ color, size }) => (
+            <BarChart2 size={size} color={color} />
           ),
         }}
       />

@@ -15,17 +15,20 @@ namespace REM.Expensy.Backoffice.Controllers.Api;
 public class BudgetsController : ControllerBase
 {
     private readonly IBudgetService _budgetService;
+    private readonly IBudgetQueryService _budgetQueryService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<BudgetsController> _logger;
 
     public BudgetsController(
         IBudgetService budgetService,
+        IBudgetQueryService budgetQueryService,
         ICurrentUserService currentUserService,
         ILogger<BudgetsController> logger)
     {
-        _budgetService = budgetService;
+        _budgetService      = budgetService;
+        _budgetQueryService = budgetQueryService;
         _currentUserService = currentUserService;
-        _logger = logger;
+        _logger             = logger;
     }
 
     /// <summary>
@@ -147,6 +150,24 @@ public class BudgetsController : ControllerBase
             return NotFound();
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Returns the budget progress summary for the current user: per-budget progress
+    /// rows (with insight tips) and aggregate totals across all active budgets.
+    /// </summary>
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(BudgetSummaryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<BudgetSummaryDto>> GetSummary(CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Getting budget summary for user {UserId}", _currentUserService.UserId);
+
+        var summary = await _budgetQueryService
+            .GetSummaryAsync(_currentUserService.UserId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Ok(summary);
     }
 
     /// <summary>
