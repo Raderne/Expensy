@@ -1,6 +1,8 @@
+using REM.Expensy.Backoffice.Application.Analytics;
 using REM.Expensy.Backoffice.Application.Auth;
 using REM.Expensy.Backoffice.Application.Budgets;
 using REM.Expensy.Backoffice.Application.Categories;
+using REM.Expensy.Backoffice.Application.Dashboard;
 using REM.Expensy.Backoffice.Application.Notifications;
 using REM.Expensy.Backoffice.Application.SavingsGoals;
 using REM.Expensy.Backoffice.Application.Subscriptions;
@@ -32,6 +34,10 @@ public static class ApplicationDependencyInjection
         services.AddScoped<ISavingsGoalService, SavingsGoalService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<INotificationService, NotificationService>();
+
+        // Phase 3
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
 
         services.AddControllers()
             .AddNewtonsoftJson(options =>

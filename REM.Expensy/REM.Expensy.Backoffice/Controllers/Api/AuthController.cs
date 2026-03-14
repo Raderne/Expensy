@@ -19,22 +19,6 @@ public class AuthController : ControllerBase
         _currentUserService = currentUserService;
     }
 
-    [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var response = await _authService.RegisterAsync(request, cancellationToken).ConfigureAwait(false);
-            return CreatedAtAction(nameof(Register), response);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest);
-        }
-    }
-
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
