@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
 import { Colors } from '@/constants/colors'
-import type { CategorySpending } from '@/api/analytics.api'
+import type { CategorySpendingDtoDto } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CategoryBreakdownCardProps {
-  item: CategorySpending
+  item: CategorySpendingDto
   index: number
 }
 

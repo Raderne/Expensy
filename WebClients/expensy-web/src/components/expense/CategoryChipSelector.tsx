@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native'
 import { Colors } from '@/constants/colors'
-import { CategoryDto } from '@/api/categories.api'
+import type { CategoryDto } from '@/api/types'
 
 // Fallback categories when API data is unavailable
 const FALLBACK_CATEGORIES: CategoryDto[] = [

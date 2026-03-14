@@ -1,11 +1,24 @@
-import { apiClient } from './client';
-import { AuthClient, BudgetsClient, CategoriesClient, TransactionsClient, WalletsClient } from './generated/api-client';
+import { nswagAxios, BASE_URL } from './client';
+import {
+  AnalyticsClient,
+  AuthClient,
+  BudgetsClient,
+  CategoriesClient,
+  DashboardClient,
+  NotificationsClient,
+  SavingsGoalsClient,
+  SubscriptionsClient,
+  TransactionsClient,
+  WalletsClient,
+} from './generated/api-client';
 
-// No /api suffix — generated clients append /api/... to every path themselves.
-const BASE_URL = 'http://192.168.1.12:5118';
-
-export const AUTH_API = new AuthClient(BASE_URL, apiClient);
-export const WALLETS_API = new WalletsClient(BASE_URL, apiClient);
-export const TRANSACTIONS_API = new TransactionsClient(BASE_URL, apiClient);
-export const CATEGORIES_API = new CategoriesClient(BASE_URL, apiClient);
-export const BUDGETS_API = new BudgetsClient(BASE_URL, apiClient);
+export const analyticsClient = new AnalyticsClient(BASE_URL, nswagAxios);
+export const authClient = new AuthClient(BASE_URL, nswagAxios);
+export const budgetsClient = new BudgetsClient(BASE_URL, nswagAxios);
+export const categoriesClient = new CategoriesClient(BASE_URL, nswagAxios);
+export const dashboardClient = new DashboardClient(BASE_URL, nswagAxios);
+export const notificationsClient = new NotificationsClient(BASE_URL, nswagAxios);
+export const savingsGoalsClient = new SavingsGoalsClient(BASE_URL, nswagAxios);
+export const subscriptionsClient = new SubscriptionsClient(BASE_URL, nswagAxios);
+export const transactionsClient = new TransactionsClient(BASE_URL, nswagAxios);
+export const walletsClient = new WalletsClient(BASE_URL, nswagAxios);

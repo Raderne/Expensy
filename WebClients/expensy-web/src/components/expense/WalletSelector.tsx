@@ -2,7 +2,7 @@ import React from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Wallet, ChevronDown } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
-import { WalletDto } from '@/api/wallets.api'
+import type { WalletDto } from '@/api/types'
 
 interface WalletSelectorProps {
   wallets: WalletDto[]

@@ -1,21 +1,30 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { router } from 'expo-router';
 import { useAuthStore, getStoredRefreshToken, getStoredUserId } from '@/store/auth.store';
-import { AuthResponse } from './generated/api-client';
+import type { AuthResponse } from './generated/api-client';
 
 // Android emulator maps 10.0.2.2 → host machine localhost.
-// For iOS simulator, change this to 'http://localhost:5118/api'.
-const BASE_URL = 'http://192.168.1.12:5118';
+// For iOS simulator or physical device, change to the machine's LAN IP.
+export const BASE_URL = 'http://192.168.1.12:5118';
 
-export const apiClient = axios.create({
-  baseURL: BASE_URL,
+// ---------------------------------------------------------------------------
+// nswagAxios — shared axios instance for all NSwag-generated clients.
+//
+// IMPORTANT: `transformResponse: [(data) => data]` disables axios's automatic
+// JSON parsing. NSwag-generated process* methods call JSON.parse(response.data)
+// themselves; if axios has already parsed the body, response.data is an object
+// and JSON.parse(object) throws a SyntaxError ("Unexpected token o in JSON").
+// Passing the raw string through lets NSwag's own parse succeed.
+// ---------------------------------------------------------------------------
+export const nswagAxios = axios.create({
   headers: { 'Content-Type': 'application/json' },
+  transformResponse: [(data) => data],
 });
 
 // ---------------------------------------------------------------------------
 // Request interceptor — attach Bearer token from in-memory store
 // ---------------------------------------------------------------------------
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+nswagAxios.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -26,8 +35,8 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // ---------------------------------------------------------------------------
 // Response interceptor — silent token refresh on 401
 //
-// The refresh call is made directly (not through authApi) to avoid a circular
-// import: auth.api.ts → client.ts → auth.api.ts.
+// The refresh call is made directly (not through authClient) to avoid a
+// circular import: clients.ts → client.ts → clients.ts.
 // ---------------------------------------------------------------------------
 let isRefreshing = false;
 type PendingResolver = (token: string) => void;
@@ -42,7 +51,7 @@ function rejectPending() {
   pendingQueue = [];
 }
 
-apiClient.interceptors.response.use(
+nswagAxios.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
@@ -57,7 +66,7 @@ apiClient.interceptors.response.use(
         pendingQueue.push(resolve);
       }).then((newToken) => {
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return apiClient(originalRequest);
+        return nswagAxios(originalRequest);
       });
     }
 
@@ -71,12 +80,16 @@ apiClient.interceptors.response.use(
         throw new Error('No stored credentials');
       }
 
-      // Direct axios call — bypasses the interceptor on a fresh instance to avoid loops
-      const { data } = await axios.post<AuthResponse>(
-        `${BASE_URL}/auth/refresh`,
+      // Direct axios call on a fresh instance — bypasses nswagAxios interceptors to
+      // avoid infinite retry loops, and avoids the double-parse issue by using a
+      // plain instance (refresh response is parsed manually below).
+      const { data: rawData } = await axios.post<string>(
+        `${BASE_URL}/api/Auth/refresh`,
         { userId, refreshToken },
         { headers: { 'Content-Type': 'application/json' } },
       );
+
+      const data: AuthResponse = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
 
       // AuthResponse fields are optional in the generated type; guard before use.
       if (!data.accessToken || !data.refreshToken || !data.userId || !data.email) {
@@ -88,7 +101,7 @@ apiClient.interceptors.response.use(
       resolvePending(data.accessToken);
 
       originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-      return apiClient(originalRequest);
+      return nswagAxios(originalRequest);
     } catch {
       rejectPending();
       await useAuthStore.getState().clearAuth();
@@ -99,3 +112,9 @@ apiClient.interceptors.response.use(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// apiClient — kept as a convenience alias for any direct axios calls that do
+// not go through an NSwag client. Uses nswagAxios so auth interceptors apply.
+// ---------------------------------------------------------------------------
+export const apiClient = nswagAxios;

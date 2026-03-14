@@ -8,12 +8,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, Lock, Wallet } from 'lucide-react-native';
 
 import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
-import { authApi } from '@/api/auth.api';
 import { useAuthStore } from '@/store/auth.store';
 import { AppTextInput } from '@/components/ui/AppTextInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
 import { Colors } from '@/constants/colors';
+import { authClient } from '@/api/clients';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -33,7 +33,9 @@ export default function LoginScreen() {
   const onSubmit = async (values: LoginFormValues) => {
     setServerError(null);
     try {
-      const data = await authApi.login({ email: values.email, password: values.password });
+      console.log('login start');
+      const data = await authClient.login({ email: values.email, password: values.password });
+      console.log('login resp', data);
       await setAuth({ id: data.userId!, email: data.email! }, data.accessToken!, data.refreshToken!);
       router.replace('/(app)');
     } catch {

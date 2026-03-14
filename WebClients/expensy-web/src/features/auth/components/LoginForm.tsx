@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
 
 import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
-import { authApi } from '@/api/auth.api';
+import { authClient } from '@/api/clients';
 import { useAuthStore } from '@/store/auth.store';
 import { AppTextInput } from '@/components/ui/AppTextInput';
 import { Button } from '@/components/ui/Button';
@@ -29,7 +29,7 @@ export function LoginForm() {
     setServerError(null);
     try {
       console.log('sending login');
-      const data = await authApi.login({ email: values.email, password: values.password });
+      const data = await authClient.login({ email: values.email, password: values.password });
       console.log(data);
       // Generated AuthResponse fields are typed as optional — non-null assertions are safe
       // here because a successful 200 response always includes all token fields.

@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useRouter } from 'expo-router'
 
 import { registerSchema, RegisterFormValues } from '@/features/auth/schemas/auth.schema'
-import { authApi } from '@/api/auth.api'
+import { nswagAxios, BASE_URL } from '@/api/client'
+import type { AuthResponse, RegisterRequest } from '@/api/types'
 import { useAuthStore } from '@/store/auth.store'
 import { AppTextInput } from '@/components/ui/AppTextInput'
 import { Button } from '@/components/ui/Button'
@@ -33,12 +34,19 @@ export function RegisterForm() {
     setServerError(null)
     try {
       // Register returns AuthResponse directly — use it to log the user in without a
-      // separate login round-trip.
-      const data = await authApi.register({
+      // separate login round-trip. The generated AuthClient does not expose a register
+      // endpoint, so we call the API directly via nswagAxios (raw-string transform
+      // applied) and parse the response ourselves.
+      const req: RegisterRequest = {
         email: values.email,
         password: values.password,
         userName: values.userName,
-      })
+      }
+      const { data: rawData } = await nswagAxios.post<string>(
+        `${BASE_URL}/api/Auth/register`,
+        req,
+      )
+      const data: AuthResponse = typeof rawData === 'string' ? JSON.parse(rawData) : rawData
       // Generated AuthResponse fields are typed as optional — non-null assertions are safe
       // here because a successful 201 response always includes all token fields.
       await setAuth(

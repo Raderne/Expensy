@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { analyticsApi } from '@/api/analytics.api'
-import type { AnalyticsPeriod, SpendingAnalyticsDto } from '@/api/analytics.api'
+import { analyticsClient } from '@/api/clients'
+import type { AnalyticsPeriod, SpendingAnalyticsDto } from '@/api/types'
 
 export type { AnalyticsPeriod, SpendingAnalyticsDto }
 
@@ -10,7 +10,8 @@ export const ANALYTICS_QUERY_KEY = (period: AnalyticsPeriod) =>
 export function useAnalytics(period: AnalyticsPeriod) {
   return useQuery<SpendingAnalyticsDto, Error>({
     queryKey: ANALYTICS_QUERY_KEY(period),
-    queryFn: () => analyticsApi.getSpending(period),
+    // referenceDate is omitted — the server uses the current date by default.
+    queryFn: () => analyticsClient.getSpending(period, undefined),
     staleTime: 2 * 60 * 1000,   // 2 minutes
     gcTime: 10 * 60 * 1000,     // 10 minutes
     retry: 1,

@@ -3,14 +3,14 @@ import { Animated, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, G } from 'react-native-svg'
 import { TrendingDown, TrendingUp } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
-import type { CategorySpending } from '@/api/analytics.api'
+import type { CategorySpendingDtoDto } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DonutChartProps {
   totalSpent: number
   percentageChange: number | null
-  byCategory: CategorySpending[]
+  byCategory: CategorySpendingDto[]
   loading?: boolean
 }
 
@@ -45,7 +45,7 @@ const FALLBACK_COLORS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildSegments(categories: CategorySpending[]): Segment[] {
+function buildSegments(categories: CategorySpendingDto[]): Segment[] {
   if (categories.length === 0) return []
 
   const segments: Segment[] = []
