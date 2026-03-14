@@ -10,8 +10,93 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelToken } from 'axios';
 
+export interface IAnalyticsClient {
+    getSpending(period: string | undefined, referenceDate: Date | null | undefined,  cancelToken?: CancelToken): Promise<SpendingAnalyticsDto>;
+}
+
+export class AnalyticsClient implements IAnalyticsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    getSpending(period: string | undefined, referenceDate: Date | null | undefined, cancelToken?: CancelToken): Promise<SpendingAnalyticsDto> {
+        let url_ = this.baseUrl + "/api/Analytics/spending?";
+        if (period === null)
+            throw new globalThis.Error("The parameter 'period' cannot be null.");
+        else if (period !== undefined)
+            url_ += "period=" + encodeURIComponent("" + period) + "&";
+        if (referenceDate !== undefined && referenceDate !== null)
+            url_ += "referenceDate=" + encodeURIComponent(referenceDate ? "" + referenceDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSpending(_response);
+        });
+    }
+
+    protected processGetSpending(response: AxiosResponse): Promise<SpendingAnalyticsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SpendingAnalyticsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SpendingAnalyticsDto>(null as any);
+    }
+}
+
 export interface IAuthClient {
-    register(request: RegisterRequest,  cancelToken?: CancelToken): Promise<AuthResponse>;
     login(request: LoginRequest,  cancelToken?: CancelToken): Promise<AuthResponse>;
     refresh(request: RefreshRequest,  cancelToken?: CancelToken): Promise<AuthResponse>;
     revoke(refreshToken: string,  cancelToken?: CancelToken): Promise<void>;
@@ -28,65 +113,6 @@ export class AuthClient implements IAuthClient {
 
         this.baseUrl = baseUrl ?? "";
 
-    }
-
-    register(request: RegisterRequest, cancelToken?: CancelToken): Promise<AuthResponse> {
-        let url_ = this.baseUrl + "/api/Auth/register";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processRegister(_response);
-        });
-    }
-
-    protected processRegister(response: AxiosResponse): Promise<AuthResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 201) {
-            const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = JSON.parse(resultData201);
-            return Promise.resolve<AuthResponse>(result201);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<AuthResponse>(null as any);
     }
 
     login(request: LoginRequest, cancelToken?: CancelToken): Promise<AuthResponse> {
@@ -269,6 +295,7 @@ export interface IBudgetsClient {
     getById(id: string,  cancelToken?: CancelToken): Promise<BudgetDto>;
     update(id: string, request: UpdateBudgetRequest,  cancelToken?: CancelToken): Promise<BudgetDto>;
     delete(id: string,  cancelToken?: CancelToken): Promise<void>;
+    getSummary( cancelToken?: CancelToken): Promise<BudgetSummaryDto>;
     getAlerts( cancelToken?: CancelToken): Promise<BudgetAlertDto[]>;
 }
 
@@ -606,6 +633,61 @@ export class BudgetsClient implements IBudgetsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    getSummary( cancelToken?: CancelToken): Promise<BudgetSummaryDto> {
+        let url_ = this.baseUrl + "/api/Budgets/summary";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSummary(_response);
+        });
+    }
+
+    protected processGetSummary(response: AxiosResponse): Promise<BudgetSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<BudgetSummaryDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<BudgetSummaryDto>(null as any);
     }
 
     getAlerts( cancelToken?: CancelToken): Promise<BudgetAlertDto[]> {
@@ -1020,6 +1102,90 @@ export class CategoriesClient implements ICategoriesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+}
+
+export interface IDashboardClient {
+    getSummary(month: number | null | undefined, year: number | null | undefined,  cancelToken?: CancelToken): Promise<DashboardSummaryDto>;
+}
+
+export class DashboardClient implements IDashboardClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    getSummary(month: number | null | undefined, year: number | null | undefined, cancelToken?: CancelToken): Promise<DashboardSummaryDto> {
+        let url_ = this.baseUrl + "/api/Dashboard/summary?";
+        if (month !== undefined && month !== null)
+            url_ += "month=" + encodeURIComponent("" + month) + "&";
+        if (year !== undefined && year !== null)
+            url_ += "year=" + encodeURIComponent("" + year) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSummary(_response);
+        });
+    }
+
+    protected processGetSummary(response: AxiosResponse): Promise<DashboardSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DashboardSummaryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DashboardSummaryDto>(null as any);
     }
 }
 
@@ -2849,11 +3015,21 @@ export class WalletsClient implements IWalletsClient {
     }
 }
 
-export interface AuthResponse {
-    accessToken?: string;
-    refreshToken?: string;
-    userId?: string;
-    email?: string;
+export interface SpendingAnalyticsDto {
+    periodLabel?: string;
+    totalSpent?: number;
+    previousPeriodTotal?: number;
+    percentageChangeVsPrevious?: number | undefined;
+    byCategory?: CategorySpendingDto[];
+}
+
+export interface CategorySpendingDto {
+    categoryId?: string;
+    categoryName?: string;
+    categoryIcon?: string;
+    categoryColor?: string;
+    amount?: number;
+    percentage?: number;
 }
 
 export interface ProblemDetails {
@@ -2867,10 +3043,11 @@ export interface ProblemDetails {
     [key: string]: any;
 }
 
-export interface RegisterRequest {
+export interface AuthResponse {
+    accessToken?: string;
+    refreshToken?: string;
+    userId?: string;
     email?: string;
-    password?: string;
-    userName?: string;
 }
 
 export interface LoginRequest {
@@ -2912,6 +3089,39 @@ export interface UpdateBudgetRequest {
     endDate?: Date;
 }
 
+export interface BudgetSummaryDto {
+    overallProgress?: BudgetOverallProgressDto;
+    budgets?: BudgetProgressDto[];
+}
+
+export interface BudgetOverallProgressDto {
+    totalBudgeted?: number;
+    totalSpent?: number;
+    percentSpent?: number;
+}
+
+export interface BudgetProgressDto {
+    id?: string;
+    categoryId?: string;
+    categoryName?: string;
+    categoryIcon?: string;
+    categoryColor?: string;
+    limit?: number;
+    spent?: number;
+    remaining?: number;
+    percentSpent?: number;
+    statusCode?: BudgetStatusEnum;
+    statusTitle?: string;
+    insightTip?: string;
+}
+
+export enum BudgetStatusEnum {
+    OnTrack = 0,
+    Good = 1,
+    NearLimit = 2,
+    OverBudget = 3,
+}
+
 export interface BudgetAlertDto {
     id?: string;
     budgetId?: string;
@@ -2940,6 +3150,34 @@ export interface UpdateCategoryRequest {
     name?: string;
     icon?: string;
     color?: string;
+}
+
+export interface DashboardSummaryDto {
+    monthlyBalance?: number;
+    totalExpenses?: number;
+    weeklySpending?: DailySpendingDto[];
+    recentTransactions?: DailyTransactionGroupDto[];
+}
+
+export interface DailySpendingDto {
+    dayLabel?: string;
+    date?: Date;
+    amount?: number;
+}
+
+export interface DailyTransactionGroupDto {
+    date?: Date;
+    transactions?: RecentTransactionDto[];
+}
+
+export interface RecentTransactionDto {
+    id?: string;
+    amount?: number;
+    merchantName?: string;
+    categoryName?: string;
+    categoryIcon?: string;
+    categoryColor?: string;
+    walletName?: string;
 }
 
 export interface NotificationDto {

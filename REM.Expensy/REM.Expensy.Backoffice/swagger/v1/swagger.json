@@ -6,36 +6,54 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/Auth/register": {
-      "post": {
+    "/api/Analytics/spending": {
+      "get": {
         "tags": [
-          "Auth"
+          "Analytics"
         ],
-        "operationId": "Auth_Register",
-        "requestBody": {
-          "x-name": "request",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
-            }
+        "operationId": "Analytics_GetSpending",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
           },
-          "required": true,
-          "x-position": 1
-        },
+          {
+            "name": "referenceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
         "responses": {
-          "201": {
+          "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
+                  "$ref": "#/components/schemas/SpendingAnalyticsDto"
                 }
               }
             }
           },
           "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "",
             "content": {
               "application/json": {
@@ -417,6 +435,36 @@
         }
       }
     },
+    "/api/Budgets/summary": {
+      "get": {
+        "tags": [
+          "Budgets"
+        ],
+        "operationId": "Budgets_GetSummary",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetSummaryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Budgets/alerts": {
       "get": {
         "tags": [
@@ -708,6 +756,68 @@
             }
           },
           "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Dashboard/summary": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "operationId": "Dashboard_GetSummary",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "",
             "content": {
               "application/json": {
@@ -2023,21 +2133,58 @@
   },
   "components": {
     "schemas": {
-      "AuthResponse": {
+      "SpendingAnalyticsDto": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "accessToken": {
+          "periodLabel": {
             "type": "string"
           },
-          "refreshToken": {
+          "totalSpent": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "previousPeriodTotal": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "percentageChangeVsPrevious": {
+            "type": "number",
+            "format": "decimal",
+            "nullable": true
+          },
+          "byCategory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategorySpendingDto"
+            }
+          }
+        }
+      },
+      "CategorySpendingDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "guid"
+          },
+          "categoryName": {
             "type": "string"
           },
-          "userId": {
+          "categoryIcon": {
             "type": "string"
           },
-          "email": {
+          "categoryColor": {
             "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "percentage": {
+            "type": "number",
+            "format": "decimal"
           }
         }
       },
@@ -2074,17 +2221,20 @@
           }
         }
       },
-      "RegisterRequest": {
+      "AuthResponse": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
           "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "userName": {
             "type": "string"
           }
         }
@@ -2205,6 +2355,103 @@
           }
         }
       },
+      "BudgetSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "overallProgress": {
+            "$ref": "#/components/schemas/BudgetOverallProgressDto"
+          },
+          "budgets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetProgressDto"
+            }
+          }
+        }
+      },
+      "BudgetOverallProgressDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "totalBudgeted": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "totalSpent": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "percentSpent": {
+            "type": "number",
+            "format": "decimal"
+          }
+        }
+      },
+      "BudgetProgressDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "guid"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "categoryIcon": {
+            "type": "string"
+          },
+          "categoryColor": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "spent": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "percentSpent": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "statusCode": {
+            "$ref": "#/components/schemas/BudgetStatusEnum"
+          },
+          "statusTitle": {
+            "type": "string"
+          },
+          "insightTip": {
+            "type": "string"
+          }
+        }
+      },
+      "BudgetStatusEnum": {
+        "type": "integer",
+        "description": "",
+        "x-enumNames": [
+          "OnTrack",
+          "Good",
+          "NearLimit",
+          "OverBudget"
+        ],
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
       "BudgetAlertDto": {
         "type": "object",
         "additionalProperties": false,
@@ -2285,6 +2532,94 @@
             "type": "string"
           },
           "color": {
+            "type": "string"
+          }
+        }
+      },
+      "DashboardSummaryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "monthlyBalance": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "totalExpenses": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "weeklySpending": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailySpendingDto"
+            }
+          },
+          "recentTransactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyTransactionGroupDto"
+            }
+          }
+        }
+      },
+      "DailySpendingDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dayLabel": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          }
+        }
+      },
+      "DailyTransactionGroupDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentTransactionDto"
+            }
+          }
+        }
+      },
+      "RecentTransactionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "guid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "merchantName": {
+            "type": "string"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "categoryIcon": {
+            "type": "string"
+          },
+          "categoryColor": {
+            "type": "string"
+          },
+          "walletName": {
             "type": "string"
           }
         }
