@@ -95,20 +95,22 @@ export default function AddExpenseScreen() {
     }
 
     try {
-      // `CreateTransactionRequest` does not have `type` or `description` fields —
-      // the backend infers direction from sign/category. We store the category
-      // name as merchantName for display purposes and use `transactionDate`.
       const signedAmount = txType === 'expense' ? -Math.abs(numericAmount) : Math.abs(numericAmount)
-      await createTransaction({
+      const payload = {
         walletId: resolvedWallet.id,
         categoryId: selectedCategory.id,
         amount: signedAmount,
         merchantName: selectedCategory.name,
         transactionDate: autoDate ? new Date() : selectedDate,
         paymentMethod: 'Card',
-      })
+        isDraft: false,
+      }
+      console.log('[AddExpense] payload:', JSON.stringify(payload))
+      await createTransaction(payload)
       router.back()
-    } catch {
+    } catch (err: unknown) {
+      const e = err as { status?: number; response?: string; message?: string }
+      console.error('[AddExpense] create error:', JSON.stringify({ status: e?.status, response: e?.response, message: e?.message }))
       Alert.alert('Error', 'Could not save the transaction. Please try again.')
     }
   }
