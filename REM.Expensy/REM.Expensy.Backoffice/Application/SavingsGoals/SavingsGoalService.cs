@@ -77,10 +77,21 @@ public class SavingsGoalService(IContext context, IMilestoneProgressionService m
         };
 
         await _context.SavingsGoals.AddAsync(goal, ct).ConfigureAwait(false);
+
+        // Auto-generate milestone scaffolding.
+        // We only do this if the caller did NOT supply milestones.
+        // (The CreateSavingsGoalRequest record does not currently carry milestones,
+        //  so this block always runs. If you later add milestone support to the request,
+        //  gate this with: if (request.Milestones is null || request.Milestones.Count == 0))
+        var autoMilestones = await BuildAutoMilestonesAsync(goal, ct).ConfigureAwait(false);
+
+        await _context.Milestones.AddRangeAsync(autoMilestones, ct).ConfigureAwait(false);
         await _context.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        return MapToDto(goal, []);
+        // Re-query so MapToDto has fully populated milestones (including their Status nav).
+        return (await GetByIdAsync(goal.Id, userId, ct).ConfigureAwait(false))!;
     }
+
 
     /// <inheritdoc/>
     public async Task<SavingsGoalDto?> UpdateAsync(Guid id, UpdateSavingsGoalRequest request, string userId, CancellationToken ct = default)
@@ -253,5 +264,63 @@ public class SavingsGoalService(IContext context, IMilestoneProgressionService m
             goal.MonthlyContribution,
             goal.TargetDate,
             milestoneDtos);
+    }
+
+    /// <summary>
+    /// Builds three auto-generated milestones at 25%, 50%, and 75% of the goal's target amount.
+    /// The milestone TargetDates are spread evenly between today and the goal's TargetDate.
+    /// </summary>
+    private async Task<Milestone[]> BuildAutoMilestonesAsync(SavingsGoal goal, CancellationToken ct)
+    {
+        // Look up the "NotStarted" status — milestones begin locked.
+        var notStartedStatus = await _context.MilestoneStatuses
+            .AsNoTracking()
+            .Where(s => s.Code == MilestoneStatusEnum.NotStarted)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                "MilestoneStatus 'NotStarted' is not seeded. Run the SeedReferenceData migration.");
+
+        // Calculate the total span from today to the target date, in days.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var totalDays = goal.TargetDate.DayNumber - today.DayNumber;
+
+        // We'll space the milestone dates at 25%, 50%, and 75% of the timeline.
+        // If totalDays <= 0 (target in the past), all three get the target date — degenerate case.
+        DateOnly MilestoneDate(double fraction) =>
+            totalDays > 0
+                ? today.AddDays((int)(totalDays * fraction))
+                : goal.TargetDate;
+
+        return
+            [
+                new Milestone
+                {
+                    GoalId = goal.Id,
+                    Name = "Quarter Way There",            // 25% milestone label
+                    TargetAmount = goal.TargetAmount * 0.25m,
+                    TargetDate = MilestoneDate(0.25),
+                    StatusId = notStartedStatus.Id,
+                    AchievedAt = null
+                },
+                new Milestone
+                {
+                    GoalId = goal.Id,
+                    Name = "Halfway There",                // 50% milestone label
+                    TargetAmount = goal.TargetAmount * 0.50m,
+                    TargetDate = MilestoneDate(0.50),
+                    StatusId = notStartedStatus.Id,
+                    AchievedAt = null
+                },
+                new Milestone
+                {
+                    GoalId = goal.Id,
+                    Name = "Almost There",                 // 75% milestone label
+                    TargetAmount = goal.TargetAmount * 0.75m,
+                    TargetDate = MilestoneDate(0.75),
+                    StatusId = notStartedStatus.Id,
+                    AchievedAt = null
+                }
+            ];
     }
 }
