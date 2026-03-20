@@ -52,7 +52,7 @@ export default function DashboardScreen() {
     data: txData,
     isLoading: txLoading,
     refetch: refetchTx,
-  } = useTransactions({ page: 1, limit: 30 })
+  } = useTransactions()
 
   const { data: unreadCount } = useNotificationsUnreadCount()
 
@@ -63,8 +63,8 @@ export default function DashboardScreen() {
     refetchTx()
   }, [refetchWallets, refetchTx])
 
-  const totalBalance = wallets ? getTotalBalance(wallets.map((w) => w.balance)) : 0
-  const transactions = txData?.items ?? []
+  const totalBalance = wallets ? getTotalBalance(wallets.map((w) => w.balance ?? 0)) : 0
+  const transactions = txData ?? []
 
   const initials = user ? getInitials(user.email) : 'ME'
   const displayName = user?.email.split('@')[0] ?? 'there'

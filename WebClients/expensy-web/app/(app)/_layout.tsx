@@ -104,7 +104,6 @@ export default function AppLayout() {
         name="add-expense"
         options={{
           href: null,            // hides from tab bar
-          presentation: 'modal',
         }}
       />
       {/* Notifications — accessible via bell icon on Dashboard, not a tab */}

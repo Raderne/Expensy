@@ -8,6 +8,7 @@ import type { NotificationDto } from '@/api/types'
 interface NotificationItemProps {
   notification: NotificationDto
   onPress?: (id: string) => void
+  onLongPress?: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ function formatRelativeTime(date: Date | undefined): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function NotificationItem({ notification, onPress }: NotificationItemProps) {
+export function NotificationItem({ notification, onPress, onLongPress }: NotificationItemProps) {
   const isUnread = !(notification.isRead ?? true)
 
   function handlePress() {
@@ -50,6 +51,7 @@ export function NotificationItem({ notification, onPress }: NotificationItemProp
     <TouchableOpacity
       style={[styles.container, isUnread && styles.containerUnread]}
       onPress={handlePress}
+      onLongPress={onLongPress}
       activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={notification.title ?? 'Notification'}

@@ -10,8 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { CreditCard } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
-import { useSubscriptions, useUpcomingSubscriptions } from '@/hooks/useSubscriptions'
+import {
+  useSubscriptions,
+  useUpcomingSubscriptions,
+  useRemindSubscription,
+} from '@/hooks/useSubscriptions'
 import { SubscriptionCard } from '@/components/subscriptions/SubscriptionCard'
+import type { SubscriptionDto } from '@/api/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,23 +30,6 @@ function formatCurrency(amount: number): string {
 }
 
 // ─── Summary Card ─────────────────────────────────────────────────────────────
-
-// TODO: API — the backend does not yet expose a SubscriptionSummaryDto with
-// totalMonthlySpend. Once GET /api/subscriptions/summary is available, replace
-// this local computation with the server-side value.
-function computeMonthlyTotal(subscriptions: { amount?: number; cycleName?: string; isActive?: boolean }[]): number {
-  return subscriptions
-    .filter((s) => s.isActive !== false)
-    .reduce((sum, s) => {
-      const amount = s.amount ?? 0
-      const cycle = (s.cycleName ?? '').toLowerCase()
-      // Normalise all cycles to a monthly equivalent
-      if (cycle === 'daily') return sum + amount * 30
-      if (cycle === 'weekly') return sum + amount * 4.33
-      if (cycle === 'yearly' || cycle === 'annual') return sum + amount / 12
-      return sum + amount // default: monthly
-    }, 0)
-}
 
 interface SummaryCardProps {
   total: number
@@ -64,10 +52,41 @@ function SummaryCard({ total, loading }: SummaryCardProps) {
 
 // ─── Upcoming Section ─────────────────────────────────────────────────────────
 
+interface UpcomingItemProps {
+  subscription: SubscriptionDto
+  onRemind: (id: string) => void
+  isReminding: boolean
+}
+
+function UpcomingItem({ subscription, onRemind, isReminding }: UpcomingItemProps) {
+  function handleRemind() {
+    if (subscription.id) {
+      onRemind(subscription.id)
+    }
+  }
+
+  return (
+    <View style={styles.upcomingItem}>
+      <View style={styles.upcomingItemLeft}>
+        <SubscriptionCard subscription={subscription} />
+      </View>
+      <TouchableOpacity
+        style={[styles.remindButton, isReminding && styles.remindButtonDisabled]}
+        onPress={handleRemind}
+        disabled={isReminding}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={`Remind me about ${subscription.name ?? 'subscription'}`}
+      >
+        <Text style={styles.remindButtonText}>Remind</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}
+
 function UpcomingSection() {
-  // TODO: API — subscriptionsClient.getUpcoming() when backend adds GET /api/subscriptions/upcoming
-  // The useUpcomingSubscriptions hook always returns [] until the endpoint exists.
   const { data: upcoming } = useUpcomingSubscriptions()
+  const { mutate: remind, isPending: isReminding } = useRemindSubscription()
 
   if (!upcoming || upcoming.length === 0) {
     return (
@@ -82,7 +101,12 @@ function UpcomingSection() {
   return (
     <View style={styles.cardList}>
       {upcoming.map((s) => (
-        <SubscriptionCard key={s.id} subscription={s} />
+        <UpcomingItem
+          key={s.id}
+          subscription={s}
+          onRemind={remind}
+          isReminding={isReminding}
+        />
       ))}
     </View>
   )
@@ -135,8 +159,9 @@ export default function SubscriptionsScreen() {
     refetch()
   }, [refetch])
 
-  const isEmpty = !isLoading && !isError && (!data || data.length === 0)
-  const monthlyTotal = data ? computeMonthlyTotal(data) : 0
+  const subscriptions = data?.subscriptions ?? []
+  const monthlyTotal = data?.totalMonthlySpend ?? 0
+  const isEmpty = !isLoading && !isError && subscriptions.length === 0
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -180,7 +205,7 @@ export default function SubscriptionsScreen() {
                 <Text style={styles.sectionTitle}>All Subscriptions</Text>
                 {!isLoading ? (
                   <Text style={styles.sectionCount}>
-                    {data?.length ?? 0} total
+                    {subscriptions.length} total
                   </Text>
                 ) : null}
               </View>
@@ -189,7 +214,7 @@ export default function SubscriptionsScreen() {
                   ? Array.from({ length: 3 }).map((_, i) => (
                       <View key={i} style={styles.skeletonCard} />
                     ))
-                  : data?.map((s) => (
+                  : subscriptions.map((s) => (
                       <SubscriptionCard key={s.id} subscription={s} />
                     ))}
               </View>
@@ -298,6 +323,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.dark.text.muted,
     fontWeight: '500',
+  },
+  // Upcoming item with remind button
+  upcomingItem: {
+    gap: 8,
+  },
+  upcomingItemLeft: {
+    flex: 1,
+  },
+  remindButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: Colors.purple[600],
+  },
+  remindButtonDisabled: {
+    opacity: 0.5,
+  },
+  remindButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   // Skeleton
   skeletonCard: {

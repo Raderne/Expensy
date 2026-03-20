@@ -3,7 +3,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, G } from 'react-native-svg'
 import { TrendingDown, TrendingUp } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
-import type { CategorySpendingDtoDto } from '@/api/types'
+import type { CategorySpendingDto } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,9 +53,9 @@ function buildSegments(categories: CategorySpendingDto[]): Segment[] {
   let cursor = -90 // start at the top
 
   categories.forEach((cat, idx) => {
-    const sweep = (cat.percentage / 100) * totalDeg
+    const sweep = ((cat.percentage ?? 0) / 100) * totalDeg
     segments.push({
-      color: cat.categoryColor || FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
+      color: cat.categoryColor ?? FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
       startAngle: cursor,
       sweepAngle: sweep,
     })

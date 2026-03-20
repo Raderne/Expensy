@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react'
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,8 +16,10 @@ import {
   useNotifications,
   useMarkNotificationAsRead,
   useMarkAllNotificationsAsRead,
+  useDeleteNotification,
 } from '@/hooks/useNotifications'
 import { NotificationItem } from '@/components/notifications/NotificationItem'
+import type { NotificationDto } from '@/api/types'
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
@@ -71,25 +74,68 @@ function NotificationSkeleton() {
   )
 }
 
+// ─── Deletable Notification Item ──────────────────────────────────────────────
+
+interface DeletableNotificationItemProps {
+  notification: NotificationDto
+  onPress: (id: string) => void
+  onDelete: (id: string) => void
+}
+
+function DeletableNotificationItem({
+  notification,
+  onPress,
+  onDelete,
+}: DeletableNotificationItemProps) {
+  function handleLongPress() {
+    if (!notification.id) return
+
+    const id = notification.id
+    Alert.alert(
+      'Delete Notification',
+      'Remove this notification?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDelete(id),
+        },
+      ],
+      { cancelable: true },
+    )
+  }
+
+  return (
+    <NotificationItem
+      notification={notification}
+      onPress={onPress}
+      onLongPress={handleLongPress}
+    />
+  )
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
   const { data, isLoading, isError, refetch } = useNotifications()
   const { mutate: markAsRead } = useMarkNotificationAsRead()
   const { mutate: markAllAsRead, isPending: isMarkingAll } = useMarkAllNotificationsAsRead()
+  const { mutate: deleteNotification } = useDeleteNotification()
 
   const onRefresh = useCallback(() => {
     refetch()
   }, [refetch])
 
+  // data is NotificationPagedResult — items is the list, unreadCount is the badge
+  const items = data?.items ?? []
+
   // Sort newest first
-  const sorted = data
-    ? [...data].sort((a, b) => {
-        const tA = a.created ? new Date(a.created).getTime() : 0
-        const tB = b.created ? new Date(b.created).getTime() : 0
-        return tB - tA
-      })
-    : []
+  const sorted = [...items].sort((a, b) => {
+    const tA = a.created ? new Date(a.created).getTime() : 0
+    const tB = b.created ? new Date(b.created).getTime() : 0
+    return tB - tA
+  })
 
   const isEmpty = !isLoading && !isError && sorted.length === 0
   const hasUnread = sorted.some((n) => !n.isRead)
@@ -102,6 +148,10 @@ export default function NotificationsScreen() {
 
   function handleItemPress(id: string) {
     markAsRead(id)
+  }
+
+  function handleItemDelete(id: string) {
+    deleteNotification(id)
   }
 
   return (
@@ -161,10 +211,11 @@ export default function NotificationsScreen() {
             <EmptyState />
           ) : (
             sorted.map((notification) => (
-              <NotificationItem
+              <DeletableNotificationItem
                 key={notification.id}
                 notification={notification}
                 onPress={handleItemPress}
+                onDelete={handleItemDelete}
               />
             ))
           )}

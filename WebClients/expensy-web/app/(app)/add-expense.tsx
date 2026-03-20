@@ -18,8 +18,7 @@ import { useWallets } from '@/hooks/useWallets'
 import { useCategories } from '@/hooks/useCategories'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useNumPad } from '@/hooks/useNumPad'
-import { WalletDto } from '@/api/wallets.api'
-import { CategoryDto } from '@/api/categories.api'
+import type { WalletDto, CategoryDto } from '@/api/types'
 import { NumPad } from '@/components/expense/NumPad'
 import { WalletSelector } from '@/components/expense/WalletSelector'
 import { CategoryChipSelector } from '@/components/expense/CategoryChipSelector'
@@ -96,15 +95,16 @@ export default function AddExpenseScreen() {
     }
 
     try {
+      // `CreateTransactionRequest` does not have `type` or `description` fields —
+      // the backend infers direction from sign/category. We store the category
+      // name as merchantName for display purposes and use `transactionDate`.
+      const signedAmount = txType === 'expense' ? -Math.abs(numericAmount) : Math.abs(numericAmount)
       await createTransaction({
         walletId: resolvedWallet.id,
         categoryId: selectedCategory.id,
-        amount: numericAmount,
-        type: txType,
-        description: selectedCategory.name,
-        date: autoDate
-          ? new Date().toISOString()
-          : selectedDate.toISOString(),
+        amount: signedAmount,
+        merchantName: selectedCategory.name,
+        transactionDate: autoDate ? new Date() : selectedDate,
         paymentMethod: 'Card',
       })
       router.back()
