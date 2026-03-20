@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { Colors } from '@/constants/colors'
 import { useWallets } from '@/hooks/useWallets'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useNotificationsUnreadCount } from '@/hooks/useNotifications'
 import { BalanceCard } from '@/components/dashboard/BalanceCard'
 import { WeeklySpendingChart } from '@/components/dashboard/WeeklySpendingChart'
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList'
@@ -53,6 +54,8 @@ export default function DashboardScreen() {
     refetch: refetchTx,
   } = useTransactions({ page: 1, limit: 30 })
 
+  const { data: unreadCount } = useNotificationsUnreadCount()
+
   const isRefreshing = walletsLoading || txLoading
 
   const onRefresh = useCallback(() => {
@@ -87,12 +90,19 @@ export default function DashboardScreen() {
         <TouchableOpacity
           style={styles.bellButton}
           activeOpacity={0.75}
+          onPress={() => router.push('/(app)/notifications')}
           accessibilityRole="button"
-          accessibilityLabel="Notifications"
+          accessibilityLabel={
+            unreadCount && unreadCount > 0
+              ? `Notifications, ${unreadCount} unread`
+              : 'Notifications'
+          }
         >
           <Bell size={22} color={Colors.dark.text.primary} strokeWidth={1.8} />
-          {/* Pulse badge */}
-          <View style={styles.badge} />
+          {/* Unread badge — only shown when there are unread notifications */}
+          {unreadCount && unreadCount > 0 ? (
+            <View style={styles.badge} />
+          ) : null}
         </TouchableOpacity>
       </View>
 

@@ -7,6 +7,7 @@ import {
   PieChart,
   PiggyBank,
   BarChart2,
+  CreditCard,
 } from 'lucide-react-native'
 import { useAuthStore } from '@/store/auth.store'
 import { Colors } from '@/constants/colors'
@@ -81,6 +82,15 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="subscriptions"
+        options={{
+          title: 'Subscriptions',
+          tabBarIcon: ({ color, size }) => (
+            <CreditCard size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="analytics"
         options={{
           title: 'Analytics',
@@ -95,6 +105,13 @@ export default function AppLayout() {
         options={{
           href: null,            // hides from tab bar
           presentation: 'modal',
+        }}
+      />
+      {/* Notifications — accessible via bell icon on Dashboard, not a tab */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,            // hides from tab bar
         }}
       />
     </Tabs>
