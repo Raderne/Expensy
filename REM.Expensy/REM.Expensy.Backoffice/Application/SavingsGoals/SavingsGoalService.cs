@@ -8,14 +8,10 @@ namespace REM.Expensy.Backoffice.Application.SavingsGoals;
 /// <summary>
 /// Handles CRUD operations for savings goals and milestones, scoped to the requesting user.
 /// </summary>
-public class SavingsGoalService : ISavingsGoalService
+public class SavingsGoalService(IContext context, IMilestoneProgressionService milestoneProgressionService) : ISavingsGoalService
 {
-    private readonly IContext _context;
-
-    public SavingsGoalService(IContext context)
-    {
-        _context = context;
-    }
+    private readonly IContext _context = context;
+    private readonly IMilestoneProgressionService _milestoneProgressionService = milestoneProgressionService;
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<SavingsGoalDto>> GetAllForUserAsync(string userId, CancellationToken ct = default)
@@ -129,6 +125,7 @@ public class SavingsGoalService : ISavingsGoalService
     /// <inheritdoc/>
     public async Task<SavingsGoalDto?> AddFundsAsync(Guid id, AddFundsRequest request, string userId, CancellationToken ct = default)
     {
+        // Load the goal — tracked (no AsNoTracking) because we will modify CurrentAmount.
         var goal = await _context.SavingsGoals
             .Where(g => g.Id == id && g.UserId == userId)
             .FirstOrDefaultAsync(ct)
@@ -137,15 +134,53 @@ public class SavingsGoalService : ISavingsGoalService
         if (goal is null)
             return null;
 
-        if (goal.CurrentAmount + request.Amount > goal.TargetAmount)
-            throw new InvalidOperationException(
-                $"Deposit of {request.Amount:C} would exceed the target amount of {goal.TargetAmount:C}. " +
-                $"Maximum allowed deposit: {goal.TargetAmount - goal.CurrentAmount:C}.");
+        // CAP LOGIC (changed from the original throw):
+        // If the user tries to deposit more than the remaining balance, we accept the deposit
+        // but only credit up to the target. This is friendlier than rejecting the request.
+        // Example: goal target = $1000, current = $800, user deposits $300.
+        //   effectiveAmount = Min(300, 1000 - 800) = Min(300, 200) = $200.
+        //   The goal reaches exactly $1000, not $1100.
+        var effectiveAmount = Math.Min(request.Amount, goal.TargetAmount - goal.CurrentAmount);
 
-        goal.CurrentAmount += request.Amount;
+        // If the goal is already full (currentAmount == targetAmount), effectiveAmount will be 0.
+        // No-op — return the current state without touching the DB.
+        if (effectiveAmount <= 0)
+            return await GetByIdAsync(id, userId, ct).ConfigureAwait(false); // Synchronously wait since we're not modifying anything.
 
-        await _context.SaveChangesAsync(ct).ConfigureAwait(false);
+        // Open a database transaction.
+        // Everything inside must succeed or nothing is committed.
+        await _context.BeginTransactionAsync().ConfigureAwait(false);
 
+        try
+        {
+            // Apply the (possibly capped) deposit.
+            goal.CurrentAmount += effectiveAmount;
+
+            // Evaluate milestones — this modifies milestone entities tracked by EF
+            // and queues new Notification records. It does NOT call SaveChangesAsync.
+            await _milestoneProgressionService
+                .EvaluateAsync(id, userId, ct)
+                .ConfigureAwait(false);
+
+            // Single SaveChangesAsync commits all of:
+            //   - the updated goal.CurrentAmount
+            //   - any milestone status changes from EvaluateAsync
+            //   - any new Notification rows from EvaluateAsync
+            await _context.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            // Commit the transaction. If this throws, EF rolls back automatically
+            // because we have not disposed the transaction yet.
+            await _context.CommitTransactionAsync(ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Something went wrong after BeginTransactionAsync.
+            // Roll back so we do not persist a half-updated goal.
+            _context.RollbackTransaction();
+            throw; // re-throw so the controller can log and return 500
+        }
+
+        // Re-query with all navigation properties populated for the response DTO.
         return await GetByIdAsync(id, userId, ct).ConfigureAwait(false);
     }
 
