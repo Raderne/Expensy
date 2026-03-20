@@ -9,16 +9,6 @@ import {
 import { Colors } from '@/constants/colors'
 import type { CategoryDto } from '@/api/types'
 
-// Fallback categories when API data is unavailable
-const FALLBACK_CATEGORIES: CategoryDto[] = [
-  { id: 'shopping', name: 'Shopping', icon: '🛍️', color: '#B04EFF', isSystem: true },
-  { id: 'dining', name: 'Dining', icon: '🍔', color: '#F97316', isSystem: true },
-  { id: 'groceries', name: 'Groceries', icon: '🛒', color: '#22C55E', isSystem: true },
-  { id: 'transport', name: 'Transport', icon: '🚌', color: '#3B82F6', isSystem: true },
-  { id: 'health', name: 'Health', icon: '💊', color: '#EF4444', isSystem: true },
-  { id: 'entertainment', name: 'Entertainment', icon: '🎬', color: '#F59E0B', isSystem: true },
-]
-
 interface CategoryChipSelectorProps {
   categories?: CategoryDto[]
   selectedCategoryId: string | null
@@ -32,8 +22,6 @@ export function CategoryChipSelector({
   onSelect,
   loading = false,
 }: CategoryChipSelectorProps) {
-  const items = categories && categories.length > 0 ? categories : FALLBACK_CATEGORIES
-
   if (loading) {
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
@@ -51,7 +39,7 @@ export function CategoryChipSelector({
       style={styles.scroll}
       contentContainerStyle={styles.content}
     >
-      {items.map((cat) => {
+      {(categories ?? []).map((cat) => {
         const isSelected = cat.id === selectedCategoryId
         return (
           <TouchableOpacity

@@ -27,6 +27,7 @@ export type {
   RecentTransactionDto,
   // Notifications
   NotificationDto,
+  NotificationPagedResult,
   // Savings Goals
   SavingsGoalDto,
   MilestoneDto,
@@ -36,6 +37,7 @@ export type {
   CreateMilestoneRequest,
   // Subscriptions
   SubscriptionDto,
+  SubscriptionSummaryDto,
   SubscriptionCycleDto,
   CreateSubscriptionRequest,
   UpdateSubscriptionRequest,

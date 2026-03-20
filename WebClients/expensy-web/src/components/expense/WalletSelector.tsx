@@ -49,7 +49,7 @@ export function WalletSelector({
       </Text>
       {selected && (
         <Text style={styles.balance}>
-          {selected.currency} {selected.balance.toFixed(2)}
+          ${(selected.balance ?? 0).toFixed(2)}
         </Text>
       )}
       <ChevronDown size={16} color={Colors.dark.text.muted} strokeWidth={2} />

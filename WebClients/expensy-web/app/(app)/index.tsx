@@ -1,70 +1,58 @@
-import React, { useCallback } from 'react'
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
-import { Bell, Plus } from 'lucide-react-native'
-import { useAuthStore } from '@/store/auth.store'
-import { Colors } from '@/constants/colors'
-import { useWallets } from '@/hooks/useWallets'
-import { useTransactions } from '@/hooks/useTransactions'
-import { BalanceCard } from '@/components/dashboard/BalanceCard'
-import { WeeklySpendingChart } from '@/components/dashboard/WeeklySpendingChart'
-import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList'
-import { Card } from '@/components/ui/Card'
+import React, { useCallback } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Bell, Plus } from 'lucide-react-native';
+import { useAuthStore } from '@/store/auth.store';
+import { Colors } from '@/constants/colors';
+import { useWallets } from '@/hooks/useWallets';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useNotificationsUnreadCount } from '@/hooks/useNotifications';
+import { BalanceCard } from '@/components/dashboard/BalanceCard';
+import { WeeklySpendingChart } from '@/components/dashboard/WeeklySpendingChart';
+import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
+import { Card } from '@/components/ui/Card';
 
 // ─── Avatar / Initials helper ─────────────────────────────────────────────────
 
 function getInitials(email: string): string {
-  const name = email.split('@')[0]
-  const parts = name.split(/[._-]/)
+  const name = email.split('@')[0];
+  const parts = name.split(/[._-]/);
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase()
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  return name.slice(0, 2).toUpperCase()
+  return name.slice(0, 2).toUpperCase();
 }
 
 // ─── Derived totals ────────────────────────────────────────────────────────────
 
 function getTotalBalance(balances: number[]): number {
-  return balances.reduce((sum, b) => sum + b, 0)
+  return balances.reduce((sum, b) => sum + b, 0);
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
-  const { user } = useAuthStore()
+  const { user } = useAuthStore();
 
-  const {
-    data: wallets,
-    isLoading: walletsLoading,
-    refetch: refetchWallets,
-  } = useWallets()
+  const { data: wallets, isLoading: walletsLoading, refetch: refetchWallets } = useWallets();
 
-  const {
-    data: txData,
-    isLoading: txLoading,
-    refetch: refetchTx,
-  } = useTransactions({ page: 1, limit: 30 })
+  const { data: txData, isLoading: txLoading, refetch: refetchTx } = useTransactions();
 
-  const isRefreshing = walletsLoading || txLoading
+  const { data: unreadCount } = useNotificationsUnreadCount();
+
+  const isRefreshing = walletsLoading || txLoading;
 
   const onRefresh = useCallback(() => {
-    refetchWallets()
-    refetchTx()
-  }, [refetchWallets, refetchTx])
+    refetchWallets();
+    refetchTx();
+  }, [refetchWallets, refetchTx]);
 
-  const totalBalance = wallets ? getTotalBalance(wallets.map((w) => w.balance)) : 0
-  const transactions = txData?.items ?? []
+  const totalBalance = wallets ? getTotalBalance(wallets.map((w) => w.balance ?? 0)) : 0;
+  const transactions = txData ?? [];
 
-  const initials = user ? getInitials(user.email) : 'ME'
-  const displayName = user?.email.split('@')[0] ?? 'there'
+  const initials = user ? getInitials(user.email) : 'ME';
+  const displayName = user?.email.split('@')[0] ?? 'there';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -87,12 +75,13 @@ export default function DashboardScreen() {
         <TouchableOpacity
           style={styles.bellButton}
           activeOpacity={0.75}
-          accessibilityRole="button"
-          accessibilityLabel="Notifications"
+          onPress={() => router.push('/(app)/notifications')}
+          accessibilityRole='button'
+          accessibilityLabel={unreadCount && unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
         >
           <Bell size={22} color={Colors.dark.text.primary} strokeWidth={1.8} />
-          {/* Pulse badge */}
-          <View style={styles.badge} />
+          {/* Unread badge — only shown when there are unread notifications */}
+          {unreadCount && unreadCount > 0 ? <View style={styles.badge} /> : null}
         </TouchableOpacity>
       </View>
 
@@ -101,21 +90,10 @@ export default function DashboardScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.purple[500]}
-            colors={[Colors.purple[500]]}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={Colors.purple[500]} colors={[Colors.purple[500]]} />}
       >
         {/* Balance card */}
-        <BalanceCard
-          balance={totalBalance}
-          loading={walletsLoading}
-          label="Total Balance"
-        />
+        <BalanceCard balance={totalBalance} loading={walletsLoading} label='Total Balance' />
 
         {/* Weekly spending */}
         <View style={styles.section}>
@@ -134,18 +112,12 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push('/(app)/transactions')}
-            >
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(app)/transactions')}>
               <Text style={styles.viewAll}>View All</Text>
             </TouchableOpacity>
           </View>
           <Card>
-            <RecentTransactionsList
-              transactions={transactions}
-              loading={txLoading}
-            />
+            <RecentTransactionsList transactions={transactions} loading={txLoading} />
           </Card>
         </View>
 
@@ -158,13 +130,13 @@ export default function DashboardScreen() {
         style={styles.fab}
         activeOpacity={0.85}
         onPress={() => router.push('/(app)/add-expense')}
-        accessibilityRole="button"
-        accessibilityLabel="Add new expense"
+        accessibilityRole='button'
+        accessibilityLabel='Add new expense'
       >
-        <Plus size={26} color="#FFFFFF" strokeWidth={2.5} />
+        <Plus size={26} color='#FFFFFF' strokeWidth={2.5} />
       </TouchableOpacity>
     </SafeAreaView>
-  )
+  );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -266,7 +238,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 90,    // sits above the tab bar (~80px) with 10px gap
+    bottom: 20, // sits above the tab bar (~80px) with 10px gap
     right: 20,
     width: 58,
     height: 58,
@@ -280,4 +252,4 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-})
+});

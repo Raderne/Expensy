@@ -39,6 +39,9 @@ public static class ApplicationDependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
 
+        // Phase 4
+        services.AddScoped<IMilestoneProgressionService, MilestoneProgressionService>();
+
         services.AddControllers()
             .AddNewtonsoftJson(options =>
             {

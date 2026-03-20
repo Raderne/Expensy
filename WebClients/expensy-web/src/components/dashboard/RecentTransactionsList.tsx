@@ -18,8 +18,13 @@ interface RecentTransactionsListProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getSectionTitle(dateStr: string): string {
-  const date = parseISO(dateStr)
+function toDateString(date: Date | undefined): string {
+  if (!date) return new Date().toISOString().slice(0, 10)
+  return new Date(date).toISOString()
+}
+
+function getSectionTitle(dateIso: string): string {
+  const date = parseISO(dateIso)
   if (isToday(date)) return 'TODAY'
   if (isYesterday(date)) return 'YESTERDAY'
   return format(date, 'MMMM d, yyyy')
@@ -29,7 +34,7 @@ function groupByDate(transactions: TransactionDto[]): Section[] {
   const map = new Map<string, TransactionDto[]>()
 
   for (const tx of transactions) {
-    const key = getSectionTitle(tx.date)
+    const key = getSectionTitle(toDateString(tx.transactionDate))
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(tx)
   }
@@ -44,9 +49,14 @@ function getCategoryInitial(name: string): string {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function TransactionItem({ item }: { item: TransactionDto }) {
-  const isExpense = item.type === 'expense'
+  // TransactionDto has no `type` field — treat negative amounts as expenses
+  const amount = item.amount ?? 0
+  const isExpense = amount <= 0
   const amountColor = isExpense ? Colors.dark.danger : Colors.dark.success
-  const amountSign = isExpense ? '-' : '+'
+  const amountSign = isExpense ? '' : '+'
+
+  const categoryName = item.categoryName ?? 'Transaction'
+  const label = item.merchantName ?? categoryName
 
   return (
     <View style={styles.item}>
@@ -60,27 +70,29 @@ function TransactionItem({ item }: { item: TransactionDto }) {
         <Text
           style={[
             styles.iconText,
-            { color: item.categoryColor || Colors.purple[500] },
+            { color: item.categoryColor ?? Colors.purple[500] },
           ]}
         >
-          {getCategoryInitial(item.categoryName || 'T')}
+          {getCategoryInitial(categoryName)}
         </Text>
       </View>
 
       {/* Details */}
       <View style={styles.details}>
         <Text style={styles.description} numberOfLines={1}>
-          {item.description || item.categoryName}
+          {label}
         </Text>
         <Text style={styles.meta}>
-          {format(parseISO(item.date), 'h:mm a')}
+          {item.transactionDate
+            ? format(parseISO(toDateString(item.transactionDate)), 'h:mm a')
+            : ''}
           {item.paymentMethod ? ` · ${item.paymentMethod}` : ''}
         </Text>
       </View>
 
       {/* Amount */}
       <Text style={[styles.amount, { color: amountColor }]}>
-        {amountSign}${Math.abs(item.amount).toFixed(2)}
+        {amountSign}${Math.abs(amount).toFixed(2)}
       </Text>
     </View>
   )
@@ -137,7 +149,7 @@ export function RecentTransactionsList({
   return (
     <SectionList
       sections={sections}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.id ?? Math.random().toString()}
       renderItem={({ item }) => <TransactionItem item={item} />}
       renderSectionHeader={({ section: { title } }) => (
         <SectionHeader title={title} />

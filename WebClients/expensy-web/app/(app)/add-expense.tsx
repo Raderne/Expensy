@@ -18,8 +18,7 @@ import { useWallets } from '@/hooks/useWallets'
 import { useCategories } from '@/hooks/useCategories'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useNumPad } from '@/hooks/useNumPad'
-import { WalletDto } from '@/api/wallets.api'
-import { CategoryDto } from '@/api/categories.api'
+import type { WalletDto, CategoryDto } from '@/api/types'
 import { NumPad } from '@/components/expense/NumPad'
 import { WalletSelector } from '@/components/expense/WalletSelector'
 import { CategoryChipSelector } from '@/components/expense/CategoryChipSelector'
@@ -96,19 +95,22 @@ export default function AddExpenseScreen() {
     }
 
     try {
-      await createTransaction({
+      const signedAmount = txType === 'expense' ? -Math.abs(numericAmount) : Math.abs(numericAmount)
+      const payload = {
         walletId: resolvedWallet.id,
         categoryId: selectedCategory.id,
-        amount: numericAmount,
-        type: txType,
-        description: selectedCategory.name,
-        date: autoDate
-          ? new Date().toISOString()
-          : selectedDate.toISOString(),
+        amount: signedAmount,
+        merchantName: selectedCategory.name,
+        transactionDate: autoDate ? new Date() : selectedDate,
         paymentMethod: 'Card',
-      })
+        isDraft: false,
+      }
+      console.log('[AddExpense] payload:', JSON.stringify(payload))
+      await createTransaction(payload)
       router.back()
-    } catch {
+    } catch (err: unknown) {
+      const e = err as { status?: number; response?: string; message?: string }
+      console.error('[AddExpense] create error:', JSON.stringify({ status: e?.status, response: e?.response, message: e?.message }))
       Alert.alert('Error', 'Could not save the transaction. Please try again.')
     }
   }

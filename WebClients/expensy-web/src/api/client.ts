@@ -54,6 +54,9 @@ function rejectPending() {
 nswagAxios.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    if (error.response?.status && error.response.status >= 400 && error.response.status < 500) {
+      console.warn('[API]', error.config?.method?.toUpperCase(), error.config?.url, error.response.status, error.response.data)
+    }
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status !== 401 || originalRequest._retry) {

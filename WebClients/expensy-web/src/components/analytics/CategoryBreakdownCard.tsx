@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
 import { Colors } from '@/constants/colors'
-import type { CategorySpendingDtoDto } from '@/api/types'
+import type { CategorySpendingDto } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,12 +62,14 @@ export function CategoryBreakdownCard({ item, index }: CategoryBreakdownCardProp
     const delay = index * 60
     barWidth.setValue(0)
     Animated.timing(barWidth, {
-      toValue: item.percentage,
+      toValue: item.percentage ?? 0,
       duration: 700,
       delay,
       useNativeDriver: false, // width % cannot use native driver
     }).start()
   }, [item.percentage, index, barWidth])
+
+  const percentage = item.percentage ?? 0
 
   const animatedWidth = barWidth.interpolate({
     inputRange: [0, 100],
@@ -80,17 +82,17 @@ export function CategoryBreakdownCard({ item, index }: CategoryBreakdownCardProp
       <View style={styles.row}>
         {/* Color dot + name */}
         <View style={styles.left}>
-          <View style={[styles.dot, { backgroundColor: item.categoryColor }]} />
+          <View style={[styles.dot, { backgroundColor: item.categoryColor ?? Colors.purple[500] }]} />
           <View style={styles.textGroup}>
             <Text style={styles.categoryName} numberOfLines={1}>
-              {item.categoryName}
+              {item.categoryName ?? '—'}
             </Text>
-            <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
+            <Text style={styles.amount}>{formatCurrency(item.amount ?? 0)}</Text>
           </View>
         </View>
 
         {/* Percentage */}
-        <Text style={styles.percentage}>{item.percentage.toFixed(1)}%</Text>
+        <Text style={styles.percentage}>{percentage.toFixed(1)}%</Text>
       </View>
 
       {/* Animated progress bar */}
@@ -98,7 +100,7 @@ export function CategoryBreakdownCard({ item, index }: CategoryBreakdownCardProp
         <Animated.View
           style={[
             styles.bar,
-            { width: animatedWidth, backgroundColor: item.categoryColor },
+            { width: animatedWidth, backgroundColor: item.categoryColor ?? Colors.purple[500] },
           ]}
         />
       </View>

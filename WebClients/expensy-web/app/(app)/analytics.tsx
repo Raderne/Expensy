@@ -72,7 +72,7 @@ export default function AnalyticsScreen() {
     setPeriod(next)
   }, [])
 
-  const isEmpty = !isLoading && !isError && (!data || data.byCategory.length === 0)
+  const isEmpty = !isLoading && !isError && (!data || (data.byCategory ?? []).length === 0)
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -124,7 +124,7 @@ export default function AnalyticsScreen() {
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Categories</Text>
                 <Text style={styles.sectionCount}>
-                  {isLoading ? '' : `${data?.byCategory.length ?? 0} total`}
+                  {isLoading ? '' : `${(data?.byCategory ?? []).length} total`}
                 </Text>
               </View>
 
@@ -133,7 +133,7 @@ export default function AnalyticsScreen() {
                   ? Array.from({ length: 4 }).map((_, i) => (
                       <CategoryBreakdownCardSkeleton key={i} />
                     ))
-                  : data?.byCategory.map((cat, idx) => (
+                  : (data?.byCategory ?? []).map((cat, idx) => (
                       <CategoryBreakdownCard key={cat.categoryId} item={cat} index={idx} />
                     ))}
               </View>

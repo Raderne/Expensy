@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   mint: {
-    backgroundColor: Colors.mint,
+    backgroundColor: Colors.mint[500],
   },
   ghost: {
     backgroundColor: 'transparent',

@@ -1190,10 +1190,11 @@ export class DashboardClient implements IDashboardClient {
 }
 
 export interface INotificationsClient {
-    getAll( cancelToken?: CancelToken): Promise<NotificationDto[]>;
+    getAll(page: number | undefined, pageSize: number | undefined,  cancelToken?: CancelToken): Promise<NotificationPagedResult>;
     getUnreadCount( cancelToken?: CancelToken): Promise<any>;
     markAsRead(id: string,  cancelToken?: CancelToken): Promise<void>;
     markAllAsRead( cancelToken?: CancelToken): Promise<void>;
+    delete(id: string,  cancelToken?: CancelToken): Promise<void>;
 }
 
 export class NotificationsClient implements INotificationsClient {
@@ -1209,8 +1210,16 @@ export class NotificationsClient implements INotificationsClient {
 
     }
 
-    getAll( cancelToken?: CancelToken): Promise<NotificationDto[]> {
-        let url_ = this.baseUrl + "/api/Notifications";
+    getAll(page: number | undefined, pageSize: number | undefined, cancelToken?: CancelToken): Promise<NotificationPagedResult> {
+        let url_ = this.baseUrl + "/api/Notifications?";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -1233,7 +1242,7 @@ export class NotificationsClient implements INotificationsClient {
         });
     }
 
-    protected processGetAll(response: AxiosResponse): Promise<NotificationDto[]> {
+    protected processGetAll(response: AxiosResponse): Promise<NotificationPagedResult> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1248,7 +1257,7 @@ export class NotificationsClient implements INotificationsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<NotificationDto[]>(result200);
+            return Promise.resolve<NotificationPagedResult>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -1261,7 +1270,7 @@ export class NotificationsClient implements INotificationsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<NotificationDto[]>(null as any);
+        return Promise.resolve<NotificationPagedResult>(null as any);
     }
 
     getUnreadCount( cancelToken?: CancelToken): Promise<any> {
@@ -1423,6 +1432,67 @@ export class NotificationsClient implements INotificationsClient {
             let resultData401  = _responseText;
             result401 = JSON.parse(resultData401);
             return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    delete(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/Notifications/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDelete(_response);
+        });
+    }
+
+    protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1932,11 +2002,13 @@ export class SavingsGoalsClient implements ISavingsGoalsClient {
 }
 
 export interface ISubscriptionsClient {
-    getAll( cancelToken?: CancelToken): Promise<SubscriptionDto[]>;
+    getAll( cancelToken?: CancelToken): Promise<SubscriptionSummaryDto>;
     create(request: CreateSubscriptionRequest,  cancelToken?: CancelToken): Promise<SubscriptionDto>;
+    getUpcoming( cancelToken?: CancelToken): Promise<SubscriptionDto[]>;
     getById(id: string,  cancelToken?: CancelToken): Promise<SubscriptionDto>;
     update(id: string, request: UpdateSubscriptionRequest,  cancelToken?: CancelToken): Promise<SubscriptionDto>;
     delete(id: string,  cancelToken?: CancelToken): Promise<void>;
+    remind(id: string,  cancelToken?: CancelToken): Promise<void>;
     getCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto[]>;
 }
 
@@ -1953,7 +2025,7 @@ export class SubscriptionsClient implements ISubscriptionsClient {
 
     }
 
-    getAll( cancelToken?: CancelToken): Promise<SubscriptionDto[]> {
+    getAll( cancelToken?: CancelToken): Promise<SubscriptionSummaryDto> {
         let url_ = this.baseUrl + "/api/Subscriptions";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -1977,7 +2049,7 @@ export class SubscriptionsClient implements ISubscriptionsClient {
         });
     }
 
-    protected processGetAll(response: AxiosResponse): Promise<SubscriptionDto[]> {
+    protected processGetAll(response: AxiosResponse): Promise<SubscriptionSummaryDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1992,7 +2064,7 @@ export class SubscriptionsClient implements ISubscriptionsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SubscriptionDto[]>(result200);
+            return Promise.resolve<SubscriptionSummaryDto>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -2005,7 +2077,7 @@ export class SubscriptionsClient implements ISubscriptionsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SubscriptionDto[]>(null as any);
+        return Promise.resolve<SubscriptionSummaryDto>(null as any);
     }
 
     create(request: CreateSubscriptionRequest, cancelToken?: CancelToken): Promise<SubscriptionDto> {
@@ -2072,6 +2144,61 @@ export class SubscriptionsClient implements ISubscriptionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<SubscriptionDto>(null as any);
+    }
+
+    getUpcoming( cancelToken?: CancelToken): Promise<SubscriptionDto[]> {
+        let url_ = this.baseUrl + "/api/Subscriptions/upcoming";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetUpcoming(_response);
+        });
+    }
+
+    protected processGetUpcoming(response: AxiosResponse): Promise<SubscriptionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SubscriptionDto[]>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SubscriptionDto[]>(null as any);
     }
 
     getById(id: string, cancelToken?: CancelToken): Promise<SubscriptionDto> {
@@ -2242,6 +2369,67 @@ export class SubscriptionsClient implements ISubscriptionsClient {
     }
 
     protected processDelete(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            let result401: any = null;
+            let resultData401  = _responseText;
+            result401 = JSON.parse(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    remind(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/Subscriptions/{id}/remind";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemind(_response);
+        });
+    }
+
+    protected processRemind(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -3180,6 +3368,14 @@ export interface RecentTransactionDto {
     walletName?: string;
 }
 
+export interface NotificationPagedResult {
+    unreadCount?: number;
+    items?: NotificationDto[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+}
+
 export interface NotificationDto {
     id?: string;
     title?: string;
@@ -3236,6 +3432,11 @@ export interface CreateMilestoneRequest {
     name?: string;
     targetAmount?: number;
     targetDate?: Date;
+}
+
+export interface SubscriptionSummaryDto {
+    totalMonthlySpend?: number;
+    subscriptions?: SubscriptionDto[];
 }
 
 export interface SubscriptionDto {
