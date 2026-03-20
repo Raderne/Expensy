@@ -32,9 +32,9 @@ public class SubscriptionsController : ControllerBase
     /// Returns all subscriptions owned by the current user, ordered by next renewal date.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<SubscriptionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SubscriptionSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IReadOnlyList<SubscriptionDto>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<SubscriptionSummaryDto>> GetAll(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Getting all subscriptions for user {UserId}", _currentUserService.UserId);
 
@@ -43,6 +43,23 @@ public class SubscriptionsController : ControllerBase
             .ConfigureAwait(false);
 
         return Ok(subscriptions);
+    }
+
+    /// <summary>
+    /// Returns active subscriptions with a renewal date within the next 7 days.
+    /// </summary>
+    [HttpGet("upcoming")]
+    [ProducesResponseType(typeof(IReadOnlyList<SubscriptionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<SubscriptionDto>>> GetUpcoming(CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Getting upcoming subscriptions for user {UserId}", _currentUserService.UserId);
+
+        var upcoming = await _subscriptionService
+            .GetUpcomingAsync(_currentUserService.UserId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Ok(upcoming);
     }
 
     /// <summary>
@@ -128,6 +145,29 @@ public class SubscriptionsController : ControllerBase
             .ConfigureAwait(false);
 
         if (!deleted)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Creates a renewal reminder notification for the given subscription.
+    /// Idempotent — if an unread reminder already exists, no duplicate is created.
+    /// </summary>
+    [HttpPost("{id:guid}/remind")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Remind(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Sending reminder for subscription {SubscriptionId} for user {UserId}",
+            id, _currentUserService.UserId);
+
+        var found = await _subscriptionService
+            .SendReminderAsync(id, _currentUserService.UserId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!found)
             return NotFound();
 
         return NoContent();

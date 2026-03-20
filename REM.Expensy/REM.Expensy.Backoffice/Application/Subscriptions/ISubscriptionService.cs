@@ -8,7 +8,12 @@ public interface ISubscriptionService
     /// <summary>
     /// Returns all subscriptions owned by the specified user, ordered by next renewal date ascending.
     /// </summary>
-    Task<IReadOnlyList<SubscriptionDto>> GetAllForUserAsync(string userId, CancellationToken ct = default);
+    Task<SubscriptionSummaryDto> GetAllForUserAsync(string userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns active subscriptions renewing within the next 7 days, ordered by renewal date ascending.
+    /// </summary>
+    Task<IReadOnlyList<SubscriptionDto>> GetUpcomingAsync(string userId, CancellationToken ct = default);
 
     /// <summary>
     /// Returns a single subscription by ID, or <see langword="null"/> if not found or not owned by the user.
@@ -29,6 +34,12 @@ public interface ISubscriptionService
     /// Soft-deletes a subscription. Returns <see langword="false"/> if not found or not owned by the user.
     /// </summary>
     Task<bool> DeleteAsync(Guid id, string userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a RenewalReminder notification for the subscription if no unread one already exists.
+    /// Returns false if the subscription is not found.
+    /// </summary>
+    Task<bool> SendReminderAsync(Guid subscriptionId, string userId, CancellationToken ct = default);
 
     /// <summary>
     /// Returns all available subscription billing cycles (lookup data).
