@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using REM.Expensy.Backoffice.Entities;
+using REM.Expensy.Backoffice.Interfaces;
 
 namespace REM.Expensy.Backoffice.Infrastructure.Services;
 
 /// <summary>
-/// Idempotent startup seeder that ensures the SuperAdmin role and user exist.
+/// Idempotent startup seeder that ensures the SuperAdmin role, user, and system categories exist.
 /// Safe to call on every application start.
 /// </summary>
 public interface IDataSeeder
@@ -19,25 +21,43 @@ public sealed class DataSeeder : IDataSeeder
     private const string SuperAdminUserName = "SuperAdmin";
     private const string SuperAdminPassword = "Test@2026";
 
+    private static readonly (string Name, string Icon, string Color)[] SystemCategories =
+    [
+        ("Food",          "🍔", "#FF6B6B"),
+        ("Transport",     "🚗", "#4ECDC4"),
+        ("Housing",       "🏠", "#45B7D1"),
+        ("Health",        "❤️", "#96CEB4"),
+        ("Entertainment", "🎬", "#FFEAA7"),
+        ("Shopping",      "🛍️", "#DDA0DD"),
+        ("Education",     "📚", "#98D8C8"),
+        ("Travel",        "✈️", "#F7DC6F"),
+        ("Utilities",     "💡", "#82E0AA"),
+        ("Other",         "📦", "#AEB6BF"),
+    ];
+
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IContext _context;
     private readonly ILogger<DataSeeder> _logger;
 
     public DataSeeder(
         UserManager<User> userManager,
         RoleManager<IdentityRole> roleManager,
+        IContext context,
         ILogger<DataSeeder> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _context = context;
         _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task SeedAsync()
     {
-        await SeedRoleAsync().ConfigureAwait(false);
-        await SeedSuperAdminUserAsync().ConfigureAwait(false);
+        //await SeedRoleAsync().ConfigureAwait(false);
+        //await SeedSuperAdminUserAsync().ConfigureAwait(false);
+        await SeedSystemCategoriesAsync().ConfigureAwait(false);
     }
 
     private async Task SeedRoleAsync()
@@ -102,5 +122,38 @@ public sealed class DataSeeder : IDataSeeder
         _logger.LogInformation(
             "SuperAdmin user '{Email}' created and assigned role '{Role}' successfully.",
             SuperAdminEmail, SuperAdminRole);
+    }
+
+    private async Task SeedSystemCategoriesAsync()
+    {
+        var existingNames = await _context.Categories
+            .Where(c => c.IsSystem)
+            .Select(c => c.Name)
+            .ToHashSetAsync()
+            .ConfigureAwait(false);
+
+        var toInsert = SystemCategories
+            .Where(sc => !existingNames.Contains(sc.Name))
+            .Select(sc => new Category
+            {
+                Name = sc.Name,
+                Icon = sc.Icon,
+                Color = sc.Color,
+                IsSystem = true
+            })
+            .ToList();
+
+        if (toInsert.Count == 0)
+        {
+            _logger.LogInformation("System categories already exist — skipping creation.");
+            return;
+        }
+
+        await _context.Categories.AddRangeAsync(toInsert).ConfigureAwait(false);
+        await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+
+        _logger.LogInformation("Seeded {Count} system category/categories: {Names}",
+            toInsert.Count,
+            string.Join(", ", toInsert.Select(c => c.Name)));
     }
 }

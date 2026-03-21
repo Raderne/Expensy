@@ -136,13 +136,13 @@ public class ApplicationContext : IdentityDbContext<User>, IContext
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedBy = userId;
+                    entry.Entity.CreatedBy = userId ?? "System";
                     entry.Entity.Created = DateTime.UtcNow;
-                    entry.Entity.LastModifiedBy = userId;
+                    entry.Entity.LastModifiedBy = userId ?? "System";
                     entry.Entity.LastModified = DateTime.UtcNow;
                     break;
                 case EntityState.Modified:
-                    entry.Entity.LastModifiedBy = userId;
+                    entry.Entity.LastModifiedBy = userId ?? "System";
                     entry.Entity.LastModified = DateTime.UtcNow;
                     break;
             }

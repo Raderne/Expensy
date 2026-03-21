@@ -22,7 +22,6 @@ public class CategoryService : ICategoryService
     {
         var categories = await _context.Categories
             .AsNoTracking()
-            .Where(c => c.IsSystem || c.UserId == userId)
             .OrderByDescending(c => c.IsSystem)
             .ThenBy(c => c.Name)
             .Select(c => new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.IsSystem))
@@ -37,7 +36,7 @@ public class CategoryService : ICategoryService
     {
         var category = await _context.Categories
             .AsNoTracking()
-            .Where(c => c.Id == id && (c.IsSystem || c.UserId == userId))
+            .Where(c => c.Id == id)
             .Select(c => new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.IsSystem))
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
@@ -53,8 +52,7 @@ public class CategoryService : ICategoryService
             Name = request.Name,
             Icon = request.Icon,
             Color = request.Color,
-            IsSystem = false,
-            UserId = userId
+            IsSystem = false
         };
 
         await _context.Categories.AddAsync(category, ct).ConfigureAwait(false);
@@ -76,9 +74,6 @@ public class CategoryService : ICategoryService
 
         if (category.IsSystem)
             throw new InvalidOperationException("System categories cannot be modified.");
-
-        if (category.UserId != userId)
-            throw new InvalidOperationException("This category does not belong to the current user.");
 
         category.Name = request.Name;
         category.Icon = request.Icon;
@@ -102,9 +97,6 @@ public class CategoryService : ICategoryService
 
         if (category.IsSystem)
             throw new InvalidOperationException("System categories cannot be deleted.");
-
-        if (category.UserId != userId)
-            throw new InvalidOperationException("This category does not belong to the current user.");
 
         category.IsDeleted = true;
 

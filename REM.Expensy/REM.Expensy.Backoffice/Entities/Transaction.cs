@@ -12,6 +12,6 @@ public class Transaction : BaseEntity
     public DateTime TransactionDate { get; set; }
     public bool UseAutoDate { get; set; } // Whether to automatically use today's date
     public bool IsDraft { get; set; } // Whether the transaction is a draft
-    public Wallet Wallet { get; set; } = new Wallet();
-    public Category Category { get; set; } = new Category();
+    public Wallet Wallet { get; set; } = null!;
+    public Category Category { get; set; } = null!;
 }
