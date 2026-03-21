@@ -49,6 +49,13 @@ export type {
   WalletDto,
   CreateWalletRequest,
   UpdateWalletRequest,
+  // Profile
+  UserProfileDto,
+  NotificationPreferencesDto,
+  UpdateProfileRequest,
+  UpdateNotificationPreferencesRequest,
+  // Settings
+  CurrencyDto,
   // Errors
   ProblemDetails,
 } from './generated/api-client';

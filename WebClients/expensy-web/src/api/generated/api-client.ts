@@ -1502,6 +1502,282 @@ export class NotificationsClient implements INotificationsClient {
     }
 }
 
+export interface IProfileClient {
+    getProfile( cancelToken?: CancelToken): Promise<UserProfileDto>;
+    updateProfile(request: UpdateProfileRequest,  cancelToken?: CancelToken): Promise<UserProfileDto>;
+    updateNotificationPreferences(request: UpdateNotificationPreferencesRequest,  cancelToken?: CancelToken): Promise<void>;
+    updateAvatar(contentType: string | null | undefined, contentDisposition: string | null | undefined, headers: any[] | null | undefined, length: number | undefined, name: string | null | undefined, fileName: string | null | undefined,  cancelToken?: CancelToken): Promise<UserProfileDto>;
+}
+
+export class ProfileClient implements IProfileClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    getProfile( cancelToken?: CancelToken): Promise<UserProfileDto> {
+        let url_ = this.baseUrl + "/api/profile";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProfile(_response);
+        });
+    }
+
+    protected processGetProfile(response: AxiosResponse): Promise<UserProfileDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UserProfileDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UserProfileDto>(null as any);
+    }
+
+    updateProfile(request: UpdateProfileRequest, cancelToken?: CancelToken): Promise<UserProfileDto> {
+        let url_ = this.baseUrl + "/api/profile";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateProfile(_response);
+        });
+    }
+
+    protected processUpdateProfile(response: AxiosResponse): Promise<UserProfileDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UserProfileDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UserProfileDto>(null as any);
+    }
+
+    updateNotificationPreferences(request: UpdateNotificationPreferencesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/profile/notification-preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PATCH",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateNotificationPreferences(_response);
+        });
+    }
+
+    protected processUpdateNotificationPreferences(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    updateAvatar(contentType: string | null | undefined, contentDisposition: string | null | undefined, headers: any[] | null | undefined, length: number | undefined, name: string | null | undefined, fileName: string | null | undefined, cancelToken?: CancelToken): Promise<UserProfileDto> {
+        let url_ = this.baseUrl + "/api/profile/avatar";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (contentType !== null && contentType !== undefined)
+            content_.append("ContentType", contentType.toString());
+        if (contentDisposition !== null && contentDisposition !== undefined)
+            content_.append("ContentDisposition", contentDisposition.toString());
+        if (headers !== null && headers !== undefined)
+            headers.forEach(item_ => content_.append("Headers", item_.toString()));
+        if (length === null || length === undefined)
+            throw new globalThis.Error("The parameter 'length' cannot be null.");
+        else
+            content_.append("Length", length.toString());
+        if (name !== null && name !== undefined)
+            content_.append("Name", name.toString());
+        if (fileName !== null && fileName !== undefined)
+            content_.append("FileName", fileName.toString());
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateAvatar(_response);
+        });
+    }
+
+    protected processUpdateAvatar(response: AxiosResponse): Promise<UserProfileDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UserProfileDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = JSON.parse(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UserProfileDto>(null as any);
+    }
+}
+
 export interface ISavingsGoalsClient {
     getAll( cancelToken?: CancelToken): Promise<SavingsGoalDto[]>;
     create(request: CreateSavingsGoalRequest,  cancelToken?: CancelToken): Promise<SavingsGoalDto>;
@@ -2001,6 +2277,121 @@ export class SavingsGoalsClient implements ISavingsGoalsClient {
     }
 }
 
+export interface ISettingsClient {
+    getCurrencies( cancelToken?: CancelToken): Promise<CurrencyDto[]>;
+    getSubscriptionCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto[]>;
+}
+
+export class SettingsClient implements ISettingsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    getCurrencies( cancelToken?: CancelToken): Promise<CurrencyDto[]> {
+        let url_ = this.baseUrl + "/api/settings/currencies";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCurrencies(_response);
+        });
+    }
+
+    protected processGetCurrencies(response: AxiosResponse): Promise<CurrencyDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CurrencyDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CurrencyDto[]>(null as any);
+    }
+
+    getSubscriptionCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto[]> {
+        let url_ = this.baseUrl + "/api/settings/subscription-cycles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSubscriptionCycles(_response);
+        });
+    }
+
+    protected processGetSubscriptionCycles(response: AxiosResponse): Promise<SubscriptionCycleDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SubscriptionCycleDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SubscriptionCycleDto[]>(null as any);
+    }
+}
+
 export interface ISubscriptionsClient {
     getAll( cancelToken?: CancelToken): Promise<SubscriptionSummaryDto>;
     create(request: CreateSubscriptionRequest,  cancelToken?: CancelToken): Promise<SubscriptionDto>;
@@ -2009,7 +2400,7 @@ export interface ISubscriptionsClient {
     update(id: string, request: UpdateSubscriptionRequest,  cancelToken?: CancelToken): Promise<SubscriptionDto>;
     delete(id: string,  cancelToken?: CancelToken): Promise<void>;
     remind(id: string,  cancelToken?: CancelToken): Promise<void>;
-    getCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto[]>;
+    getCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto2[]>;
 }
 
 export class SubscriptionsClient implements ISubscriptionsClient {
@@ -2464,7 +2855,7 @@ export class SubscriptionsClient implements ISubscriptionsClient {
         return Promise.resolve<void>(null as any);
     }
 
-    getCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto[]> {
+    getCycles( cancelToken?: CancelToken): Promise<SubscriptionCycleDto2[]> {
         let url_ = this.baseUrl + "/api/Subscriptions/cycles";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -2488,7 +2879,7 @@ export class SubscriptionsClient implements ISubscriptionsClient {
         });
     }
 
-    protected processGetCycles(response: AxiosResponse): Promise<SubscriptionCycleDto[]> {
+    protected processGetCycles(response: AxiosResponse): Promise<SubscriptionCycleDto2[]> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -2503,13 +2894,13 @@ export class SubscriptionsClient implements ISubscriptionsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SubscriptionCycleDto[]>(result200);
+            return Promise.resolve<SubscriptionCycleDto2[]>(result200);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SubscriptionCycleDto[]>(null as any);
+        return Promise.resolve<SubscriptionCycleDto2[]>(null as any);
     }
 }
 
@@ -3386,6 +3777,32 @@ export interface NotificationDto {
     created?: Date;
 }
 
+export interface UserProfileDto {
+    userId?: string;
+    email?: string;
+    fullName?: string;
+    avatar?: string | undefined;
+    currencyCode?: string;
+    notificationPreferences?: NotificationPreferencesDto;
+}
+
+export interface NotificationPreferencesDto {
+    budgetAlerts?: boolean;
+    renewalReminders?: boolean;
+    milestoneAlerts?: boolean;
+}
+
+export interface UpdateProfileRequest {
+    fullName?: string;
+    currencyCode?: string;
+}
+
+export interface UpdateNotificationPreferencesRequest {
+    budgetAlerts?: boolean;
+    renewalReminders?: boolean;
+    milestoneAlerts?: boolean;
+}
+
 export interface SavingsGoalDto {
     id?: string;
     name?: string;
@@ -3434,6 +3851,18 @@ export interface CreateMilestoneRequest {
     targetDate?: Date;
 }
 
+export interface CurrencyDto {
+    code?: string;
+    name?: string;
+    symbol?: string;
+}
+
+export interface SubscriptionCycleDto {
+    id?: string;
+    code?: string;
+    name?: string;
+}
+
 export interface SubscriptionSummaryDto {
     totalMonthlySpend?: number;
     subscriptions?: SubscriptionDto[];
@@ -3471,7 +3900,7 @@ export interface UpdateSubscriptionRequest {
     categoryId?: string;
 }
 
-export interface SubscriptionCycleDto {
+export interface SubscriptionCycleDto2 {
     id?: string;
     name?: string;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Redirect, Tabs } from 'expo-router';
-import { LayoutDashboard, Wallet, ArrowLeftRight, PieChart, PiggyBank, BarChart2, CreditCard } from 'lucide-react-native';
+import { LayoutDashboard, Wallet, ArrowLeftRight, PieChart, PiggyBank, BarChart2, CreditCard, Settings } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth.store';
 import { Colors } from '@/constants/colors';
 
@@ -75,6 +75,13 @@ export default function AppLayout() {
         options={{
           title: 'Analytics',
           tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name='settings'
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
         }}
       />
       {/* Modal screen — hidden from the tab bar */}
