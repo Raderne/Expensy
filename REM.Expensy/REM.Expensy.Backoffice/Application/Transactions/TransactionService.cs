@@ -112,6 +112,14 @@ public class TransactionService : ITransactionService
         if (transaction is null)
             return null;
 
+        var categoryIsAvailable = await _context.Categories
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == request.CategoryId, ct)
+            .ConfigureAwait(false);
+
+        if (!categoryIsAvailable)
+            throw new InvalidOperationException($"Category '{request.CategoryId}' is not available for the current user.");
+
         transaction.CategoryId = request.CategoryId;
         transaction.Amount = request.Amount;
         transaction.MerchantName = request.MerchantName;
