@@ -26,11 +26,8 @@ import { useAuthStore } from '@/store/auth.store'
 import { AvatarCircle } from '@/components/profile/AvatarCircle'
 import { SettingsGroup } from '@/components/settings/SettingsGroup'
 import { SettingsRow } from '@/components/settings/SettingsRow'
-import {
-  useProfile,
-  useUpdateNotificationPreferences,
-  type NotificationPreferences,
-} from '@/hooks/useProfile'
+import { useProfile, useUpdateNotificationPreferences } from '@/hooks/useProfile'
+import type { NotificationPreferencesDto } from '@/api/types'
 
 // ─── Profile Header ───────────────────────────────────────────────────────────
 
@@ -114,17 +111,17 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (profile && !notifSeedDone) {
       const prefs = profile.notificationPreferences
-      setBudgetAlerts(prefs.budgetAlerts)
-      setRenewalReminders(prefs.renewalReminders)
-      setMilestoneAlerts(prefs.milestoneAlerts)
+      setBudgetAlerts(prefs?.budgetAlerts ?? true)
+      setRenewalReminders(prefs?.renewalReminders ?? true)
+      setMilestoneAlerts(prefs?.milestoneAlerts ?? false)
       setNotifSeedDone(true)
     }
   }, [profile, notifSeedDone])
 
   // ── Notification preference helpers ──
 
-  function handleNotifChange(key: keyof NotificationPreferences, value: boolean) {
-    const next: NotificationPreferences = {
+  function handleNotifChange(key: keyof NotificationPreferencesDto, value: boolean) {
+    const next: NotificationPreferencesDto = {
       budgetAlerts,
       renewalReminders,
       milestoneAlerts,
@@ -133,8 +130,6 @@ export default function SettingsScreen() {
     if (key === 'budgetAlerts') setBudgetAlerts(value)
     if (key === 'renewalReminders') setRenewalReminders(value)
     if (key === 'milestoneAlerts') setMilestoneAlerts(value)
-
-    // TODO: API — replace with profileClient.updateNotificationPreferences(next)
     updateNotifPrefs(next)
   }
 
@@ -166,11 +161,10 @@ export default function SettingsScreen() {
   // ── Currency picker ──
 
   function handleCurrencyPress() {
-    // TODO: API — show currency picker using data from useCurrencies()
-    // For now, show an informational alert
+    // TODO: navigate to currency picker screen (useCurrencies() is ready — see src/hooks/useProfile.ts)
     Alert.alert(
       'Currency',
-      'Currency selection will be available once the settings API is connected.',
+      'Currency picker screen coming soon.',
       [{ text: 'OK' }],
     )
   }

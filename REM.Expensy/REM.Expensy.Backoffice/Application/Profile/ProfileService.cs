@@ -5,10 +5,10 @@ using REM.Expensy.Backoffice.Interfaces;
 
 namespace REM.Expensy.Backoffice.Application.Profile;
 
-public class ProfileService(UserManager<User> userManager, IStorage storage) : IProfileService
+public class ProfileService(UserManager<User> userManager) : IProfileService
 {
     private readonly UserManager<User> _userManager = userManager;
-    private readonly IStorage _storage = storage;
+    private readonly IStorage _storage;
 
     private static readonly long MaxAvatarSizeBytes = 5 * 1024 * 1024; // 5 MB
     private static readonly byte[] JpegMagicBytes = [0xFF, 0xD8, 0xFF];
