@@ -4,7 +4,9 @@ using REM.Expensy.Backoffice.Application.Budgets;
 using REM.Expensy.Backoffice.Application.Categories;
 using REM.Expensy.Backoffice.Application.Dashboard;
 using REM.Expensy.Backoffice.Application.Notifications;
+using REM.Expensy.Backoffice.Application.Profile;
 using REM.Expensy.Backoffice.Application.SavingsGoals;
+using REM.Expensy.Backoffice.Application.Settings;
 using REM.Expensy.Backoffice.Application.Subscriptions;
 using REM.Expensy.Backoffice.Application.Transactions;
 using REM.Expensy.Backoffice.Application.Wallets;
@@ -41,6 +43,10 @@ public static class ApplicationDependencyInjection
 
         // Phase 4
         services.AddScoped<IMilestoneProgressionService, MilestoneProgressionService>();
+
+        // Phase 5 — Profile & Settings
+        services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<ISettingsService, SettingsService>();
 
         services.AddControllers()
             .AddNewtonsoftJson(options =>

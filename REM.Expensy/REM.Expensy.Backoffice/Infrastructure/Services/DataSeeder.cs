@@ -95,7 +95,9 @@ public sealed class DataSeeder : IDataSeeder
             UserName = SuperAdminUserName,
             Email = SuperAdminEmail,
             EmailConfirmed = true,
-            Avatar = string.Empty
+            Avatar = string.Empty,
+            FirstName = "Super",
+            LastName = "Admin",
         };
 
         var createResult = await _userManager.CreateAsync(user, SuperAdminPassword).ConfigureAwait(false);
