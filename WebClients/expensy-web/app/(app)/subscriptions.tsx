@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,15 +9,24 @@ import {
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { CreditCard } from 'lucide-react-native'
+import { CreditCard, Plus } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
 import {
-  useSubscriptions,
-  useUpcomingSubscriptions,
+  useCreateSubscription,
+  useDeleteSubscription,
   useRemindSubscription,
+  useSubscriptions,
+  useUpdateSubscription,
+  useUpcomingSubscriptions,
 } from '@/hooks/useSubscriptions'
 import { SubscriptionCard } from '@/components/subscriptions/SubscriptionCard'
-import type { SubscriptionDto } from '@/api/types'
+import { SubscriptionFormSheet } from '@/components/subscriptions/SubscriptionFormSheet'
+import type { SubscriptionFormData } from '@/components/subscriptions/SubscriptionFormSheet'
+import type {
+  CreateSubscriptionRequest,
+  SubscriptionDto,
+  UpdateSubscriptionRequest,
+} from '@/api/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,6 +37,11 @@ function formatCurrency(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount)
+}
+
+/** Convert the form's string-based date to a Date object for the API request. */
+function parseFormDate(dateStr: string): Date {
+  return new Date(dateStr + 'T00:00:00')
 }
 
 // ─── Summary Card ─────────────────────────────────────────────────────────────
@@ -122,7 +137,7 @@ function EmptyState() {
       </View>
       <Text style={styles.emptyTitle}>No subscriptions yet</Text>
       <Text style={styles.emptySubtitle}>
-        Track your recurring subscriptions to keep your spending in check.
+        Tap the + button to add your first subscription.
       </Text>
     </View>
   )
@@ -155,6 +170,15 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 export default function SubscriptionsScreen() {
   const { data, isLoading, isError, refetch } = useSubscriptions()
 
+  const [showForm, setShowForm] = useState(false)
+  const [editingSubscription, setEditingSubscription] = useState<SubscriptionDto | null>(null)
+
+  const { mutate: createSubscription, isPending: isCreating } = useCreateSubscription()
+  const { mutate: updateSubscription, isPending: isUpdating } = useUpdateSubscription()
+  const { mutate: deleteSubscription } = useDeleteSubscription()
+
+  const isSubmitting = isCreating || isUpdating
+
   const onRefresh = useCallback(() => {
     refetch()
   }, [refetch])
@@ -162,6 +186,92 @@ export default function SubscriptionsScreen() {
   const subscriptions = data?.subscriptions ?? []
   const monthlyTotal = data?.totalMonthlySpend ?? 0
   const isEmpty = !isLoading && !isError && subscriptions.length === 0
+
+  // ── Open form ──
+
+  function handleOpenCreate() {
+    setEditingSubscription(null)
+    setShowForm(true)
+  }
+
+  function handleOpenEdit(subscription: SubscriptionDto) {
+    setEditingSubscription(subscription)
+    setShowForm(true)
+  }
+
+  function handleCloseForm() {
+    setShowForm(false)
+    setEditingSubscription(null)
+  }
+
+  // ── Submit ──
+
+  function handleFormSubmit(formData: SubscriptionFormData) {
+    const renewalDate = parseFormDate(formData.startDate)
+
+    if (editingSubscription?.id) {
+      const request: UpdateSubscriptionRequest = {
+        name: formData.name.trim(),
+        icon: formData.icon.trim() || undefined,
+        amount: parseFloat(formData.amount),
+        cycleId: formData.cycleId,
+        nextRenewal: renewalDate,
+        isActive: formData.isActive,
+        categoryId: formData.categoryId || undefined,
+      }
+      updateSubscription(
+        { id: editingSubscription.id, request },
+        {
+          onSuccess: () => handleCloseForm(),
+          onError: () => {
+            Alert.alert('Error', 'Failed to update subscription. Please try again.')
+          },
+        },
+      )
+    } else {
+      const request: CreateSubscriptionRequest = {
+        name: formData.name.trim(),
+        icon: formData.icon.trim() || undefined,
+        amount: parseFloat(formData.amount),
+        cycleId: formData.cycleId,
+        nextRenewal: renewalDate,
+        isActive: formData.isActive,
+        categoryId: formData.categoryId || undefined,
+      }
+      createSubscription(request, {
+        onSuccess: () => handleCloseForm(),
+        onError: () => {
+          Alert.alert('Error', 'Failed to add subscription. Please try again.')
+        },
+      })
+    }
+  }
+
+  // ── Delete ──
+
+  function handleDelete(id: string) {
+    const target = subscriptions.find((s) => s.id === id)
+    const name = target?.name ?? 'this subscription'
+
+    Alert.alert(
+      'Delete Subscription',
+      `Are you sure you want to delete "${name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteSubscription(id, {
+              onError: () => {
+                Alert.alert('Error', 'Failed to delete subscription. Please try again.')
+              },
+            })
+          },
+        },
+      ],
+    )
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -215,7 +325,12 @@ export default function SubscriptionsScreen() {
                       <View key={i} style={styles.skeletonCard} />
                     ))
                   : subscriptions.map((s) => (
-                      <SubscriptionCard key={s.id} subscription={s} />
+                      <SubscriptionCard
+                        key={s.id}
+                        subscription={s}
+                        onEdit={handleOpenEdit}
+                        onDelete={handleDelete}
+                      />
                     ))}
               </View>
             </View>
@@ -226,6 +341,26 @@ export default function SubscriptionsScreen() {
           <View style={styles.bottomSpacer} />
         </ScrollView>
       )}
+
+      {/* ── FAB ── */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={handleOpenCreate}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Add subscription"
+      >
+        <Plus size={28} color="#FFFFFF" strokeWidth={2.5} />
+      </TouchableOpacity>
+
+      {/* ── Form Sheet ── */}
+      <SubscriptionFormSheet
+        visible={showForm}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isSubmitting}
+        initial={editingSubscription}
+      />
     </SafeAreaView>
   )
 }
@@ -395,6 +530,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   bottomSpacer: {
-    height: 24,
+    height: 100, // extra space so list items don't hide behind the FAB
+  },
+  // FAB
+  fab: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.purple[600],
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.purple[700],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
 })

@@ -1,5 +1,6 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Pencil, Trash2 } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
 import type { SubscriptionDto } from '@/api/types'
 
@@ -7,6 +8,8 @@ import type { SubscriptionDto } from '@/api/types'
 
 interface SubscriptionCardProps {
   subscription: SubscriptionDto
+  onEdit?: (subscription: SubscriptionDto) => void
+  onDelete?: (id: string) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -36,8 +39,19 @@ function normalizeCycleName(cycleName: string | undefined): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+export function SubscriptionCard({ subscription, onEdit, onDelete }: SubscriptionCardProps) {
   const isActive = subscription.isActive ?? true
+  const hasActions = onEdit != null || onDelete != null
+
+  function handleEdit() {
+    onEdit?.(subscription)
+  }
+
+  function handleDelete() {
+    if (subscription.id) {
+      onDelete?.(subscription.id)
+    }
+  }
 
   return (
     <View style={[styles.card, !isActive && styles.cardInactive]}>
@@ -63,20 +77,47 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
         </View>
       </View>
 
-      {/* Right side: amount + next renewal */}
-      <View style={styles.right}>
-        <Text style={[styles.amount, !isActive && styles.amountInactive]}>
-          {formatCurrency(subscription.amount ?? 0)}
-        </Text>
-        <Text style={styles.renewal}>
-          {formatRenewalDate(subscription.nextRenewal)}
-        </Text>
-        {!isActive ? (
-          <View style={styles.inactiveBadge}>
-            <Text style={styles.inactiveBadgeText}>Inactive</Text>
-          </View>
-        ) : null}
-      </View>
+      {/* Right side: amount + next renewal — or action buttons when handlers are provided */}
+      {hasActions ? (
+        <View style={styles.actions}>
+          {onEdit != null ? (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={handleEdit}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${subscription.name ?? 'subscription'}`}
+            >
+              <Pencil size={16} color={Colors.dark.text.secondary} strokeWidth={2} />
+            </TouchableOpacity>
+          ) : null}
+          {onDelete != null ? (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${subscription.name ?? 'subscription'}`}
+            >
+              <Trash2 size={16} color={Colors.danger} strokeWidth={2} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.right}>
+          <Text style={[styles.amount, !isActive && styles.amountInactive]}>
+            {formatCurrency(subscription.amount ?? 0)}
+          </Text>
+          <Text style={styles.renewal}>
+            {formatRenewalDate(subscription.nextRenewal)}
+          </Text>
+          {!isActive ? (
+            <View style={styles.inactiveBadge}>
+              <Text style={styles.inactiveBadgeText}>Inactive</Text>
+            </View>
+          ) : null}
+        </View>
+      )}
     </View>
   )
 }
@@ -163,5 +204,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: Colors.dark.text.muted,
+  },
+  // Action buttons (edit / delete)
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.bg.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })
