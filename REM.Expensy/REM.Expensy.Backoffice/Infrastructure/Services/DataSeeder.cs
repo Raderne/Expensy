@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using REM.Expensy.Backoffice.Entities;
+using REM.Expensy.Backoffice.Enums;
 using REM.Expensy.Backoffice.Interfaces;
 
 namespace REM.Expensy.Backoffice.Infrastructure.Services;
@@ -20,6 +21,36 @@ public sealed class DataSeeder : IDataSeeder
     private const string SuperAdminEmail = "SuperAdmin@expensy.com";
     private const string SuperAdminUserName = "SuperAdmin";
     private const string SuperAdminPassword = "Test@2026";
+
+    private static readonly (BudgetStatusEnum Code, string Title, string Description)[] BudgetStatusSeed =
+    [
+        (BudgetStatusEnum.OnTrack,    "On Track",    "Spending is within the budget limit."),
+        (BudgetStatusEnum.Good,       "Good",        "Spending is well below the budget limit."),
+        (BudgetStatusEnum.NearLimit,  "Near Limit",  "Spending is approaching the budget limit."),
+        (BudgetStatusEnum.OverBudget, "Over Budget", "Spending has exceeded the budget limit."),
+    ];
+
+    private static readonly (MilestoneStatusEnum Code, string Name)[] MilestoneStatusSeed =
+    [
+        (MilestoneStatusEnum.NotStarted, "Not Started"),
+        (MilestoneStatusEnum.InProgress, "In Progress"),
+        (MilestoneStatusEnum.Completed,  "Completed"),
+    ];
+
+    private static readonly (NotificationTypeEnum Code, string Name)[] NotificationTypeSeed =
+    [
+        (NotificationTypeEnum.BudgetAlert,      "Budget Alert"),
+        (NotificationTypeEnum.RenewalReminder,  "Renewal Reminder"),
+        (NotificationTypeEnum.MilestoneReached, "Milestone Reached"),
+    ];
+
+    private static readonly (PeriodEnum Code, string Name)[] SubscriptionCycleSeed =
+    [
+        (PeriodEnum.Daily,   "Daily"),
+        (PeriodEnum.Weekly,  "Weekly"),
+        (PeriodEnum.Monthly, "Monthly"),
+        (PeriodEnum.Yearly,  "Yearly"),
+    ];
 
     private static readonly (string Name, string Icon, string Color)[] SystemCategories =
     [
@@ -58,6 +89,10 @@ public sealed class DataSeeder : IDataSeeder
         //await SeedRoleAsync().ConfigureAwait(false);
         //await SeedSuperAdminUserAsync().ConfigureAwait(false);
         await SeedSystemCategoriesAsync().ConfigureAwait(false);
+        await SeedBudgetStatusesAsync().ConfigureAwait(false);
+        await SeedMilestoneStatusesAsync().ConfigureAwait(false);
+        await SeedNotificationTypesAsync().ConfigureAwait(false);
+        await SeedSubscriptionCyclesAsync().ConfigureAwait(false);
     }
 
     private async Task SeedRoleAsync()
@@ -157,5 +192,105 @@ public sealed class DataSeeder : IDataSeeder
         _logger.LogInformation("Seeded {Count} system category/categories: {Names}",
             toInsert.Count,
             string.Join(", ", toInsert.Select(c => c.Name)));
+    }
+
+    private async Task SeedBudgetStatusesAsync()
+    {
+        var existingCodes = await _context.BudgetStatuses
+            .Select(s => s.Code)
+            .ToHashSetAsync()
+            .ConfigureAwait(false);
+
+        var toInsert = BudgetStatusSeed
+            .Where(s => !existingCodes.Contains(s.Code))
+            .Select(s => new BudgetStatus { Title = s.Title, Description = s.Description, Code = s.Code })
+            .ToList();
+
+        if (toInsert.Count == 0)
+        {
+            _logger.LogInformation("Budget statuses already exist — skipping creation.");
+            return;
+        }
+
+        await _context.BudgetStatuses.AddRangeAsync(toInsert).ConfigureAwait(false);
+        await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+
+        _logger.LogInformation("Seeded {Count} budget status(es): {Names}",
+            toInsert.Count, string.Join(", ", toInsert.Select(s => s.Title)));
+    }
+
+    private async Task SeedMilestoneStatusesAsync()
+    {
+        var existingCodes = await _context.MilestoneStatuses
+            .Select(s => s.Code)
+            .ToHashSetAsync()
+            .ConfigureAwait(false);
+
+        var toInsert = MilestoneStatusSeed
+            .Where(s => !existingCodes.Contains(s.Code))
+            .Select(s => new MilestoneStatus { Name = s.Name, Code = s.Code })
+            .ToList();
+
+        if (toInsert.Count == 0)
+        {
+            _logger.LogInformation("Milestone statuses already exist — skipping creation.");
+            return;
+        }
+
+        await _context.MilestoneStatuses.AddRangeAsync(toInsert).ConfigureAwait(false);
+        await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+
+        _logger.LogInformation("Seeded {Count} milestone status(es): {Names}",
+            toInsert.Count, string.Join(", ", toInsert.Select(s => s.Name)));
+    }
+
+    private async Task SeedNotificationTypesAsync()
+    {
+        var existingCodes = await _context.NotificationTypes
+            .Select(t => t.Code)
+            .ToHashSetAsync()
+            .ConfigureAwait(false);
+
+        var toInsert = NotificationTypeSeed
+            .Where(t => !existingCodes.Contains(t.Code))
+            .Select(t => new NotificationType { Name = t.Name, Code = t.Code })
+            .ToList();
+
+        if (toInsert.Count == 0)
+        {
+            _logger.LogInformation("Notification types already exist — skipping creation.");
+            return;
+        }
+
+        await _context.NotificationTypes.AddRangeAsync(toInsert).ConfigureAwait(false);
+        await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+
+        _logger.LogInformation("Seeded {Count} notification type(s): {Names}",
+            toInsert.Count, string.Join(", ", toInsert.Select(t => t.Name)));
+    }
+
+    private async Task SeedSubscriptionCyclesAsync()
+    {
+        var existingCodes = await _context.SubscriptionCycles
+            .Select(c => c.Code)
+            .ToHashSetAsync()
+            .ConfigureAwait(false);
+
+        var toInsert = SubscriptionCycleSeed
+            .Where(c => !existingCodes.Contains(c.Code))
+            .Select(c => new SubscriptionCycle { Name = c.Name, Code = c.Code })
+            .ToList();
+
+        if (toInsert.Count == 0)
+        {
+            _logger.LogInformation("Subscription cycles already exist — skipping creation.");
+            return;
+        }
+
+        await _context.SubscriptionCycles.AddRangeAsync(toInsert).ConfigureAwait(false);
+        await _context.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+
+        _logger.LogInformation("Seeded {Count} subscription cycle(s): {Names}",
+            toInsert.Count, string.Join(", ", toInsert.Select(c => c.Name)));
     }
 }
