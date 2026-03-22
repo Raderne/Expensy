@@ -10,6 +10,7 @@ using REM.Expensy.Backoffice.Application.Settings;
 using REM.Expensy.Backoffice.Application.Subscriptions;
 using REM.Expensy.Backoffice.Application.Transactions;
 using REM.Expensy.Backoffice.Application.Wallets;
+using REM.Expensy.Backoffice.Infrastructure.Json;
 using REM.Expensy.Backoffice.Infrastructure.Services;
 using REM.Expensy.Backoffice.Interfaces;
 
@@ -52,6 +53,7 @@ public static class ApplicationDependencyInjection
             .AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+                options.SerializerSettings.Converters.Add(new DateOnlyJsonConverter());
             });
 
         return services;

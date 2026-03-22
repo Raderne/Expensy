@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { PiggyBank, Plus, X } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
+import { DatePickerInput } from '@/components/ui/DatePickerInput'
 import {
   useSavingsGoals,
   useCreateSavingsGoal,
@@ -140,8 +141,8 @@ function SavingsGoalFormSheet({
       next.targetAmount = 'Target amount must be greater than 0.'
     }
 
-    if (!DATE_REGEX.test(form.targetDate)) {
-      next.targetDate = 'Enter a valid date in YYYY-MM-DD format.'
+    if (!form.targetDate) {
+      next.targetDate = 'Please select a target date.'
     }
 
     setErrors(next)
@@ -219,21 +220,13 @@ function SavingsGoalFormSheet({
           </View>
 
           {/* Target Date */}
-          <View style={sheetStyles.fieldGroup}>
-            <Text style={sheetStyles.label}>Target Date</Text>
-            <TextInput
-              style={[sheetStyles.input, errors.targetDate ? sheetStyles.inputError : null]}
-              value={form.targetDate}
-              onChangeText={(v) => setField('targetDate', v)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={Colors.text.muted}
-              returnKeyType="done"
-              accessibilityLabel="Target date"
-            />
-            {errors.targetDate ? (
-              <Text style={sheetStyles.errorText}>{errors.targetDate}</Text>
-            ) : null}
-          </View>
+          <DatePickerInput
+            label="Target Date"
+            value={form.targetDate}
+            onChange={(v) => setField('targetDate', v)}
+            error={errors.targetDate}
+            accessibilityLabel="Target date"
+          />
 
           {/* Icon */}
           <View style={sheetStyles.fieldGroup}>

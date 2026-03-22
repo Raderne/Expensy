@@ -14,6 +14,7 @@ import {
   Bell,
   ChevronRight,
   DollarSign,
+  FingerprintPattern,
   Globe,
   LogOut,
   Moon,
@@ -21,6 +22,7 @@ import {
   Target,
   User,
 } from 'lucide-react-native'
+import * as LocalAuthentication from 'expo-local-authentication'
 import { Colors } from '@/constants/colors'
 import { useAuthStore } from '@/store/auth.store'
 import { AvatarCircle } from '@/components/profile/AvatarCircle'
@@ -28,6 +30,13 @@ import { SettingsGroup } from '@/components/settings/SettingsGroup'
 import { SettingsRow } from '@/components/settings/SettingsRow'
 import { useProfile, useUpdateNotificationPreferences } from '@/hooks/useProfile'
 import type { NotificationPreferencesDto } from '@/api/types'
+import {
+  getBiometricEnabled,
+  setBiometricEnabled,
+  saveBiometricSession,
+  clearBiometricSession,
+} from '@/utils/biometricPreference'
+import { getStoredRefreshToken } from '@/store/auth.store'
 
 // ─── Profile Header ───────────────────────────────────────────────────────────
 
@@ -100,6 +109,36 @@ export default function SettingsScreen() {
   const { user, clearAuth } = useAuthStore()
   const { data: profile, isLoading, refetch } = useProfile()
   const { mutate: updateNotifPrefs } = useUpdateNotificationPreferences()
+
+  // ── Biometric ──
+  const [biometricSupported, setBiometricSupported] = useState(false)
+  const [biometricEnabled, setBiometricEnabledState] = useState(false)
+
+  useEffect(() => {
+    const checkBiometric = async () => {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync()
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync()
+      if (!hasHardware || !isEnrolled) return
+      setBiometricSupported(true)
+      const enabled = await getBiometricEnabled()
+      setBiometricEnabledState(enabled)
+    }
+    checkBiometric()
+  }, [])
+
+  const handleBiometricToggle = async (value: boolean) => {
+    setBiometricEnabledState(value)
+    await setBiometricEnabled(value)
+    if (value) {
+      // Snapshot current session so it survives logout
+      const refreshToken = await getStoredRefreshToken()
+      if (refreshToken && user?.id) {
+        await saveBiometricSession(user.id, refreshToken)
+      }
+    } else {
+      await clearBiometricSession()
+    }
+  }
 
   // ── Local toggle state — seeded from profile data ──
   const [darkTheme, setDarkTheme] = useState(true)
@@ -281,6 +320,26 @@ export default function SettingsScreen() {
             }
           />
         </SettingsGroup>
+
+        {/* ── Security ── */}
+        {biometricSupported ? (
+          <SettingsGroup title="Security">
+            <SettingsRow
+              label="Face / Fingerprint Login"
+              description="Use biometrics to log in instead of your password"
+              icon={<FingerprintPattern size={18} color={Colors.purple[400]} strokeWidth={2} />}
+              rightElement={
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={handleBiometricToggle}
+                  trackColor={{ false: Colors.border.default, true: Colors.purple[600] }}
+                  thumbColor={biometricEnabled ? Colors.purple[400] : Colors.text.muted}
+                  accessibilityLabel="Toggle biometric login"
+                />
+              }
+            />
+          </SettingsGroup>
+        ) : null}
 
         {/* ── Account ── */}
         <SettingsGroup title="Account">

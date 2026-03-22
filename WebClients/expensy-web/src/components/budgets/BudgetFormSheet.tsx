@@ -14,6 +14,7 @@ import {
 } from 'react-native'
 import { X } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
+import { DatePickerInput } from '@/components/ui/DatePickerInput'
 import { useCategories } from '@/hooks/useCategories'
 import type { BudgetDto } from '@/api/types'
 
@@ -116,12 +117,8 @@ export function BudgetFormSheet({
       next.limit = 'Limit must be a number greater than 0.'
     }
 
-    if (!DATE_REGEX.test(form.startDate)) {
-      next.startDate = 'Enter a valid date in YYYY-MM-DD format.'
-    }
-
-    if (form.endDate && !DATE_REGEX.test(form.endDate)) {
-      next.endDate = 'Enter a valid date in YYYY-MM-DD format.'
+    if (!form.startDate) {
+      next.startDate = 'Please select a start date.'
     }
 
     setErrors(next)
@@ -242,39 +239,24 @@ export function BudgetFormSheet({
           </View>
 
           {/* ── Start Date ── */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Start Date</Text>
-            <TextInput
-              style={[styles.input, errors.startDate ? styles.inputError : null]}
-              value={form.startDate}
-              onChangeText={(v) => setField('startDate', v)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={Colors.text.muted}
-              returnKeyType="done"
-              accessibilityLabel="Budget start date"
-            />
-            {errors.startDate ? (
-              <Text style={styles.errorText}>{errors.startDate}</Text>
-            ) : null}
-          </View>
+          <DatePickerInput
+            label="Start Date"
+            value={form.startDate}
+            onChange={(v) => setField('startDate', v)}
+            error={errors.startDate}
+            accessibilityLabel="Budget start date"
+          />
 
           {/* ── End Date (optional) ── */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>
-              End Date{' '}
-              <Text style={styles.optionalLabel}>(optional)</Text>
-            </Text>
-            <TextInput
-              style={[styles.input, errors.endDate ? styles.inputError : null]}
-              value={form.endDate}
-              onChangeText={(v) => setField('endDate', v)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={Colors.text.muted}
-              returnKeyType="done"
-              accessibilityLabel="Budget end date"
-            />
-            {errors.endDate ? <Text style={styles.errorText}>{errors.endDate}</Text> : null}
-          </View>
+          <DatePickerInput
+            label="End Date"
+            value={form.endDate}
+            onChange={(v) => setField('endDate', v)}
+            error={errors.endDate}
+            optional
+            placeholder="No end date"
+            accessibilityLabel="Budget end date"
+          />
         </ScrollView>
 
         {/* ── Submit ── */}

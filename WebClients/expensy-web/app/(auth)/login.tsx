@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, Lock, Wallet } from 'lucide-react-native';
+import { Mail, Lock, Wallet, FingerprintPattern } from 'lucide-react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
 import { useAuthStore } from '@/store/auth.store';
+import { getBiometricEnabled, getBiometricSession, saveBiometricSession } from '@/utils/biometricPreference';
 import { AppTextInput } from '@/components/ui/AppTextInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +22,8 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
   const {
     control,
@@ -29,6 +33,28 @@ export default function LoginScreen() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  // Check biometric availability on mount
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) return;
+
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) return;
+
+      const isEnabled = await getBiometricEnabled();
+      if (!isEnabled) return;
+
+      // Only show button if a biometric session exists (survives logout)
+      const session = await getBiometricSession();
+      if (session) {
+        setBiometricAvailable(true);
+      }
+    };
+
+    checkBiometrics();
+  }, []);
 
   const onSubmit = async (values: LoginFormValues) => {
     setServerError(null);
@@ -42,6 +68,42 @@ export default function LoginScreen() {
       setServerError('Invalid email or password. Please try again.');
     }
   };
+
+  const onBiometricPress = useCallback(async () => {
+    setServerError(null);
+    setBiometricLoading(true);
+
+    try {
+      const session = await getBiometricSession();
+      if (!session) {
+        setServerError('No saved session. Please log in with email first.');
+        setBiometricAvailable(false);
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate to continue',
+        fallbackLabel: 'Use passcode',
+        cancelLabel: 'Cancel',
+      });
+
+      if (!result.success) return;
+
+      const data = await authClient.refresh({ userId: session.userId, refreshToken: session.refreshToken });
+      // Update biometric session with rotated token so next login works too
+      await saveBiometricSession(data.userId!, data.refreshToken!);
+      await setAuth(
+        { id: data.userId!, email: data.email! },
+        data.accessToken!,
+        data.refreshToken!,
+      );
+      router.replace('/(app)');
+    } catch {
+      setServerError('Biometric authentication failed. Please log in with email.');
+    } finally {
+      setBiometricLoading(false);
+    }
+  }, [setAuth, router]);
 
   return (
     <View style={styles.root}>
@@ -123,22 +185,30 @@ export default function LoginScreen() {
           {/* Login button */}
           <Button label='Login  →' variant='primary' loading={isSubmitting} onPress={handleSubmit(onSubmit)} style={styles.loginButton} />
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {/* Biometric section — only rendered when hardware + enrollment + stored session are all present */}
+          {biometricAvailable ? (
+            <>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-          {/* Social buttons */}
-          <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.75}>
-              <Text style={styles.socialLabel}>Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.75}>
-              <Text style={styles.socialLabel}>Apple</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.biometricButton, biometricLoading && styles.biometricButtonDisabled]}
+                activeOpacity={0.75}
+                onPress={onBiometricPress}
+                disabled={biometricLoading}
+                accessibilityRole='button'
+                accessibilityLabel='Use biometrics to log in'
+              >
+                <FingerprintPattern size={22} color={Colors.purple[400]} strokeWidth={1.6} />
+                <Text style={styles.biometricLabel}>
+                  {biometricLoading ? 'Authenticating...' : 'Use Biometrics'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : null}
 
           {/* Footer */}
         </ScrollView>
@@ -269,24 +339,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  // Social
-  socialRow: {
+  // Biometric
+  biometricButton: {
     width: '100%',
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  socialButton: {
-    flex: 1,
     height: 52,
     borderRadius: 14,
     backgroundColor: Colors.bg.elevated,
     borderWidth: 1,
     borderColor: Colors.border.default,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    marginBottom: 32,
   },
-  socialLabel: {
+  biometricButtonDisabled: {
+    opacity: 0.5,
+  },
+  biometricLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.text.primary,

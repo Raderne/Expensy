@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native'
 import { Colors } from '@/constants/colors'
+import { DatePickerInput } from '@/components/ui/DatePickerInput'
 import { useSubscriptionCycles } from '@/hooks/useSubscriptions'
 import type { SubscriptionDto } from '@/api/types'
 
@@ -112,8 +113,8 @@ function validate(data: SubscriptionFormData): FormErrors {
     errors.cycleId = 'Please select a billing cycle.'
   }
 
-  if (!data.startDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    errors.startDate = 'Enter a valid date in YYYY-MM-DD format.'
+  if (!data.startDate) {
+    errors.startDate = 'Please select a start date.'
   }
 
   return errors
@@ -315,20 +316,13 @@ export function SubscriptionFormSheet({
             ) : null}
 
             {/* ── Start Date ── */}
-            <Text style={styles.label}>Start date (YYYY-MM-DD)</Text>
-            <TextInput
-              style={[styles.input, errors.startDate ? styles.inputError : null]}
-              placeholder={todayIso()}
-              placeholderTextColor={Colors.text.muted}
+            <DatePickerInput
+              label="Start Date"
               value={form.startDate}
-              onChangeText={(t) => setField('startDate', t)}
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="done"
-              editable={!isSubmitting}
+              onChange={(t) => setField('startDate', t)}
+              error={errors.startDate}
+              accessibilityLabel="Subscription start date"
             />
-            {errors.startDate ? (
-              <Text style={styles.errorText}>{errors.startDate}</Text>
-            ) : null}
 
             {/* ── Active toggle ── */}
             <View style={styles.toggleRow}>
