@@ -30,7 +30,13 @@ import { SettingsGroup } from '@/components/settings/SettingsGroup'
 import { SettingsRow } from '@/components/settings/SettingsRow'
 import { useProfile, useUpdateNotificationPreferences } from '@/hooks/useProfile'
 import type { NotificationPreferencesDto } from '@/api/types'
-import { getBiometricEnabled, setBiometricEnabled } from '@/utils/biometricPreference'
+import {
+  getBiometricEnabled,
+  setBiometricEnabled,
+  saveBiometricSession,
+  clearBiometricSession,
+} from '@/utils/biometricPreference'
+import { getStoredRefreshToken } from '@/store/auth.store'
 
 // ─── Profile Header ───────────────────────────────────────────────────────────
 
@@ -123,6 +129,15 @@ export default function SettingsScreen() {
   const handleBiometricToggle = async (value: boolean) => {
     setBiometricEnabledState(value)
     await setBiometricEnabled(value)
+    if (value) {
+      // Snapshot current session so it survives logout
+      const refreshToken = await getStoredRefreshToken()
+      if (refreshToken && user?.id) {
+        await saveBiometricSession(user.id, refreshToken)
+      }
+    } else {
+      await clearBiometricSession()
+    }
   }
 
   // ── Local toggle state — seeded from profile data ──

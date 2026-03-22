@@ -9,8 +9,8 @@ import { Mail, Lock, Wallet, FingerprintPattern } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
-import { useAuthStore, getStoredRefreshToken, getStoredUserId } from '@/store/auth.store';
-import { getBiometricEnabled } from '@/utils/biometricPreference';
+import { useAuthStore } from '@/store/auth.store';
+import { getBiometricEnabled, getBiometricSession, saveBiometricSession } from '@/utils/biometricPreference';
 import { AppTextInput } from '@/components/ui/AppTextInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Button } from '@/components/ui/Button';
@@ -46,10 +46,9 @@ export default function LoginScreen() {
       const isEnabled = await getBiometricEnabled();
       if (!isEnabled) return;
 
-      // Only show the button if there is a stored session to resume
-      const storedToken = await getStoredRefreshToken();
-      const storedUserId = await getStoredUserId();
-      if (storedToken && storedUserId) {
+      // Only show button if a biometric session exists (survives logout)
+      const session = await getBiometricSession();
+      if (session) {
         setBiometricAvailable(true);
       }
     };
@@ -75,13 +74,10 @@ export default function LoginScreen() {
     setBiometricLoading(true);
 
     try {
-      const [refreshToken, userId] = await Promise.all([
-        getStoredRefreshToken(),
-        getStoredUserId(),
-      ]);
-
-      if (!refreshToken || !userId) {
+      const session = await getBiometricSession();
+      if (!session) {
         setServerError('No saved session. Please log in with email first.');
+        setBiometricAvailable(false);
         return;
       }
 
@@ -93,7 +89,9 @@ export default function LoginScreen() {
 
       if (!result.success) return;
 
-      const data = await authClient.refresh({ userId, refreshToken });
+      const data = await authClient.refresh({ userId: session.userId, refreshToken: session.refreshToken });
+      // Update biometric session with rotated token so next login works too
+      await saveBiometricSession(data.userId!, data.refreshToken!);
       await setAuth(
         { id: data.userId!, email: data.email! },
         data.accessToken!,
