@@ -1,6 +1,6 @@
 import React from 'react';
 import { Redirect, Tabs } from 'expo-router';
-import { LayoutDashboard, Wallet, ArrowLeftRight, PieChart, PiggyBank, BarChart2, CreditCard, Settings } from 'lucide-react-native';
+import { LayoutDashboard, PieChart, PiggyBank, BarChart2, CreditCard, Settings } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth.store';
 import { Colors } from '@/constants/colors';
 
@@ -37,10 +37,11 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name='wallets'
-        options={{
-          title: 'Wallets',
-          tabBarIcon: ({ color, size }) => <Wallet size={size} color={color} />,
-        }}
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name='transactions'
+        options={{ href: null }}
       />
       <Tabs.Screen
         name='budgets'

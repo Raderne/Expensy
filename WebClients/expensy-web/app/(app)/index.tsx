@@ -93,7 +93,9 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={Colors.purple[500]} colors={[Colors.purple[500]]} />}
       >
         {/* Balance card */}
-        <BalanceCard balance={totalBalance} loading={walletsLoading} label='Total Balance' />
+        <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/(app)/wallets')}>
+          <BalanceCard balance={totalBalance} loading={walletsLoading} label='Total Balance' />
+        </TouchableOpacity>
 
         {/* Weekly spending */}
         <View style={styles.section}>
