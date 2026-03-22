@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, StyleSheet, Text, View } from 'react-native'
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { PlusCircle, Trash2 } from 'lucide-react-native'
 import { Colors } from '@/constants/colors'
 import type { SavingsGoalDto, MilestoneDto } from '@/api/types'
 
@@ -8,6 +9,8 @@ import type { SavingsGoalDto, MilestoneDto } from '@/api/types'
 interface GoalCardProps {
   goal: SavingsGoalDto
   index: number
+  onAddFunds?: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -84,7 +87,7 @@ export function GoalCardSkeleton() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function GoalCard({ goal, index }: GoalCardProps) {
+export function GoalCard({ goal, index, onAddFunds, onDelete }: GoalCardProps) {
   const barWidth = useRef(new Animated.Value(0)).current
 
   const progress = goal.progress ?? 0
@@ -171,6 +174,35 @@ export function GoalCard({ goal, index }: GoalCardProps) {
               </View>
             )
           })}
+        </View>
+      ) : null}
+
+      {/* Action row */}
+      {(onAddFunds || onDelete) && goal.id ? (
+        <View style={styles.actionsRow}>
+          {onAddFunds ? (
+            <TouchableOpacity
+              style={styles.addFundsBtn}
+              onPress={() => onAddFunds(goal.id!)}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={`Add funds to ${goal.name}`}
+            >
+              <PlusCircle size={14} color={Colors.purple[400]} strokeWidth={2} />
+              <Text style={styles.addFundsBtnText}>Add Funds</Text>
+            </TouchableOpacity>
+          ) : null}
+          {onDelete ? (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => onDelete(goal.id!)}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${goal.name}`}
+            >
+              <Trash2 size={14} color={Colors.dark.danger} strokeWidth={2} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -269,6 +301,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 2,
+  },
+  addFundsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: `${Colors.purple[600]}22`,
+    borderWidth: 1,
+    borderColor: `${Colors.purple[500]}44`,
+  },
+  addFundsBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.purple[400],
+  },
+  deleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // Skeleton
   skeletonIcon: {
