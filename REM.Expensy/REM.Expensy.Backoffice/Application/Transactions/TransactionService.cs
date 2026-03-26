@@ -73,12 +73,14 @@ public class TransactionService : ITransactionService
     public async Task<TransactionDto> CreateAsync(CreateTransactionRequest request, string userId, CancellationToken ct = default)
     {
         var walletBelongsToUser = await _context.Wallets
-            .AsNoTracking()
-            .AnyAsync(w => w.Id == request.WalletId && w.UserId == userId, ct)
+            .FirstOrDefaultAsync(w => w.Id == request.WalletId && w.UserId == userId, ct)
             .ConfigureAwait(false);
 
-        if (!walletBelongsToUser)
+        if (walletBelongsToUser is null)
             throw new InvalidOperationException($"Wallet '{request.WalletId}' does not belong to the current user.");
+
+        walletBelongsToUser.Balance -= request.Amount;
+        _context.Wallets.Update(walletBelongsToUser);
 
         var transaction = new Transaction
         {
