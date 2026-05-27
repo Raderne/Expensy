@@ -1,0 +1,15 @@
+// Phase 01 placeholder schema. Real models land in Phase 02 (auth) and Phase 03 (dashboard).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Placeholder so `prisma generate` produces a client. Drop or replace once User lands.
+model HealthCheck {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+}
