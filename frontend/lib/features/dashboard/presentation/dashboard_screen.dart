@@ -1,0 +1,37 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/hero_gradient.dart';
+import '../../../core/widgets/status_bar.dart';
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        HeroGradient(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const FakeStatusBar(light: true),
+              const SizedBox(height: 12),
+              Text(
+                'Dashboard',
+                style: AppTextStyles.titleL.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Phase 01 shell — real cards land in Phase 03.',
+                style: AppTextStyles.body.copyWith(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
