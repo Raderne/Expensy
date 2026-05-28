@@ -144,6 +144,14 @@ Core entities: `User`, `Wallet`, `Category`, `Transaction`, `Budget`, `BudgetAle
 
 Refine in `plans/` once the design is reviewed; reflect the final shape in `backend/prisma/schema.prisma`.
 
+## Platform
+
+This project runs on **Windows**. When suggesting or running shell commands:
+- Use PowerShell syntax (`$env:VAR`, backtick for line continuation, `;` to chain commands)
+- Do not use bash-only syntax (`export`, `&&` chains, `2>/dev/null`, etc.)
+- Use Windows path separators (`\`) in file paths when relevant
+- Prefer the PowerShell tool over the Bash tool for all terminal operations
+
 ## Working in this repo
 
 - Keep `plans/` in sync with what's actually being built. When a phase changes scope, edit the plan file rather than letting it drift.

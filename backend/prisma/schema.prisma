@@ -49,5 +49,66 @@ model User {
   updatedById String?
   deletedAt   DateTime?
 
+  transactions Transaction[]
+  budget       Budget?
+
+  @@index([deletedAt])
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  key      String  @unique
+  label    String
+  abbr     String
+  color    String
+  bgTint   String
+  sort     Int
+  isSystem Boolean @default(true)
+
+  // Required for the $allModels soft-delete extension in src/lib/prisma.ts
+  deletedAt DateTime?
+
+  transactions Transaction[]
+
+  @@index([deletedAt])
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  // positive = income, negative = expense
+  amount     Decimal  @db.Decimal(12, 2)
+  note       String?
+  occurredAt DateTime
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user     User     @relation(fields: [userId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([userId, occurredAt])
+  @@index([deletedAt])
+}
+
+model Budget {
+  id     String  @id @default(cuid())
+  userId String  @unique
+  amount Decimal @db.Decimal(12, 2)
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
   @@index([deletedAt])
 }

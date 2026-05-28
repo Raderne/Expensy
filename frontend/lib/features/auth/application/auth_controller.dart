@@ -25,28 +25,34 @@ class AuthController extends AsyncNotifier<AuthState> {
     required String name,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
       final session = await _repo.signup(email: email, password: password, name: name);
       await _storage.writeSession(
         accessToken: session.tokens.accessToken,
         refreshToken: session.tokens.refreshToken,
         user: session.user,
       );
-      return AuthAuthenticated(session.user);
-    });
+      state = AsyncData(AuthAuthenticated(session.user));
+    } catch (e, st) {
+      state = const AsyncData(AuthUnauthenticated());
+      Error.throwWithStackTrace(e, st);
+    }
   }
 
   Future<void> login({required String email, required String password}) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
       final session = await _repo.login(email: email, password: password);
       await _storage.writeSession(
         accessToken: session.tokens.accessToken,
         refreshToken: session.tokens.refreshToken,
         user: session.user,
       );
-      return AuthAuthenticated(session.user);
-    });
+      state = AsyncData(AuthAuthenticated(session.user));
+    } catch (e, st) {
+      state = const AsyncData(AuthUnauthenticated());
+      Error.throwWithStackTrace(e, st);
+    }
   }
 
   Future<void> logout() async {
