@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/hero_gradient.dart';
-import '../../../../core/widgets/status_bar.dart';
 
 /// Shared layout for Login and Signup. Hero gradient header with title +
 /// subtitle, white card holding the form body and a trailing CTA row.
@@ -38,8 +37,6 @@ class AuthScaffold extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const FakeStatusBar(light: true),
-                    const SizedBox(height: 24),
                     Text(
                       title,
                       style: AppTextStyles.heroAmount.copyWith(fontSize: 28),
