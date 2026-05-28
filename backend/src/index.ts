@@ -4,8 +4,10 @@ import { logger } from './lib/logger.js';
 
 const app = createApp();
 
-const server = app.listen(env.PORT, () => {
-  logger.info({ port: env.PORT, env: env.NODE_ENV }, 'expensy-backend listening');
+const host = process.env.HOST ?? '0.0.0.0';
+
+const server = app.listen(env.PORT, host, () => {
+  logger.info({ port: env.PORT, host, env: env.NODE_ENV }, 'expensy-backend listening');
 });
 
 const shutdown = (signal: string): void => {

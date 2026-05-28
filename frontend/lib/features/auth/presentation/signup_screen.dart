@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../application/auth_controller.dart';
-import '../data/auth_repository.dart';
+import 'auth_error_message.dart';
 import 'widgets/auth_scaffold.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -39,19 +39,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             password: _password.text,
             name: _name.text.trim(),
           );
-    } on AuthApiException catch (e) {
-      setState(() => _serverError = _humanize(e));
-    } catch (_) {
-      setState(() => _serverError = 'Something went wrong. Try again.');
+    } catch (e) {
+      setState(() => _serverError = authErrorMessage(e));
     }
-  }
-
-  String _humanize(AuthApiException e) {
-    return switch (e.code) {
-      'EMAIL_TAKEN' => 'That email is already registered.',
-      'VALIDATION_ERROR' => 'Check the fields and try again.',
-      _ => e.message,
-    };
   }
 
   @override
