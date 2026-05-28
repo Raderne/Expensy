@@ -2,33 +2,43 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/env.dart';
+import '../../features/auth/application/auth_controller.dart';
+import '../../features/auth/data/auth_interceptor.dart';
+import '../../features/auth/data/auth_storage.dart';
 
-/// Single Dio instance for the app. Auth interceptor stub lives here; Phase 02
-/// fills it with access/refresh token handling.
-final dioProvider = Provider<Dio>((ref) {
-  final dio = Dio(
-    BaseOptions(
+const _kBaseHeaders = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+};
+
+BaseOptions _defaultOptions() => BaseOptions(
       baseUrl: Env.apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
-      headers: const {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
+      headers: _kBaseHeaders,
       validateStatus: (status) => status != null && status < 500,
+    );
+
+/// Bare Dio used by [AuthInterceptor] to call `/auth/refresh` and retry
+/// requests without re-entering the interceptor chain.
+final refreshDioProvider = Provider<Dio>((ref) => Dio(_defaultOptions()));
+
+/// App-wide Dio. Carries the auth interceptor; every feature should depend
+/// on this provider rather than constructing its own client.
+final dioProvider = Provider<Dio>((ref) {
+  final dio = Dio(_defaultOptions());
+  final storage = ref.watch(authStorageProvider);
+  final refreshDio = ref.watch(refreshDioProvider);
+
+  dio.interceptors.add(
+    AuthInterceptor(
+      storage: storage,
+      refreshDio: refreshDio,
+      onAuthFailure: () async {
+        await ref.read(authControllerProvider.notifier).onTokensInvalidated();
+      },
     ),
   );
-
-  dio.interceptors.add(_AuthInterceptor());
   return dio;
 });
-
-/// Stub auth interceptor — Phase 02 attaches the access token and refreshes
-/// on 401. Kept here so other features can depend on a stable shape today.
-class _AuthInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    handler.next(options);
-  }
-}
