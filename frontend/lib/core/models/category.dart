@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../theme/app_colors.dart';
 
+@immutable
 class Category {
+  final String id;
   final String key;
   final String label;
   final String abbr;
@@ -10,6 +12,7 @@ class Category {
   final String bgTint;
 
   const Category({
+    required this.id,
     required this.key,
     required this.label,
     required this.abbr,
@@ -18,6 +21,7 @@ class Category {
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
+        id: json['id'] as String,
         key: json['key'] as String,
         label: json['label'] as String,
         abbr: json['abbr'] as String,

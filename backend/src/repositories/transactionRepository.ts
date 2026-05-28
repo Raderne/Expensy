@@ -1,4 +1,44 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+
+// Page size for paginated transaction list (Phase 05).
+// We over-fetch by 1 to know whether a next page exists without a second count.
+export const PAGE_SIZE = 30;
+
+export interface ListFilters {
+  userId: string;
+  from?: Date;
+  to?: Date;
+  categoryId?: string;
+  type?: 'income' | 'expense';
+  cursor?: { occurredAt: Date; id: string };
+}
+
+const buildListWhere = (f: ListFilters): Prisma.TransactionWhereInput => {
+  const where: Prisma.TransactionWhereInput = { userId: f.userId };
+
+  if (f.from && f.to) {
+    where.occurredAt = { gte: f.from, lt: f.to };
+  }
+  if (f.categoryId) {
+    where.categoryId = f.categoryId;
+  }
+  if (f.type === 'income') {
+    where.amount = { gt: 0 };
+  } else if (f.type === 'expense') {
+    where.amount = { lt: 0 };
+  }
+
+  // Cursor: keyset on (occurredAt DESC, id DESC). Strictly past the cursor.
+  if (f.cursor) {
+    where.OR = [
+      { occurredAt: { lt: f.cursor.occurredAt } },
+      { occurredAt: f.cursor.occurredAt, id: { lt: f.cursor.id } },
+    ];
+  }
+
+  return where;
+};
 
 export const transactionRepository = {
   summarize: (userId: string, from: Date, to: Date) =>
@@ -24,4 +64,42 @@ export const transactionRepository = {
       take: limit,
       include: { category: true },
     }),
+
+  create: (input: {
+    userId: string;
+    categoryId: string;
+    amount: Prisma.Decimal;
+    note?: string;
+    occurredAt: Date;
+  }) =>
+    prisma.transaction.create({
+      data: {
+        userId: input.userId,
+        categoryId: input.categoryId,
+        amount: input.amount,
+        note: input.note,
+        occurredAt: input.occurredAt,
+      },
+      include: { category: true },
+    }),
+
+  list: (filters: ListFilters) =>
+    prisma.transaction.findMany({
+      where: buildListWhere(filters),
+      orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+      take: PAGE_SIZE + 1,
+      include: { category: true },
+    }),
+
+  // Distinct YYYY-MM month buckets the user has transactions in, newest first.
+  // Raw query because the soft-delete extension doesn't cover $queryRaw — we
+  // add `deletedAt IS NULL` manually.
+  findMonths: (userId: string): Promise<{ month: string }[]> =>
+    prisma.$queryRaw<{ month: string }[]>`
+      SELECT to_char(date_trunc('month', "occurredAt"), 'YYYY-MM') AS month
+      FROM "Transaction"
+      WHERE "userId" = ${userId} AND "deletedAt" IS NULL
+      GROUP BY 1
+      ORDER BY 1 DESC
+    `,
 };

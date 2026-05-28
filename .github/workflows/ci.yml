@@ -1,10 +1,15 @@
 name: CI
 
+# Run only when validating PRs into develop (not on every push to feature branches).
+# After merge, the PR check already covered that commit; a separate push trigger
+# would run CI again on develop and feel like "double CI".
 on:
-  push:
-    branches: [develop]
   pull_request:
     branches: [develop]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   backend:
