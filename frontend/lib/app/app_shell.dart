@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_colors.dart';
+import '../core/theme/system_overlays.dart';
 import '../core/widgets/bottom_nav.dart';
 
 /// Hosts the bottom nav and renders the current branch (child) above it.
@@ -13,23 +14,12 @@ class AppShell extends StatelessWidget {
 
   const AppShell({super.key, required this.child, required this.active});
 
-  static const _dashboardOverlay = SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemStatusBarContrastEnforced: false,
-  );
-
-  static const _defaultOverlay = SystemUiOverlayStyle(
-    statusBarColor: AppColors.surface,
-    statusBarIconBrightness: Brightness.dark,
-  );
-
   @override
   Widget build(BuildContext context) {
     final isDashboard = active == NavTab.home;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDashboard ? _dashboardOverlay : _defaultOverlay,
+      value: isDashboard ? AppSystemOverlays.hero : AppSystemOverlays.lightBackground,
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
