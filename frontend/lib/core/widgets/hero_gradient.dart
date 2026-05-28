@@ -19,9 +19,10 @@ class HeroGradient extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment(-0.5, -1.0),
+          end: Alignment(0.5, 1.0),
+          colors: [AppColors.primaryDark, AppColors.primary, Color(0xFF2D5FF5)],
+          stops: [0.0, 0.55, 1.0],
         ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(28),

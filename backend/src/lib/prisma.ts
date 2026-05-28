@@ -30,9 +30,11 @@ const auditExtension = Prisma.defineExtension({
         const actorId = requestContext.getActorId();
         if (actorId && args.data) {
           const stamp = { createdById: actorId, updatedById: actorId };
-          args.data = Array.isArray(args.data)
-            ? args.data.map((d) => ({ ...stamp, ...d }))
-            : { ...stamp, ...args.data };
+          args.data = (
+            Array.isArray(args.data)
+              ? args.data.map((d) => ({ ...stamp, ...d }))
+              : { ...stamp, ...args.data }
+          ) as typeof args.data;
         }
         return query(args);
       },
