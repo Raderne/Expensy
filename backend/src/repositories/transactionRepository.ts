@@ -72,6 +72,7 @@ export const transactionRepository = {
     note?: string;
     occurredAt: Date;
     recurringIncomeId?: string;
+    recurringExpenseId?: string;
   }) =>
     prisma.transaction.create({
       data: {
@@ -81,8 +82,23 @@ export const transactionRepository = {
         note: input.note,
         occurredAt: input.occurredAt,
         recurringIncomeId: input.recurringIncomeId,
+        recurringExpenseId: input.recurringExpenseId,
       },
       include: { category: true },
+    }),
+
+  findByRecurringExpenseOnDay: (
+    recurringExpenseId: string,
+    userId: string,
+    dayStart: Date,
+    dayEnd: Date,
+  ) =>
+    prisma.transaction.findFirst({
+      where: {
+        userId,
+        recurringExpenseId,
+        occurredAt: { gte: dayStart, lt: dayEnd },
+      },
     }),
 
   findByRecurringInMonth: (recurringIncomeId: string, userId: string, month: string) => {

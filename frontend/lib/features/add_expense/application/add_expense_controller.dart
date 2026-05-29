@@ -5,6 +5,7 @@ import '../../../core/models/category.dart';
 import '../../analytics/application/analytics_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../dashboard/domain/recent_transaction.dart';
+import '../../recurring_expenses/application/upcoming_bills_controller.dart';
 import '../../transactions/application/transactions_controller.dart';
 import '../data/add_expense_repository.dart';
 import '../domain/amount_input.dart';
@@ -88,6 +89,7 @@ class AddExpenseController extends Notifier<AddExpenseState> {
       ref.invalidate(dashboardControllerProvider);
       ref.invalidate(transactionsControllerProvider);
       ref.invalidate(analyticsControllerProvider);
+      ref.invalidate(upcomingBillsControllerProvider);
       state = state.copyWith(saving: false, saved: tx);
     } on AddExpenseApiException catch (e) {
       state = state.copyWith(saving: false, error: e.message);

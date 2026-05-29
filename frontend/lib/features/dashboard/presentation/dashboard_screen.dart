@@ -7,6 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/hero_gradient.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../recurring_expenses/presentation/widgets/upcoming_bills_card.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_summary.dart';
 import 'widgets/balance_card.dart';
@@ -67,6 +68,7 @@ class _DashboardContent extends StatelessWidget {
             children: [
               BudgetCard(budget: state.summary.budget),
               const SizedBox(height: 14),
+              const UpcomingBillsCard(),
               RecentTransactionsSection(transactions: state.recentTransactions),
               const SizedBox(height: 24),
             ],

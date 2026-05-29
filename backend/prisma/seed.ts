@@ -10,6 +10,7 @@ const CATEGORIES = [
   { key: 'health', label: 'Health', abbr: 'HL', color: '#16A34A', bgTint: '#DCFCE7', sort: 4 },
   { key: 'fun',    label: 'Fun',    abbr: 'EN', color: '#DB2777', bgTint: '#FCE7F3', sort: 5 },
   { key: 'home',   label: 'Home',   abbr: 'HM', color: '#0891B2', bgTint: '#CFFAFE', sort: 6 },
+  { key: 'subscriptions', label: 'Subscriptions', abbr: 'SU', color: '#8B5CF6', bgTint: '#EDE9FE', sort: 7 },
 ] as const;
 
 async function main() {

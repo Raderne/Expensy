@@ -13,6 +13,7 @@ import '../../auth/domain/auth_user.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../income/application/income_controller.dart';
 import '../../income/presentation/widgets/add_side_income_sheet.dart';
+import '../../recurring_expenses/application/recurring_expenses_controller.dart';
 import 'widgets/change_password_sheet.dart';
 import 'widgets/edit_budget_sheet.dart';
 import 'widgets/edit_name_sheet.dart';
@@ -26,6 +27,7 @@ class ProfileScreen extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     final dash = ref.watch(dashboardControllerProvider);
     final incomeAsync = ref.watch(incomeControllerProvider);
+    final recurringAsync = ref.watch(recurringExpensesControllerProvider);
 
     final user = switch (auth.value) {
       AuthAuthenticated(:final user) => user,
@@ -50,6 +52,11 @@ class ProfileScreen extends ConsumerWidget {
       AsyncData(:final value) when value.activeCount > 0 =>
         '${value.activeCount} source${value.activeCount == 1 ? '' : 's'} · ${NumberFormat.simpleCurrency(decimalDigits: 0).format(value.activeMonthlyTotal)}/mo',
       _ => 'Not set',
+    };
+    final recurringSummary = switch (recurringAsync) {
+      AsyncData(:final value) when value.activeCount > 0 =>
+        '${value.activeCount} active · ${NumberFormat.simpleCurrency(decimalDigits: 0).format(value.activeMonthlyTotal)}/mo',
+      _ => 'None set',
     };
     final topInset = MediaQuery.paddingOf(context).top;
 
@@ -108,6 +115,13 @@ class ProfileScreen extends ConsumerWidget {
                           ).format(budgetAmount)
                         : 'Not set',
                     onTap: () => _openEditBudget(context, budgetAmount),
+                  ),
+                  const _Divider(),
+                  _Row(
+                    icon: Icons.autorenew_rounded,
+                    label: 'Recurring expenses',
+                    value: recurringSummary,
+                    onTap: () => context.push('/profile/recurring-expenses'),
                   ),
                   const _Divider(),
                   _Row(
