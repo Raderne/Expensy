@@ -11,6 +11,31 @@ Picked at Phase 01. Reasons:
 
 Re-evaluate at Phase 07 if request volume warrants it.
 
+## Dependencies & lockfile (Windows + Linux CI)
+
+Vitest pulls in optional Linux/WASM packages (`@emnapi/*`). Recent npm versions only lock
+optional deps for your **current OS**, so a lockfile edited on Windows can break `npm ci` on
+GitHub Actions (`Missing: @emnapi/core@1.10.0`).
+
+This repo pins those packages in `devDependencies` so they stay in `package-lock.json` on
+every machine (npm 10+ otherwise drops Linux-only optional deps when you install on Windows).
+
+After changing dependencies:
+
+```bash
+npm install
+npm run lockfile:check   # same as CI: npm ci --ignore-scripts
+git add package.json package-lock.json
+```
+
+If `lockfile:check` still fails locally, regenerate on Linux (Docker):
+
+```bash
+docker run --rm -v "%cd%:/app" -w /app node:20-bookworm-slim npm install
+```
+
+Then commit the updated `package-lock.json`.
+
 ## Quick start
 
 ```bash
