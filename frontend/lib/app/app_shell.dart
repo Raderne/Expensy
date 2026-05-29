@@ -16,14 +16,16 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDashboard = active == NavTab.home;
+    // Screens that draw their own hero gradient under the status bar opt out
+    // of the SafeArea top inset so the gradient bleeds to the top edge.
+    final hasHero = active == NavTab.home || active == NavTab.profile;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDashboard ? AppSystemOverlays.hero : AppSystemOverlays.lightBackground,
+      value: hasHero ? AppSystemOverlays.hero : AppSystemOverlays.lightBackground,
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
-          top: !isDashboard,
+          top: !hasHero,
           bottom: false,
           child: child,
         ),

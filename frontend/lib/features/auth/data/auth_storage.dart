@@ -45,6 +45,14 @@ class AuthStorage {
     ]);
   }
 
+  Future<void> writeUser(AuthUser user) async {
+    await Future.wait([
+      _store.write(key: _kUserId, value: user.id),
+      _store.write(key: _kUserEmail, value: user.email),
+      _store.write(key: _kUserName, value: user.name),
+    ]);
+  }
+
   Future<void> clear() async {
     await Future.wait([
       _store.delete(key: _kAccess),

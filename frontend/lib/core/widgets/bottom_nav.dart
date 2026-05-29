@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
-enum NavTab { home, add, transactions, analytics }
+enum NavTab { home, add, transactions, analytics, profile }
 
 extension NavTabPath on NavTab {
   String get path => switch (this) {
@@ -11,6 +11,7 @@ extension NavTabPath on NavTab {
         NavTab.add => '/add',
         NavTab.transactions => '/transactions',
         NavTab.analytics => '/analytics',
+        NavTab.profile => '/profile',
       };
 }
 
@@ -38,8 +39,7 @@ class BottomNav extends StatelessWidget {
               _NavItem(tab: NavTab.transactions, icon: Icons.receipt_long_rounded, label: 'List', active: active, onTap: onTap),
               _AddButton(onTap: () => onTap(NavTab.add)),
               _NavItem(tab: NavTab.analytics, icon: Icons.pie_chart_rounded, label: 'Stats', active: active, onTap: onTap),
-              // Placeholder for a future profile tab; keeps spacing balanced with the centered + button.
-              const SizedBox(width: 48),
+              _NavItem(tab: NavTab.profile, icon: Icons.person_rounded, label: 'Me', active: active, onTap: onTap),
             ],
           ),
         ),

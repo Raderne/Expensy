@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/tx_row.dart';
 import '../application/transactions_controller.dart';
 import '../domain/date_grouping.dart';
+import 'widgets/filters_sheet.dart';
 import 'widgets/month_nav.dart';
 import 'widgets/summary_row.dart';
 
@@ -58,7 +59,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             controller: _scroll,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(child: _Header()),
+              SliverToBoxAdapter(
+                child: _Header(
+                  filtersActive: state.filters.isActive,
+                  onOpenFilters: () => _openFilters(context, state.filters),
+                ),
+              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
                 sliver: SliverToBoxAdapter(
@@ -83,7 +89,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               if (groups.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: _EmptyState(month: state.month),
+                  child: _EmptyState(
+                    month: state.month,
+                    filtersActive: state.filters.isActive,
+                    onClearFilters: controller.clearFilters,
+                  ),
                 )
               else ...[
                 for (final group in groups) ...[
@@ -121,11 +131,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       },
     );
   }
+
+  void _openFilters(BuildContext context, TransactionFilters current) {
+    showTransactionsFiltersSheet(
+      context,
+      initial: current,
+      onApply: (filters) =>
+          ref.read(transactionsControllerProvider.notifier).applyFilters(filters),
+    );
+  }
 }
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
+  final bool filtersActive;
+  final VoidCallback onOpenFilters;
+
+  const _Header({
+    required this.filtersActive,
+    required this.onOpenFilters,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -134,7 +161,7 @@ class _Header extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text('Transactions', style: AppTextStyles.titleL),
-          _FilterButton(),
+          _FilterButton(active: filtersActive, onTap: onOpenFilters),
         ],
       ),
     );
@@ -142,63 +169,63 @@ class _Header extends StatelessWidget {
 }
 
 class _FilterButton extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+
+  const _FilterButton({required this.active, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
+    return Semantics(
+      button: true,
+      label: active ? 'Filters, active' : 'Filters',
+      child: Material(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(11),
-        onTap: () => _showFiltersStub(context),
-        child: Ink(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(11),
-            boxShadow: const [
-              BoxShadow(color: Color(0x17000C22), blurRadius: 6, offset: Offset(0, 1)),
-            ],
-          ),
-          child: Center(
-            child: CustomPaint(
-              size: const Size(16, 13),
-              painter: _FilterIconPainter(),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(11),
+          onTap: onTap,
+          child: Ink(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x17000C22),
+                  blurRadius: 6,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Center(
+                  child: CustomPaint(
+                    size: const Size(16, 13),
+                    painter: _FilterIconPainter(),
+                  ),
+                ),
+                if (active)
+                  Positioned(
+                    top: 7,
+                    right: 7,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.surface,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showFiltersStub(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.inkFaint,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text('Filters coming soon', style: AppTextStyles.titleM),
-            const SizedBox(height: 6),
-            Text(
-              'Date range, category, and type filters will land in a follow-up.',
-              style: AppTextStyles.body,
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );
@@ -275,7 +302,14 @@ class _ErrorView extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String month;
-  const _EmptyState({required this.month});
+  final bool filtersActive;
+  final VoidCallback onClearFilters;
+
+  const _EmptyState({
+    required this.month,
+    required this.filtersActive,
+    required this.onClearFilters,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -283,6 +317,12 @@ class _EmptyState extends StatelessWidget {
     final monthLabel = parts.length == 2
         ? _monthName(int.tryParse(parts[1]) ?? 0)
         : 'this month';
+    final title = filtersActive
+        ? 'No matches in $monthLabel'
+        : 'No transactions in $monthLabel';
+    final subtitle = filtersActive
+        ? 'Try a different category or type.'
+        : 'Add an expense or pick a different month.';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -303,12 +343,21 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Text('No transactions in $monthLabel', style: AppTextStyles.bodyStrong),
+            Text(title, style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
-            Text(
-              'Add an expense or pick a different month.',
-              style: AppTextStyles.body,
-            ),
+            Text(subtitle, style: AppTextStyles.body),
+            if (filtersActive) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: onClearFilters,
+                child: Text(
+                  'Clear filters',
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

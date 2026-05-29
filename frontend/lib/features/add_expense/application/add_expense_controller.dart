@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/category.dart';
+import '../../analytics/application/analytics_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../dashboard/domain/recent_transaction.dart';
 import '../../transactions/application/transactions_controller.dart';
@@ -86,7 +87,7 @@ class AddExpenseController extends Notifier<AddExpenseState> {
       // Analytics shows the new row without a manual refresh.
       ref.invalidate(dashboardControllerProvider);
       ref.invalidate(transactionsControllerProvider);
-      // TODO(phase06): add analytics provider here when it exists.
+      ref.invalidate(analyticsControllerProvider);
       state = state.copyWith(saving: false, saved: tx);
     } on AddExpenseApiException catch (e) {
       state = state.copyWith(saving: false, error: e.message);

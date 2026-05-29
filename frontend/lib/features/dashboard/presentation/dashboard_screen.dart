@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -136,15 +137,22 @@ class _Hero extends StatelessWidget {
 class _AvatarPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      label: 'Open profile',
+      child: Material(
         color: Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13),
+          onTap: () => context.go('/profile'),
+          child: const SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+          ),
+        ),
       ),
-      alignment: Alignment.center,
-      child: const Icon(Icons.person_rounded, color: Colors.white, size: 20),
     );
   }
 }

@@ -9,6 +9,12 @@ export const userRepository = {
 
   create: (data: { email: string; passwordHash: string; name: string }) =>
     prisma.user.create({ data }),
+
+  updateName: (id: string, name: string) =>
+    prisma.user.update({ where: { id }, data: { name } }),
+
+  updatePasswordHash: (id: string, passwordHash: string) =>
+    prisma.user.update({ where: { id }, data: { passwordHash } }),
 };
 
 export type UserRepository = typeof userRepository;

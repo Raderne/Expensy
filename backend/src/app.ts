@@ -5,6 +5,7 @@ import { env } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { requestContextMiddleware } from './middleware/requestContext.js';
+import { analyticsRouter } from './routes/analytics.js';
 import { authRouter } from './routes/auth.js';
 import { categoriesRouter } from './routes/categories.js';
 import { healthRouter } from './routes/health.js';
@@ -33,6 +34,7 @@ export const createApp = (): Express => {
   app.use(meRouter);
   app.use(categoriesRouter);
   app.use(transactionsRouter);
+  app.use(analyticsRouter);
 
   app.use(errorHandler);
 
