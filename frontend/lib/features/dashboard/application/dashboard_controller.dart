@@ -29,6 +29,7 @@ class DashboardController extends AsyncNotifier<DashboardState> {
   static const _emptyState = DashboardState(
     summary: DashboardSummary(
       balance: 0,
+      net: 0,
       income: 0,
       expenses: 0,
       budget: BudgetInfo(amount: 0, spent: 0, pct: 0),

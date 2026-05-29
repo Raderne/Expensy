@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -10,6 +11,8 @@ import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../dashboard/application/dashboard_controller.dart';
+import '../../income/application/income_controller.dart';
+import '../../income/presentation/widgets/add_side_income_sheet.dart';
 import 'widgets/change_password_sheet.dart';
 import 'widgets/edit_budget_sheet.dart';
 import 'widgets/edit_name_sheet.dart';
@@ -22,6 +25,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
     final dash = ref.watch(dashboardControllerProvider);
+    final incomeAsync = ref.watch(incomeControllerProvider);
 
     final user = switch (auth.value) {
       AuthAuthenticated(:final user) => user,
@@ -37,6 +41,15 @@ class ProfileScreen extends ConsumerWidget {
     final budgetAmount = switch (dash) {
       AsyncData(:final value) => value.summary.budget.amount,
       _ => 0.0,
+    };
+    final lifetimeBalance = switch (dash) {
+      AsyncData(:final value) => value.summary.balance,
+      _ => 0.0,
+    };
+    final incomeSummary = switch (incomeAsync) {
+      AsyncData(:final value) when value.activeCount > 0 =>
+        '${value.activeCount} source${value.activeCount == 1 ? '' : 's'} · ${NumberFormat.simpleCurrency(decimalDigits: 0).format(value.activeMonthlyTotal)}/mo',
+      _ => 'Not set',
     };
     final topInset = MediaQuery.paddingOf(context).top;
 
@@ -79,6 +92,14 @@ class ProfileScreen extends ConsumerWidget {
                 title: 'Money',
                 children: [
                   _Row(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'Total balance',
+                    value: NumberFormat.simpleCurrency(
+                      decimalDigits: 0,
+                    ).format(lifetimeBalance),
+                  ),
+                  const _Divider(),
+                  _Row(
                     icon: Icons.savings_outlined,
                     label: 'Monthly budget',
                     value: budgetAmount > 0
@@ -87,6 +108,20 @@ class ProfileScreen extends ConsumerWidget {
                           ).format(budgetAmount)
                         : 'Not set',
                     onTap: () => _openEditBudget(context, budgetAmount),
+                  ),
+                  const _Divider(),
+                  _Row(
+                    icon: Icons.payments_outlined,
+                    label: 'Income sources',
+                    value: incomeSummary,
+                    onTap: () => context.push('/profile/income-sources'),
+                  ),
+                  const _Divider(),
+                  _Row(
+                    icon: Icons.add_circle_outline_rounded,
+                    label: 'Add side income',
+                    value: 'Freelance, gifts, one-offs',
+                    onTap: () => _openAddSideIncome(context),
                   ),
                 ],
               ),
@@ -153,6 +188,22 @@ class ProfileScreen extends ConsumerWidget {
         const SnackBar(
           content: Text('Budget updated'),
           backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openAddSideIncome(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showEditSheet<bool>(
+      context,
+      (_) => const AddSideIncomeSheet(),
+    );
+    if (ok == true) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Side income added'),
+          backgroundColor: AppColors.success,
         ),
       );
     }

@@ -6,6 +6,7 @@ import {
   transactionRepository,
   type ListFilters,
 } from '../repositories/transactionRepository.js';
+import { incomeService } from './incomeService.js';
 
 const parseMonth = (month: string): { from: Date; to: Date } => {
   const sep = month.indexOf('-');
@@ -88,6 +89,10 @@ export const transactionService = {
     userId: string,
     query: { month?: string; categoryId?: string; type?: 'income' | 'expense'; cursor?: string },
   ): Promise<{ transactions: TransactionDto[]; nextCursor: string | null }> {
+    if (query.month) {
+      await incomeService.ensureMaterialized(userId, query.month);
+    }
+
     const filters: ListFilters = { userId };
     if (query.month) {
       const { from, to } = parseMonth(query.month);

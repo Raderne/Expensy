@@ -1,6 +1,7 @@
 import { budgetRepository } from '../repositories/budgetRepository.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
 import { transactionRepository } from '../repositories/transactionRepository.js';
+import { incomeService } from './incomeService.js';
 
 const parseMonth = (month: string): { from: Date; to: Date } => {
   const sep = month.indexOf('-');
@@ -14,6 +15,7 @@ const toNum = (d: { toNumber(): number } | null | undefined): number =>
 
 export interface DashboardSummary {
   balance: number;
+  net: number;
   income: number;
   expenses: number;
   budget: { amount: number; spent: number; pct: number };
@@ -38,6 +40,7 @@ export interface RecentTx {
 
 export const dashboardService = {
   async getSummary(userId: string, month: string): Promise<DashboardSummary> {
+    await incomeService.ensureMaterialized(userId, month);
     const { from, to } = parseMonth(month);
 
     const [[lifetimeAgg, incomeAgg, expenseAgg], budget] = await Promise.all([
@@ -48,10 +51,11 @@ export const dashboardService = {
     const balance = toNum(lifetimeAgg._sum.amount);
     const income = toNum(incomeAgg._sum.amount);
     const expenses = Math.abs(toNum(expenseAgg._sum.amount));
+    const net = income - expenses;
     const budgetAmount = toNum(budget?.amount);
     const pct = budgetAmount > 0 ? Math.min(100, Math.round((expenses / budgetAmount) * 100)) : 0;
 
-    return { balance, income, expenses, budget: { amount: budgetAmount, spent: expenses, pct } };
+    return { balance, net, income, expenses, budget: { amount: budgetAmount, spent: expenses, pct } };
   },
 
   async getRecentTransactions(userId: string, limit: number): Promise<RecentTx[]> {

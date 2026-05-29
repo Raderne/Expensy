@@ -83,6 +83,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: SummaryRow(
                     income: state.income,
                     expenses: state.expenses,
+                    net: state.net,
                   ),
                 ),
               ),

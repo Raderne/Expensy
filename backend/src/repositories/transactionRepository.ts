@@ -71,6 +71,7 @@ export const transactionRepository = {
     amount: Prisma.Decimal;
     note?: string;
     occurredAt: Date;
+    recurringIncomeId?: string;
   }) =>
     prisma.transaction.create({
       data: {
@@ -79,8 +80,34 @@ export const transactionRepository = {
         amount: input.amount,
         note: input.note,
         occurredAt: input.occurredAt,
+        recurringIncomeId: input.recurringIncomeId,
       },
       include: { category: true },
+    }),
+
+  findByRecurringInMonth: (recurringIncomeId: string, userId: string, month: string) => {
+    const sep = month.indexOf('-');
+    const year = parseInt(month.slice(0, sep), 10);
+    const m = parseInt(month.slice(sep + 1), 10);
+    const from = new Date(year, m - 1, 1);
+    const to = new Date(year, m, 1);
+    return prisma.transaction.findFirst({
+      where: {
+        userId,
+        recurringIncomeId,
+        occurredAt: { gte: from, lt: to },
+      },
+    });
+  },
+
+  update: (
+    id: string,
+    userId: string,
+    data: Partial<{ amount: Prisma.Decimal; note: string; occurredAt: Date }>,
+  ) =>
+    prisma.transaction.updateMany({
+      where: { id, userId },
+      data,
     }),
 
   list: (filters: ListFilters) =>
