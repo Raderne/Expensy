@@ -30,61 +30,75 @@ class EditSheetShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x22000C22),
-              blurRadius: 24,
-              offset: Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.inkFaint,
-                      borderRadius: BorderRadius.circular(2),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: screenHeight - bottomInset),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x22000C22),
+                blurRadius: 24,
+                offset: Offset(0, -4),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.inkFaint,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(title, style: AppTextStyles.titleM),
-                if (caption != null) ...[
-                  const SizedBox(height: 4),
-                  Text(caption!, style: AppTextStyles.body),
-                ],
-                const SizedBox(height: 16),
-                child,
-                if (error != null) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    error!,
-                    style: AppTextStyles.label.copyWith(color: AppColors.danger),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(title, style: AppTextStyles.titleM),
+                          if (caption != null) ...[
+                            const SizedBox(height: 4),
+                            Text(caption!, style: AppTextStyles.body),
+                          ],
+                          const SizedBox(height: 16),
+                          child,
+                          if (error != null) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              error!,
+                              style: AppTextStyles.label.copyWith(color: AppColors.danger),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _ActionButton(
+                    label: actionLabel,
+                    enabled: actionEnabled,
+                    saving: saving,
+                    onTap: onAction,
                   ),
                 ],
-                const SizedBox(height: 16),
-                _ActionButton(
-                  label: actionLabel,
-                  enabled: actionEnabled,
-                  saving: saving,
-                  onTap: onAction,
-                ),
-              ],
+              ),
             ),
           ),
         ),

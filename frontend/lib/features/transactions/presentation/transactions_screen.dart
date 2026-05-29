@@ -98,27 +98,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 )
               else ...[
-                for (final group in groups) ...[
+                for (final group in groups)
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
                     sliver: SliverToBoxAdapter(
-                      child: Text(group.label, style: AppTextStyles.groupLabel),
+                      child: _DayGroup(
+                        group: group,
+                        onDelete: _deleteTransaction,
+                      ),
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    sliver: SliverList.builder(
-                      itemCount: group.transactions.length,
-                      itemBuilder: (_, i) {
-                        final tx = group.transactions[i];
-                        return SwipeableTransactionRow(
-                          transaction: tx,
-                          onDelete: () => _deleteTransaction(tx.id),
-                        );
-                      },
-                    ),
-                  ),
-                ],
                 if (state.hasMore)
                   const SliverToBoxAdapter(child: _PageSpinner()),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -400,6 +389,61 @@ class _PageSpinner extends StatelessWidget {
           child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
         ),
       ),
+    );
+  }
+}
+
+// ─── Day group card ───────────────────────────────────────────────────────────
+
+class _DayGroup extends StatelessWidget {
+  final TransactionGroup group;
+  final Future<void> Function(String id) onDelete;
+
+  const _DayGroup({required this.group, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 8),
+          child: Text(group.label, style: AppTextStyles.groupLabel),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000C22),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              children: [
+                for (int i = 0; i < group.transactions.length; i++) ...[
+                  if (i > 0)
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 68,
+                      color: AppColors.border,
+                    ),
+                  SwipeableTransactionRow(
+                    transaction: group.transactions[i],
+                    onDelete: () => onDelete(group.transactions[i].id),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

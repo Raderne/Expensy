@@ -60,7 +60,9 @@ class AddExpenseScreen extends ConsumerWidget {
                 onRetry: () => ref.invalidate(categoriesProvider),
               ),
               data: (cats) => CategoryGrid(
-                categories: cats.where((c) => c.key != 'income').toList(),
+                categories: cats
+                    .where((c) => c.key != 'income' && c.key != 'subscriptions')
+                    .toList(),
                 selectedId: state.categoryId,
                 onSelect: controller.selectCategory,
               ),
@@ -300,16 +302,16 @@ class _CategorySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 1.42,
-      children: List.generate(
-        6,
-        (_) => Container(
+    return SizedBox(
+      height: 80,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, _) => Container(
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
             color: AppColors.inkFaint,
             borderRadius: BorderRadius.circular(14),
