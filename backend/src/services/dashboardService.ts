@@ -2,6 +2,7 @@ import { budgetRepository } from '../repositories/budgetRepository.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
 import { transactionRepository } from '../repositories/transactionRepository.js';
 import { incomeService } from './incomeService.js';
+import { recurringExpenseService } from './recurringExpenseService.js';
 
 const parseMonth = (month: string): { from: Date; to: Date } => {
   const sep = month.indexOf('-');
@@ -41,6 +42,7 @@ export interface RecentTx {
 export const dashboardService = {
   async getSummary(userId: string, month: string): Promise<DashboardSummary> {
     await incomeService.ensureMaterialized(userId, month);
+    await recurringExpenseService.ensureMaterialized(userId);
     const { from, to } = parseMonth(month);
 
     const [[lifetimeAgg, incomeAgg, expenseAgg], budget] = await Promise.all([

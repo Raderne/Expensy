@@ -40,6 +40,7 @@ class AppColors {
     'health': CategoryColor(Color(0xFF16A34A), Color(0xFFDCFCE7)),
     'fun': CategoryColor(Color(0xFFDB2777), Color(0xFFFCE7F3)),
     'home': CategoryColor(Color(0xFF0891B2), Color(0xFFCFFAFE)),
+    'subscriptions': CategoryColor(Color(0xFF8B5CF6), Color(0xFFEDE9FE)),
   };
 }
 
