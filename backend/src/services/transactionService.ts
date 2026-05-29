@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../lib/prismaTypes.js';
 import { AppError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
 import {
@@ -29,7 +29,7 @@ export interface TransactionDto {
   amount: number;
   note: string | null;
   occurredAt: string;
-  category: { key: string; label: string; abbr: string; color: string; bgTint: string };
+  category: { id: string; key: string; label: string; abbr: string; color: string; bgTint: string };
 }
 
 interface RawTx {
@@ -37,7 +37,7 @@ interface RawTx {
   amount: Prisma.Decimal;
   note: string | null;
   occurredAt: Date;
-  category: { key: string; label: string; abbr: string; color: string; bgTint: string };
+  category: { id: string; key: string; label: string; abbr: string; color: string; bgTint: string };
 }
 
 const toDto = (t: RawTx): TransactionDto => ({
@@ -46,6 +46,7 @@ const toDto = (t: RawTx): TransactionDto => ({
   note: t.note,
   occurredAt: t.occurredAt.toISOString(),
   category: {
+    id: t.category.id,
     key: t.category.key,
     label: t.category.label,
     abbr: t.category.abbr,

@@ -19,12 +19,21 @@ export interface DashboardSummary {
   budget: { amount: number; spent: number; pct: number };
 }
 
+export interface CategoryDto {
+  id: string;
+  key: string;
+  label: string;
+  abbr: string;
+  color: string;
+  bgTint: string;
+}
+
 export interface RecentTx {
   id: string;
   amount: number;
   note: string | null;
   occurredAt: string;
-  category: { key: string; label: string; abbr: string; color: string; bgTint: string };
+  category: CategoryDto;
 }
 
 export const dashboardService = {
@@ -53,6 +62,7 @@ export const dashboardService = {
       note: t.note,
       occurredAt: t.occurredAt.toISOString(),
       category: {
+        id: t.category.id,
         key: t.category.key,
         label: t.category.label,
         abbr: t.category.abbr,

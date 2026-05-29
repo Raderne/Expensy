@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../lib/prismaTypes.js';
 import { prisma } from '../lib/prisma.js';
 
 // Page size for paginated transaction list (Phase 05).

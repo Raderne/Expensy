@@ -1,10 +1,9 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
-import { logger } from './lib/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import { requestContextMiddleware } from './middleware/requestContext.js';
 import { authRouter } from './routes/auth.js';
 import { categoriesRouter } from './routes/categories.js';
@@ -26,7 +25,7 @@ export const createApp = (): Express => {
     }),
   );
   app.use(express.json({ limit: '256kb' }));
-  app.use(pinoHttp({ logger }));
+  app.use(requestLogger);
   app.use(requestContextMiddleware);
 
   app.use(healthRouter);

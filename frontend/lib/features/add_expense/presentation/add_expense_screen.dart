@@ -306,7 +306,7 @@ class _CategorySkeleton extends StatelessWidget {
       crossAxisCount: 3,
       crossAxisSpacing: 8,
       mainAxisSpacing: 8,
-      childAspectRatio: 1.55,
+      childAspectRatio: 1.42,
       children: List.generate(
         6,
         (_) => Container(

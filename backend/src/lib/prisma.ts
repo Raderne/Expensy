@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from './prismaTypes.js';
 import { env } from '../config/env.js';
 import { requestContext } from './requestContext.js';
 
