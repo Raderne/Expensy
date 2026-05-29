@@ -7,6 +7,42 @@ import '../../dashboard/data/dashboard_repository.dart';
 import '../data/transactions_repository.dart';
 import '../domain/transaction.dart';
 
+/// One of `'income'` / `'expense'`, or `null` for both.
+typedef TxTypeFilter = String?;
+
+@immutable
+class TransactionFilters {
+  final String? categoryId;
+  final TxTypeFilter type;
+
+  const TransactionFilters({this.categoryId, this.type});
+
+  static const none = TransactionFilters();
+
+  bool get isActive => categoryId != null || type != null;
+
+  TransactionFilters copyWith({
+    String? categoryId,
+    TxTypeFilter type,
+    bool clearCategoryId = false,
+    bool clearType = false,
+  }) =>
+      TransactionFilters(
+        categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
+        type: clearType ? null : (type ?? this.type),
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TransactionFilters &&
+          other.categoryId == categoryId &&
+          other.type == type;
+
+  @override
+  int get hashCode => Object.hash(categoryId, type);
+}
+
 @immutable
 class TransactionsState {
   final String month; // YYYY-MM
@@ -16,6 +52,7 @@ class TransactionsState {
   final double income;
   final double expenses;
   final bool loadingMore;
+  final TransactionFilters filters;
 
   const TransactionsState({
     required this.month,
@@ -25,6 +62,7 @@ class TransactionsState {
     required this.income,
     required this.expenses,
     this.loadingMore = false,
+    this.filters = TransactionFilters.none,
   });
 
   bool get hasMore => nextCursor != null;
@@ -46,6 +84,7 @@ class TransactionsState {
     double? income,
     double? expenses,
     bool? loadingMore,
+    TransactionFilters? filters,
     bool clearNextCursor = false,
   }) =>
       TransactionsState(
@@ -56,6 +95,7 @@ class TransactionsState {
         income: income ?? this.income,
         expenses: expenses ?? this.expenses,
         loadingMore: loadingMore ?? this.loadingMore,
+        filters: filters ?? this.filters,
       );
 }
 
@@ -84,15 +124,26 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
 
     final months = await _repo.listMonths();
     final month = months.isNotEmpty ? months.first : _currentMonth();
-    return _loadMonth(month: month, availableMonths: months);
+    return _loadMonth(
+      month: month,
+      availableMonths: months,
+      filters: TransactionFilters.none,
+    );
   }
 
   Future<TransactionsState> _loadMonth({
     required String month,
     required List<String> availableMonths,
+    required TransactionFilters filters,
   }) async {
+    // Summary stays unfiltered — income/expense cards reflect the whole month
+    // so the totals don't lie when a category filter is on.
     final (page, summary) = await (
-      _repo.list(month: month),
+      _repo.list(
+        month: month,
+        categoryId: filters.categoryId,
+        type: filters.type,
+      ),
       _dash.getSummary(month: month),
     ).wait;
     return TransactionsState(
@@ -102,6 +153,7 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
       availableMonths: availableMonths,
       income: summary.income,
       expenses: summary.expenses,
+      filters: filters,
     );
   }
 
@@ -111,7 +163,11 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => _loadMonth(month: month, availableMonths: current.availableMonths),
+      () => _loadMonth(
+        month: month,
+        availableMonths: current.availableMonths,
+        filters: current.filters,
+      ),
     );
   }
 
@@ -131,6 +187,24 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     await setMonth(cur.availableMonths[idx - 1]);
   }
 
+  /// Replaces the active filter set and reloads the current month.
+  /// No-ops if [filters] equals the current filters.
+  Future<void> applyFilters(TransactionFilters filters) async {
+    final cur = state.value;
+    if (cur == null || cur.filters == filters) return;
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => _loadMonth(
+        month: cur.month,
+        availableMonths: cur.availableMonths,
+        filters: filters,
+      ),
+    );
+  }
+
+  Future<void> clearFilters() => applyFilters(TransactionFilters.none);
+
   /// Appends the next page without disturbing the current AsyncData wrapper —
   /// the list keeps rendering while the spinner sits at the bottom.
   Future<void> loadMore() async {
@@ -139,7 +213,12 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
 
     state = AsyncData(cur.copyWith(loadingMore: true));
     try {
-      final page = await _repo.list(month: cur.month, cursor: cur.nextCursor);
+      final page = await _repo.list(
+        month: cur.month,
+        cursor: cur.nextCursor,
+        categoryId: cur.filters.categoryId,
+        type: cur.filters.type,
+      );
       state = AsyncData(
         cur.copyWith(
           transactions: [...cur.transactions, ...page.transactions],
@@ -160,7 +239,11 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     state = await AsyncValue.guard(() async {
       final months = await _repo.listMonths();
       final month = cur?.month ?? (months.isNotEmpty ? months.first : _currentMonth());
-      return _loadMonth(month: month, availableMonths: months);
+      return _loadMonth(
+        month: month,
+        availableMonths: months,
+        filters: cur?.filters ?? TransactionFilters.none,
+      );
     });
   }
 }
