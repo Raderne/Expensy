@@ -21,7 +21,8 @@ class Category {
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['id'] as String,
+        // Transaction payloads historically omitted id; key is stable for UI theming.
+        id: (json['id'] as String?) ?? json['key'] as String,
         key: json['key'] as String,
         label: json['label'] as String,
         abbr: json['abbr'] as String,

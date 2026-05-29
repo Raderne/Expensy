@@ -29,7 +29,7 @@ class CategoryGrid extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
-        childAspectRatio: 1.55,
+        childAspectRatio: 1.42,
       ),
       itemBuilder: (context, i) {
         final c = categories[i];
@@ -61,7 +61,7 @@ class _Tile extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? color : AppColors.surface,
           border: Border.all(
@@ -72,10 +72,11 @@ class _Tile extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 30,
-              height: 30,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 color: selected ? Colors.white.withValues(alpha: 0.22) : bg,
                 borderRadius: BorderRadius.circular(9),
@@ -89,11 +90,15 @@ class _Tile extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Text(
               category.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: AppTextStyles.label.copyWith(
                 fontSize: 11,
+                height: 1.1,
                 color: selected ? Colors.white : AppColors.inkMid,
               ),
             ),
