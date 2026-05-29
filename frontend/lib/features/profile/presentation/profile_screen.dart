@@ -82,8 +82,9 @@ class ProfileScreen extends ConsumerWidget {
                     icon: Icons.savings_outlined,
                     label: 'Monthly budget',
                     value: budgetAmount > 0
-                        ? NumberFormat.simpleCurrency(decimalDigits: 0)
-                            .format(budgetAmount)
+                        ? NumberFormat.simpleCurrency(
+                            decimalDigits: 0,
+                          ).format(budgetAmount)
                         : 'Not set',
                     onTap: () => _openEditBudget(context, budgetAmount),
                   ),
@@ -96,7 +97,7 @@ class ProfileScreen extends ConsumerWidget {
                   _Row(
                     icon: Icons.help_outline_rounded,
                     label: 'Help & feedback',
-                    value: 'github.com/anthropics',
+                    value: 'github.com/Raderne',
                     onTap: () => _showComingSoon(context),
                   ),
                   const _Divider(),
@@ -108,9 +109,7 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              _SignOutButton(
-                onTap: () => _confirmSignOut(context, ref),
-              ),
+              _SignOutButton(onTap: () => _confirmSignOut(context, ref)),
             ],
           ),
         ),
@@ -160,9 +159,9 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming soon')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Coming soon')));
   }
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
@@ -170,9 +169,7 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text('Sign out?', style: AppTextStyles.titleM),
         content: Text(
           'You will need to sign in again to access your data.',
@@ -183,14 +180,18 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.inkMid,
+              ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               'Sign out',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.danger),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.danger,
+              ),
             ),
           ),
         ],
