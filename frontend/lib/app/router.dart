@@ -10,6 +10,7 @@ import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/profile/presentation/profile_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
 import 'app_shell.dart';
 
@@ -17,6 +18,7 @@ NavTab _tabForLocation(String location) {
   if (location.startsWith('/add')) return NavTab.add;
   if (location.startsWith('/transactions')) return NavTab.transactions;
   if (location.startsWith('/analytics')) return NavTab.analytics;
+  if (location.startsWith('/profile')) return NavTab.profile;
   return NavTab.home;
 }
 
@@ -80,6 +82,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/analytics',
             name: 'analytics',
             pageBuilder: (_, _) => const NoTransitionPage(child: AnalyticsScreen()),
+          ),
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            pageBuilder: (_, _) => const NoTransitionPage(child: ProfileScreen()),
           ),
         ],
       ),

@@ -102,4 +102,18 @@ export const transactionRepository = {
       GROUP BY 1
       ORDER BY 1 DESC
     `,
+
+  // Phase 06 — group expense rows by category for the donut + breakdown bars.
+  // amount < 0 selects expenses only; the absolute sum is computed in the
+  // service so we can keep returning a Decimal here.
+  groupExpensesByCategory: (userId: string, from: Date, to: Date) =>
+    prisma.transaction.groupBy({
+      by: ['categoryId'],
+      where: {
+        userId,
+        amount: { lt: 0 },
+        occurredAt: { gte: from, lt: to },
+      },
+      _sum: { amount: true },
+    }),
 };

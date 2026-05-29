@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_storage.dart';
 import '../domain/auth_state.dart';
+import '../domain/auth_user.dart';
 
 /// Owns the AuthState lifecycle. Persists tokens via [AuthStorage] and exposes
 /// signup/login/logout entry points. Initial build() rehydrates from storage,
@@ -58,6 +59,13 @@ class AuthController extends AsyncNotifier<AuthState> {
   Future<void> logout() async {
     await _storage.clear();
     state = const AsyncData(AuthUnauthenticated());
+  }
+
+  /// Replaces the cached user (e.g. after a profile edit). Persists the new
+  /// values to secure storage so the next cold-start sees the updated name.
+  Future<void> updateUser(AuthUser user) async {
+    await _storage.writeUser(user);
+    state = AsyncData(AuthAuthenticated(user));
   }
 
   /// Called by the auth interceptor when refresh fails and the user must
