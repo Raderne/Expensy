@@ -9,6 +9,7 @@ class Transaction {
   final String? note;
   final DateTime occurredAt;
   final Category category;
+  final String? recurringIncomeId;
 
   const Transaction({
     required this.id,
@@ -16,7 +17,10 @@ class Transaction {
     required this.note,
     required this.occurredAt,
     required this.category,
+    this.recurringIncomeId,
   });
+
+  bool get isRecurringIncome => recurringIncomeId != null;
 
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
         id: json['id'] as String,
@@ -24,5 +28,6 @@ class Transaction {
         note: json['note'] as String?,
         occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
         category: Category.fromJson(json['category'] as Map<String, dynamic>),
+        recurringIncomeId: json['recurringIncomeId'] as String?,
       );
 }

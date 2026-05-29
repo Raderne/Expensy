@@ -20,6 +20,7 @@ type StoredTx = {
   note: string | null;
   occurredAt: Date;
   recurringIncomeId: string | null;
+  deletedAt?: Date | null;
 };
 
 const recurringStore = new Map<string, StoredRecurring>();
@@ -108,6 +109,7 @@ vi.mock('../src/repositories/transactionRepository.js', () => ({
         const from = new Date(year, m - 1, 1);
         const to = new Date(year, m, 1);
         for (const tx of txStore.values()) {
+          if (tx.deletedAt) continue;
           if (
             tx.userId === userId &&
             tx.recurringIncomeId === recurringIncomeId &&
@@ -149,12 +151,18 @@ vi.mock('../src/repositories/transactionRepository.js', () => ({
       Object.assign(tx, data);
       return { count: 1 };
     }),
+    softDelete: vi.fn(async (id: string, userId: string) => {
+      const tx = txStore.get(id);
+      if (!tx || tx.userId !== userId) return { count: 0 };
+      tx.deletedAt = new Date();
+      return { count: 1 };
+    }),
     summarize: vi.fn(async (userId: string, from: Date, to: Date) => {
       let lifetime = new Prisma.Decimal(0);
       let income = new Prisma.Decimal(0);
       let expenses = new Prisma.Decimal(0);
       for (const tx of txStore.values()) {
-        if (tx.userId !== userId) continue;
+        if (tx.userId !== userId || tx.deletedAt) continue;
         lifetime = lifetime.add(tx.amount);
         if (tx.occurredAt >= from && tx.occurredAt < to) {
           if (tx.amount.gt(0)) income = income.add(tx.amount);
@@ -198,9 +206,9 @@ describe('incomeService.createSideIncome', () => {
 });
 
 describe('incomeService.ensureMaterialized', () => {
-  it('creates recurring income on or after payday', async () => {
+  it('creates recurring income on or after payday when source existed by then', async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 4, 25)); // May 25, 2026
+    vi.setSystemTime(new Date(2026, 4, 15)); // May 15 — before payday
 
     await incomeService.createRecurring('u1', {
       label: 'Salary',
@@ -208,6 +216,7 @@ describe('incomeService.ensureMaterialized', () => {
       dayOfMonth: 20,
     });
 
+    vi.setSystemTime(new Date(2026, 4, 25)); // May 25 — after payday
     await incomeService.ensureMaterialized('u1', '2026-05');
 
     const txs = [...txStore.values()];
@@ -229,6 +238,65 @@ describe('incomeService.ensureMaterialized', () => {
 
     await incomeService.ensureMaterialized('u1', '2026-05');
     expect([...txStore.values()]).toHaveLength(0);
+  });
+
+  it('does not backfill when payday already passed before source was created', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 29)); // May 29
+
+    await incomeService.createRecurring('u1', {
+      label: 'Salary',
+      amount: 5200,
+      dayOfMonth: 1,
+    });
+
+    await incomeService.ensureMaterialized('u1', '2026-05');
+    expect([...txStore.values()]).toHaveLength(0);
+  });
+
+  it('materializes next month once payday arrives', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 29)); // May 29
+
+    await incomeService.createRecurring('u1', {
+      label: 'Salary',
+      amount: 5200,
+      dayOfMonth: 1,
+    });
+
+    vi.setSystemTime(new Date(2026, 5, 1)); // June 1
+    await incomeService.ensureMaterialized('u1', '2026-06');
+
+    const txs = [...txStore.values()];
+    expect(txs).toHaveLength(1);
+    expect(txs[0]!.occurredAt.getMonth()).toBe(5); // June
+    expect(txs[0]!.occurredAt.getDate()).toBe(1);
+  });
+
+  it('removes incorrectly materialised transactions on next sync', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 29)); // May 29
+
+    const recurring = await incomeService.createRecurring('u1', {
+      label: 'Salary',
+      amount: 5200,
+      dayOfMonth: 1,
+    });
+
+    // Simulate a bad transaction created by the old logic.
+    txStore.set('tx_bad', {
+      id: 'tx_bad',
+      userId: 'u1',
+      categoryId: INCOME_CATEGORY_ID,
+      amount: new Prisma.Decimal(5200),
+      note: 'Salary',
+      occurredAt: new Date(2026, 4, 1),
+      recurringIncomeId: recurring.id,
+    });
+
+    await incomeService.ensureMaterialized('u1', '2026-05');
+
+    expect(txStore.get('tx_bad')!.deletedAt).toBeTruthy();
   });
 });
 

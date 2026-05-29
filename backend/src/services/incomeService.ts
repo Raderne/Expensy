@@ -178,10 +178,24 @@ export const incomeService = {
       if (month < sourceCreatedMonth) continue;
 
       const payday = paydayInMonth(year, m, source.dayOfMonth);
-      if (startOfDay(payday) > today) continue;
+      const paydayStart = startOfDay(payday);
+      const sourceCreatedStart = startOfDay(source.createdAt);
 
-      const existing = await transactionRepository.findByRecurringInMonth(source.id, userId, month);
-      if (existing) continue;
+      const existing = await transactionRepository.findByRecurringInMonth(
+        source.id,
+        userId,
+        month,
+      );
+      if (existing) {
+        // Remove transactions that were materialised before this rule existed.
+        if (sourceCreatedStart > paydayStart) {
+          await transactionRepository.softDelete(existing.id, userId);
+        }
+        continue;
+      }
+
+      if (paydayStart > today) continue;
+      if (sourceCreatedStart > paydayStart) continue;
 
       await transactionRepository.create({
         userId,

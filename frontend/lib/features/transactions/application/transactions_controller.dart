@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../dashboard/application/dashboard_controller.dart';
 import '../../dashboard/data/dashboard_repository.dart';
 import '../data/transactions_repository.dart';
 import '../domain/transaction.dart';
@@ -251,6 +252,24 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
         filters: cur?.filters ?? TransactionFilters.none,
       );
     });
+  }
+
+  Future<void> deleteTransaction(String id) async {
+    final cur = state.value;
+    if (cur == null) return;
+
+    await _repo.delete(id);
+    ref.invalidate(dashboardControllerProvider);
+
+    final summary = await _dash.getSummary(month: cur.month);
+    state = AsyncData(
+      cur.copyWith(
+        transactions: cur.transactions.where((t) => t.id != id).toList(),
+        income: summary.income,
+        expenses: summary.expenses,
+        net: summary.net,
+      ),
+    );
   }
 }
 

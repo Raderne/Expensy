@@ -60,7 +60,7 @@ class AddExpenseScreen extends ConsumerWidget {
                 onRetry: () => ref.invalidate(categoriesProvider),
               ),
               data: (cats) => CategoryGrid(
-                categories: cats,
+                categories: cats.where((c) => c.key != 'income').toList(),
                 selectedId: state.categoryId,
                 onSelect: controller.selectCategory,
               ),

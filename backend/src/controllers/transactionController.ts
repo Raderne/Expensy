@@ -3,6 +3,7 @@ import { AppError } from '../lib/errors.js';
 import {
   createTransactionBodySchema,
   listTransactionsQuerySchema,
+  transactionIdParamsSchema,
 } from '../schemas/transactions.js';
 import { transactionService } from '../services/transactionService.js';
 
@@ -36,5 +37,12 @@ export const transactionController = {
     const userId = requireUserId(req);
     const months = await transactionService.listMonths(userId);
     res.json({ months });
+  },
+
+  async delete(req: Request, res: Response): Promise<void> {
+    const userId = requireUserId(req);
+    const { id } = transactionIdParamsSchema.parse(req.params);
+    await transactionService.delete(userId, id);
+    res.status(204).send();
   },
 };

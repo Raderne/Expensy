@@ -110,6 +110,18 @@ export const transactionRepository = {
       data,
     }),
 
+  findById: (id: string, userId: string) =>
+    prisma.transaction.findFirst({
+      where: { id, userId },
+      include: { category: true },
+    }),
+
+  softDelete: (id: string, userId: string) =>
+    prisma.transaction.updateMany({
+      where: { id, userId },
+      data: { deletedAt: new Date() },
+    }),
+
   list: (filters: ListFilters) =>
     prisma.transaction.findMany({
       where: buildListWhere(filters),

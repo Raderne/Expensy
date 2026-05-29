@@ -23,3 +23,9 @@ transactionsRouter.post(
   requireAuth,
   asyncHandler(transactionController.create),
 );
+
+transactionsRouter.delete(
+  '/transactions/:id',
+  requireAuth,
+  asyncHandler(transactionController.delete),
+);
