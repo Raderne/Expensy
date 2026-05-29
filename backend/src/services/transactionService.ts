@@ -6,6 +6,7 @@ import {
   transactionRepository,
   type ListFilters,
 } from '../repositories/transactionRepository.js';
+import { incomeService } from './incomeService.js';
 
 const parseMonth = (month: string): { from: Date; to: Date } => {
   const sep = month.indexOf('-');
@@ -29,6 +30,7 @@ export interface TransactionDto {
   amount: number;
   note: string | null;
   occurredAt: string;
+  recurringIncomeId: string | null;
   category: { id: string; key: string; label: string; abbr: string; color: string; bgTint: string };
 }
 
@@ -37,6 +39,7 @@ interface RawTx {
   amount: Prisma.Decimal;
   note: string | null;
   occurredAt: Date;
+  recurringIncomeId: string | null;
   category: { id: string; key: string; label: string; abbr: string; color: string; bgTint: string };
 }
 
@@ -45,6 +48,7 @@ const toDto = (t: RawTx): TransactionDto => ({
   amount: t.amount.toNumber(),
   note: t.note,
   occurredAt: t.occurredAt.toISOString(),
+  recurringIncomeId: t.recurringIncomeId,
   category: {
     id: t.category.id,
     key: t.category.key,
@@ -88,6 +92,10 @@ export const transactionService = {
     userId: string,
     query: { month?: string; categoryId?: string; type?: 'income' | 'expense'; cursor?: string },
   ): Promise<{ transactions: TransactionDto[]; nextCursor: string | null }> {
+    if (query.month) {
+      await incomeService.ensureMaterialized(userId, query.month);
+    }
+
     const filters: ListFilters = { userId };
     if (query.month) {
       const { from, to } = parseMonth(query.month);
@@ -115,5 +123,24 @@ export const transactionService = {
   async listMonths(userId: string): Promise<string[]> {
     const rows = await transactionRepository.findMonths(userId);
     return rows.map((r) => r.month);
+  },
+
+  async delete(userId: string, id: string): Promise<void> {
+    const tx = await transactionRepository.findById(id, userId);
+    if (!tx) {
+      throw new AppError({
+        status: 404,
+        code: 'TRANSACTION_NOT_FOUND',
+        message: 'Transaction does not exist',
+      });
+    }
+    if (tx.recurringIncomeId) {
+      throw new AppError({
+        status: 403,
+        code: 'RECURRING_INCOME_PROTECTED',
+        message: 'Recurring income transactions cannot be deleted here. Edit or pause the income source in Profile.',
+      });
+    }
+    await transactionRepository.softDelete(id, userId);
   },
 };

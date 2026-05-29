@@ -20,12 +20,14 @@ class BudgetInfo {
 @immutable
 class DashboardSummary {
   final double balance;
+  final double net;
   final double income;
   final double expenses;
   final BudgetInfo budget;
 
   const DashboardSummary({
     required this.balance,
+    required this.net,
     required this.income,
     required this.expenses,
     required this.budget,
@@ -33,6 +35,8 @@ class DashboardSummary {
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) => DashboardSummary(
         balance: (json['balance'] as num).toDouble(),
+        net: (json['net'] as num?)?.toDouble() ??
+            ((json['income'] as num).toDouble() - (json['expenses'] as num).toDouble()),
         income: (json['income'] as num).toDouble(),
         expenses: (json['expenses'] as num).toDouble(),
         budget: BudgetInfo.fromJson(json['budget'] as Map<String, dynamic>),

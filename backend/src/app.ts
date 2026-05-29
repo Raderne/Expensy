@@ -10,6 +10,7 @@ import { authRouter } from './routes/auth.js';
 import { categoriesRouter } from './routes/categories.js';
 import { healthRouter } from './routes/health.js';
 import { meRouter } from './routes/me.js';
+import { incomeRouter } from './routes/income.js';
 import { transactionsRouter } from './routes/transactions.js';
 
 export const createApp = (): Express => {
@@ -32,6 +33,7 @@ export const createApp = (): Express => {
   app.use(healthRouter);
   app.use(authRouter);
   app.use(meRouter);
+  app.use(incomeRouter);
   app.use(categoriesRouter);
   app.use(transactionsRouter);
   app.use(analyticsRouter);

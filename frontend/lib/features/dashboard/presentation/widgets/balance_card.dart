@@ -30,7 +30,7 @@ class BalanceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'TOTAL BALANCE',
+                'BALANCE',
                 style: AppTextStyles.mutedSmall.copyWith(
                   color: Colors.white.withValues(alpha: 0.58),
                   letterSpacing: 0.9,
@@ -38,8 +38,16 @@ class BalanceCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                money.format(summary.balance),
+                money.format(summary.net),
                 style: AppTextStyles.heroAmount.copyWith(fontSize: 38, letterSpacing: -1.5),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'All-time ${money.format(summary.balance)}',
+                style: AppTextStyles.mutedSmall.copyWith(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 11,
+                ),
               ),
               const SizedBox(height: 16),
               Row(

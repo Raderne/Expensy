@@ -3,6 +3,7 @@ import { PrismaClient } from '../src/generated/prisma/client.js';
 const prisma = new PrismaClient();
 
 const CATEGORIES = [
+  { key: 'income', label: 'Income', abbr: 'IN', color: '#16A34A', bgTint: '#DCFCE7', sort: 0 },
   { key: 'food',   label: 'Food',   abbr: 'FD', color: '#F56B1E', bgTint: '#FEF0E8', sort: 1 },
   { key: 'travel', label: 'Travel', abbr: 'TR', color: '#1B45D0', bgTint: '#E8EFFE', sort: 2 },
   { key: 'shop',   label: 'Shop',   abbr: 'SH', color: '#7C3AED', bgTint: '#EDE9FE', sort: 3 },

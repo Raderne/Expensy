@@ -10,6 +10,7 @@ import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/income/presentation/income_sources_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
 import 'app_shell.dart';
@@ -87,6 +88,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             name: 'profile',
             pageBuilder: (_, _) => const NoTransitionPage(child: ProfileScreen()),
+            routes: [
+              GoRoute(
+                path: 'income-sources',
+                name: 'income-sources',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: IncomeSourcesScreen()),
+              ),
+            ],
           ),
         ],
       ),

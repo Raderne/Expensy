@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/tx_row.dart';
 import '../application/transactions_controller.dart';
+import '../data/transactions_repository.dart';
 import '../domain/date_grouping.dart';
 import 'widgets/filters_sheet.dart';
 import 'widgets/month_nav.dart';
 import 'widgets/summary_row.dart';
+import 'widgets/swipeable_transaction_row.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -83,6 +84,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: SummaryRow(
                     income: state.income,
                     expenses: state.expenses,
+                    net: state.net,
                   ),
                 ),
               ),
@@ -109,13 +111,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       itemCount: group.transactions.length,
                       itemBuilder: (_, i) {
                         final tx = group.transactions[i];
-                        return TxRow(
-                          label: tx.category.label,
-                          note: tx.note,
-                          amount: tx.amount,
-                          categoryAbbr: tx.category.abbr,
-                          categoryColor: tx.category.colorValue,
-                          categoryBg: tx.category.bgTintValue,
+                        return SwipeableTransactionRow(
+                          transaction: tx,
+                          onDelete: () => _deleteTransaction(tx.id),
                         );
                       },
                     ),
@@ -139,6 +137,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       onApply: (filters) =>
           ref.read(transactionsControllerProvider.notifier).applyFilters(filters),
     );
+  }
+
+  Future<void> _deleteTransaction(String id) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(transactionsControllerProvider.notifier).deleteTransaction(id);
+    } on TransactionsApiException catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
   }
 }
 

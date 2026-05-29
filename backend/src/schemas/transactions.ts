@@ -31,5 +31,9 @@ export const listTransactionsQuerySchema = z.object({
     .optional(),
 });
 
+export const transactionIdParamsSchema = z.object({
+  id: z.string().cuid(),
+});
+
 export type CreateTransactionBody = z.infer<typeof createTransactionBodySchema>;
 export type ListTransactionsQuery = z.infer<typeof listTransactionsQuerySchema>;

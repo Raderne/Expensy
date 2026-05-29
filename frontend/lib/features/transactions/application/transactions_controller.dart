@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../dashboard/application/dashboard_controller.dart';
 import '../../dashboard/data/dashboard_repository.dart';
 import '../data/transactions_repository.dart';
 import '../domain/transaction.dart';
@@ -51,6 +52,7 @@ class TransactionsState {
   final List<String> availableMonths;
   final double income;
   final double expenses;
+  final double net;
   final bool loadingMore;
   final TransactionFilters filters;
 
@@ -61,6 +63,7 @@ class TransactionsState {
     required this.availableMonths,
     required this.income,
     required this.expenses,
+    required this.net,
     this.loadingMore = false,
     this.filters = TransactionFilters.none,
   });
@@ -83,6 +86,7 @@ class TransactionsState {
     List<String>? availableMonths,
     double? income,
     double? expenses,
+    double? net,
     bool? loadingMore,
     TransactionFilters? filters,
     bool clearNextCursor = false,
@@ -94,6 +98,7 @@ class TransactionsState {
         availableMonths: availableMonths ?? this.availableMonths,
         income: income ?? this.income,
         expenses: expenses ?? this.expenses,
+        net: net ?? this.net,
         loadingMore: loadingMore ?? this.loadingMore,
         filters: filters ?? this.filters,
       );
@@ -119,6 +124,7 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
         availableMonths: const [],
         income: 0,
         expenses: 0,
+        net: 0,
       );
     }
 
@@ -153,6 +159,7 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
       availableMonths: availableMonths,
       income: summary.income,
       expenses: summary.expenses,
+      net: summary.net,
       filters: filters,
     );
   }
@@ -245,6 +252,24 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
         filters: cur?.filters ?? TransactionFilters.none,
       );
     });
+  }
+
+  Future<void> deleteTransaction(String id) async {
+    final cur = state.value;
+    if (cur == null) return;
+
+    await _repo.delete(id);
+    ref.invalidate(dashboardControllerProvider);
+
+    final summary = await _dash.getSummary(month: cur.month);
+    state = AsyncData(
+      cur.copyWith(
+        transactions: cur.transactions.where((t) => t.id != id).toList(),
+        income: summary.income,
+        expenses: summary.expenses,
+        net: summary.net,
+      ),
+    );
   }
 }
 

@@ -49,6 +49,11 @@ class TransactionsRepository {
     return (res.data!['months'] as List<dynamic>).cast<String>();
   }
 
+  Future<void> delete(String id) async {
+    final res = await _dio.delete('/transactions/$id');
+    _ensureOk(res);
+  }
+
   void _ensureOk(Response<dynamic> res) {
     final status = res.statusCode ?? 0;
     if (status >= 200 && status < 300) return;
