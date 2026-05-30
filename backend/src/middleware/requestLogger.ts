@@ -61,6 +61,13 @@ const devReqSerializer = (req: Parameters<typeof stdSerializers.req>[0]) => {
 
 export const requestLogger = pinoHttp({
   logger,
+  // Always inherit the request id placed on the headers by
+  // `requestContextMiddleware`, so logs and the `X-Request-Id` response header
+  // share the same value.
+  genReqId: (req) => {
+    const id = req.headers['x-request-id'];
+    return typeof id === 'string' ? id : '';
+  },
   ...(env.NODE_ENV === 'development'
     ? {
         serializers: {

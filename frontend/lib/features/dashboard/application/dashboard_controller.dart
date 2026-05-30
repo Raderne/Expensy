@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_controller.dart';
@@ -41,12 +44,34 @@ class DashboardController extends AsyncNotifier<DashboardState> {
   @override
   Future<DashboardState> build() async {
     // Depend on auth so this rebuilds on login/logout.
-    // Skip network calls until we know the user is authenticated.
     final authAsync = ref.watch(authControllerProvider);
     if (!authAsync.hasValue || authAsync.value is! AuthAuthenticated) {
       return _emptyState;
     }
-    return _load(_currentMonth());
+
+    final month = _currentMonth();
+
+    // Stale-while-revalidate: if we have a cached snapshot, hand it back
+    // immediately so the hero never flashes blank, then refresh in the
+    // background and replace state when the network responds.
+    final cached = await _loadFromCache(month);
+    if (cached != null) {
+      unawaited(_refreshSilently(month));
+      return cached;
+    }
+
+    return _load(month);
+  }
+
+  Future<DashboardState?> _loadFromCache(String month) async {
+    final summary = await _repo.readCachedSummary(month: month);
+    final recent = await _repo.readCachedRecentTransactions(limit: 4);
+    if (summary == null || recent == null) return null;
+    return DashboardState(
+      summary: summary,
+      recentTransactions: recent,
+      month: month,
+    );
   }
 
   Future<DashboardState> _load(String month) async {
@@ -59,6 +84,18 @@ class DashboardController extends AsyncNotifier<DashboardState> {
       recentTransactions: transactions,
       month: month,
     );
+  }
+
+  /// Background refresh after a cache hit. Swallows errors so a transient
+  /// outage doesn't blow away the cached UI; the next pull-to-refresh will
+  /// surface the failure if it persists.
+  Future<void> _refreshSilently(String month) async {
+    try {
+      final fresh = await _load(month);
+      state = AsyncData(fresh);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Dashboard background refresh failed: $e');
+    }
   }
 
   Future<void> refresh() async {

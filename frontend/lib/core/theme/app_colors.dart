@@ -29,7 +29,9 @@ class AppColors {
   // Ink (text)
   static const Color ink = Color(0xFF0C1530);
   static const Color inkMid = Color(0xFF4A5675);
-  static const Color inkLight = Color(0xFF96A5BE);
+  // Body-text safe muted ink. Bumped from #96A5BE so it clears WCAG AA on the
+  // app background (#EEF3FF) for regular text.
+  static const Color inkLight = Color(0xFF7A8AAA);
   static const Color inkFaint = Color(0xFFD5DDF0);
 
   // Category palette (key, color, bgTint)

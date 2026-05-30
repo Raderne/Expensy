@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/data/categories_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/header_back_button.dart';
 import '../application/add_expense_controller.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/category_grid.dart';
@@ -117,47 +118,10 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
       child: Row(
         children: [
-          _BackButton(onTap: onBack),
-          const SizedBox(width: 10),
+          HeaderBackButton.onSurface(onTap: onBack),
+          const SizedBox(width: 4),
           Text('Add Expense', style: AppTextStyles.titleM),
         ],
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _BackButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(10),
-      elevation: 0,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Ink(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x17000000),
-                blurRadius: 5,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.chevron_left_rounded,
-            color: AppColors.ink,
-            size: 22,
-          ),
-        ),
       ),
     );
   }

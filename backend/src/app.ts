@@ -25,11 +25,13 @@ export const createApp = (): Express => {
     cors({
       origin: env.CORS_ORIGINS.length === 0 ? true : env.CORS_ORIGINS,
       credentials: true,
+      exposedHeaders: ['X-Request-Id', 'X-Total-Count'],
     }),
   );
   app.use(express.json({ limit: '256kb' }));
-  app.use(requestLogger);
+  // Context first so the request id is set before pino-http reads it.
   app.use(requestContextMiddleware);
+  app.use(requestLogger);
 
   app.use(healthRouter);
   app.use(authRouter);

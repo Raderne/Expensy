@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/header_back_button.dart';
 import '../../../core/widgets/hero_gradient.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
@@ -285,14 +286,20 @@ class _ProfileHero extends StatelessWidget {
         children: [
           Row(
             children: [
-              const _BackButton(),
+              HeaderBackButton.onHero(
+                onTap: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
               const Spacer(),
               Text(
                 'Profile',
                 style: AppTextStyles.titleM.copyWith(color: Colors.white),
               ),
               const Spacer(),
-              const SizedBox(width: 34),
+              const SizedBox(width: 44),
             ],
           ),
           const SizedBox(height: 18),
@@ -315,35 +322,6 @@ class _ProfileHero extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  const _BackButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.16),
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(11),
-        onTap: () {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
-        },
-        child: const SizedBox(
-          width: 34,
-          height: 34,
-          child: Icon(
-            Icons.chevron_left_rounded,
-            color: Colors.white,
-            size: 22,
-          ),
-        ),
       ),
     );
   }

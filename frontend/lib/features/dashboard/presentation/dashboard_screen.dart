@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/hero_gradient.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
@@ -12,6 +13,7 @@ import '../application/dashboard_controller.dart';
 import '../domain/dashboard_summary.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/budget_card.dart';
+import 'widgets/onboarding_card.dart';
 import 'widgets/recent_transactions_section.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -36,7 +38,9 @@ class DashboardScreen extends ConsumerWidget {
         child: _ErrorBody(onRetry: () => ref.read(dashboardControllerProvider.notifier).refresh()),
       ),
       data: (state) => RefreshIndicator(
-        onRefresh: () => ref.read(dashboardControllerProvider.notifier).refresh(),
+        onRefresh: withRefreshHaptic(
+          () => ref.read(dashboardControllerProvider.notifier).refresh(),
+        ),
         color: AppColors.primary,
         child: _DashboardContent(name: name, state: state),
       ),
@@ -55,6 +59,7 @@ class _DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    final isFirstRun = _isFirstRun(state);
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -66,16 +71,34 @@ class _DashboardContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isFirstRun) ...[
+                const OnboardingCard(),
+                const SizedBox(height: 14),
+              ],
               BudgetCard(budget: state.summary.budget),
               const SizedBox(height: 14),
               const UpcomingBillsCard(),
-              RecentTransactionsSection(transactions: state.recentTransactions),
+              // When the onboarding card is showing the dashboard already has a
+              // primary CTA; the section's own empty state would be redundant.
+              if (!isFirstRun)
+                RecentTransactionsSection(transactions: state.recentTransactions),
               const SizedBox(height: 24),
             ],
           ),
         ),
       ],
     );
+  }
+
+  /// True only for users with no recorded activity ever. Once any transaction
+  /// is materialized (recurring income, side income, an added expense) the
+  /// onboarding banner steps aside for the real dashboard.
+  static bool _isFirstRun(DashboardState state) {
+    final s = state.summary;
+    return state.recentTransactions.isEmpty &&
+        s.balance == 0 &&
+        s.income == 0 &&
+        s.expenses == 0;
   }
 }
 

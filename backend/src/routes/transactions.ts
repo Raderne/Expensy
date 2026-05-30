@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { dashboardController } from '../controllers/dashboardController.js';
 import { transactionController } from '../controllers/transactionController.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
+import { idempotencyMiddleware } from '../middleware/idempotency.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 export const transactionsRouter = Router();
@@ -21,6 +22,7 @@ transactionsRouter.get(
 transactionsRouter.post(
   '/transactions',
   requireAuth,
+  idempotencyMiddleware,
   asyncHandler(transactionController.create),
 );
 

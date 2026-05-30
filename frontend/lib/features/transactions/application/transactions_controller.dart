@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -128,6 +130,16 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
       );
     }
 
+    // SWR: hand back the most recent cached snapshot immediately, then
+    // refresh in the background. Only fires when we have BOTH cached months
+    // and a cached first-page list for the newest month — otherwise fall
+    // through to a clean network load.
+    final cached = await _loadFromCache();
+    if (cached != null) {
+      unawaited(_refreshSilently());
+      return cached;
+    }
+
     final months = await _repo.listMonths();
     final month = months.isNotEmpty ? months.first : _currentMonth();
     return _loadMonth(
@@ -135,6 +147,41 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
       availableMonths: months,
       filters: TransactionFilters.none,
     );
+  }
+
+  Future<TransactionsState?> _loadFromCache() async {
+    final months = await _repo.readCachedMonths();
+    if (months == null) return null;
+    final month = months.isNotEmpty ? months.first : _currentMonth();
+    final page = await _repo.readCachedFirstPage(month: month);
+    if (page == null) return null;
+    final summary = await _dash.readCachedSummary(month: month);
+    if (summary == null) return null;
+    return TransactionsState(
+      month: month,
+      transactions: page.transactions,
+      nextCursor: page.nextCursor,
+      availableMonths: months,
+      income: summary.income,
+      expenses: summary.expenses,
+      net: summary.net,
+    );
+  }
+
+  Future<void> _refreshSilently() async {
+    try {
+      final months = await _repo.listMonths();
+      final month = state.value?.month ??
+          (months.isNotEmpty ? months.first : _currentMonth());
+      final fresh = await _loadMonth(
+        month: month,
+        availableMonths: months,
+        filters: state.value?.filters ?? TransactionFilters.none,
+      );
+      state = AsyncData(fresh);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Transactions background refresh failed: $e');
+    }
   }
 
   Future<TransactionsState> _loadMonth({

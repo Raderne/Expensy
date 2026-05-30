@@ -99,6 +99,12 @@ vi.mock('../src/repositories/recurringIncomeRepository.js', () => ({
   },
 }));
 
+vi.mock('../src/repositories/recurringExpenseRepository.js', () => ({
+  recurringExpenseRepository: {
+    findActiveByUser: vi.fn(async () => []),
+  },
+}));
+
 vi.mock('../src/repositories/transactionRepository.js', () => ({
   transactionRepository: {
     findByRecurringInMonth: vi.fn(
