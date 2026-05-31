@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/header_back_button.dart';
 import '../../../core/widgets/hero_gradient.dart';
 import '../application/income_controller.dart';
 import '../data/income_repository.dart';
@@ -33,14 +34,14 @@ class IncomeSourcesScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      _BackButton(onTap: () => context.pop()),
+                      HeaderBackButton.onHero(onTap: () => context.pop()),
                       const Spacer(),
                       Text(
                         'Income sources',
                         style: AppTextStyles.titleM.copyWith(color: Colors.white),
                       ),
                       const Spacer(),
-                      const SizedBox(width: 34),
+                      const SizedBox(width: 44),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -202,28 +203,6 @@ class IncomeSourcesScreen extends ConsumerWidget {
         );
       }
     }
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _BackButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.16),
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(11),
-        onTap: onTap,
-        child: const SizedBox(
-          width: 34,
-          height: 34,
-          child: Icon(Icons.chevron_left_rounded, color: Colors.white, size: 22),
-        ),
-      ),
-    );
   }
 }
 

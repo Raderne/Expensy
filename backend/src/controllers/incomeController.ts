@@ -19,6 +19,7 @@ export const incomeController = {
   async listRecurring(req: Request, res: Response): Promise<void> {
     const userId = requireUserId(req);
     const recurring = await incomeService.listRecurring(userId);
+    res.setHeader('X-Total-Count', recurring.length);
     res.json({ recurring });
   },
 

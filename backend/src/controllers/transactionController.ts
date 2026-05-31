@@ -36,6 +36,7 @@ export const transactionController = {
   async months(req: Request, res: Response): Promise<void> {
     const userId = requireUserId(req);
     const months = await transactionService.listMonths(userId);
+    res.setHeader('X-Total-Count', months.length);
     res.json({ months });
   },
 

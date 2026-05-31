@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -56,10 +58,43 @@ class AnalyticsController extends AsyncNotifier<AnalyticsState> {
       );
     }
 
+    // SWR: serve the cached breakdown for the most recent cached month
+    // immediately, then refresh against the network in the background.
+    final cached = await _loadFromCache();
+    if (cached != null) {
+      unawaited(_refreshSilently());
+      return cached;
+    }
+
     final months = await _txRepo.listMonths();
     final month = months.isNotEmpty ? months.first : _currentMonth();
     final data = await _repo.get(month: month);
     return AnalyticsState(month: month, data: data, availableMonths: months);
+  }
+
+  Future<AnalyticsState?> _loadFromCache() async {
+    final months = await _txRepo.readCachedMonths();
+    if (months == null) return null;
+    final month = months.isNotEmpty ? months.first : _currentMonth();
+    final data = await _repo.readCached(month: month);
+    if (data == null) return null;
+    return AnalyticsState(month: month, data: data, availableMonths: months);
+  }
+
+  Future<void> _refreshSilently() async {
+    try {
+      final months = await _txRepo.listMonths();
+      final month = state.value?.month ??
+          (months.isNotEmpty ? months.first : _currentMonth());
+      final data = await _repo.get(month: month);
+      state = AsyncData(AnalyticsState(
+        month: month,
+        data: data,
+        availableMonths: months,
+      ));
+    } catch (e) {
+      if (kDebugMode) debugPrint('Analytics background refresh failed: $e');
+    }
   }
 
   /// Switches the visible month. Keeps the previous data on screen while the

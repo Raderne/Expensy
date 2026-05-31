@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -21,6 +22,14 @@ class BottomNav extends StatelessWidget {
 
   const BottomNav({super.key, required this.active, required this.onTap});
 
+  void _switchTab(NavTab tab) {
+    // Selection-style click — soft tick that matches iOS / Android tab-bar
+    // expectations. Only fires when the user actually changes tabs so
+    // tapping the already-active tab stays silent.
+    if (tab != active) HapticFeedback.selectionClick();
+    onTap(tab);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -35,11 +44,11 @@ class BottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(tab: NavTab.home, icon: Icons.home_rounded, label: 'Home', active: active, onTap: onTap),
-              _NavItem(tab: NavTab.transactions, icon: Icons.receipt_long_rounded, label: 'List', active: active, onTap: onTap),
-              _AddButton(onTap: () => onTap(NavTab.add)),
-              _NavItem(tab: NavTab.analytics, icon: Icons.pie_chart_rounded, label: 'Stats', active: active, onTap: onTap),
-              _NavItem(tab: NavTab.profile, icon: Icons.person_rounded, label: 'Me', active: active, onTap: onTap),
+              _NavItem(tab: NavTab.home, icon: Icons.home_rounded, label: 'Home', active: active, onTap: _switchTab),
+              _NavItem(tab: NavTab.transactions, icon: Icons.receipt_long_rounded, label: 'List', active: active, onTap: _switchTab),
+              _AddButton(onTap: () => _switchTab(NavTab.add)),
+              _NavItem(tab: NavTab.analytics, icon: Icons.pie_chart_rounded, label: 'Stats', active: active, onTap: _switchTab),
+              _NavItem(tab: NavTab.profile, icon: Icons.person_rounded, label: 'Me', active: active, onTap: _switchTab),
             ],
           ),
         ),
@@ -67,19 +76,27 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = active == tab;
     final color = isActive ? AppColors.primary : AppColors.inkLight;
-    return InkResponse(
-      onTap: () => onTap(tab),
-      radius: 28,
-      child: SizedBox(
-        width: 56,
-        height: 56,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 2),
-            Text(label, style: AppTextStyles.mutedSmall.copyWith(color: color)),
-          ],
+    return Semantics(
+      button: true,
+      selected: isActive,
+      label: label,
+      // Drop the child's own semantics — its Text would otherwise add a
+      // duplicate "Home/Home" announcement under our explicit label.
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: () => onTap(tab),
+        radius: 28,
+        child: SizedBox(
+          width: 56,
+          height: 56,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 22, color: color),
+              const SizedBox(height: 2),
+              Text(label, style: AppTextStyles.mutedSmall.copyWith(color: color)),
+            ],
+          ),
         ),
       ),
     );

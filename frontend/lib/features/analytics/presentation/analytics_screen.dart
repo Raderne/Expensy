@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/haptic_refresh.dart';
 import '../application/analytics_controller.dart';
 import '../domain/analytics_breakdown.dart';
 import 'widgets/donut_chart.dart';
@@ -24,7 +25,7 @@ class AnalyticsScreen extends ConsumerWidget {
       error: (e, _) => _ErrorScaffold(onRetry: controller.refresh),
       data: (state) => RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: controller.refresh,
+        onRefresh: withRefreshHaptic(controller.refresh),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [

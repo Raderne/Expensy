@@ -13,6 +13,7 @@ const requireUserId = (req: Request): string => {
 export const dashboardController = {
   async categories(_req: Request, res: Response): Promise<void> {
     const categories = await dashboardService.getCategories();
+    res.setHeader('X-Total-Count', categories.length);
     res.json({ categories });
   },
 

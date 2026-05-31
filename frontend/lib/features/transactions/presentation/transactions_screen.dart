@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/haptic_refresh.dart';
 import '../application/transactions_controller.dart';
 import '../data/transactions_repository.dart';
 import '../domain/date_grouping.dart';
@@ -55,7 +56,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         final groups = groupByDay(state.transactions);
         return RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: controller.refresh,
+          onRefresh: withRefreshHaptic(controller.refresh),
           child: CustomScrollView(
             controller: _scroll,
             physics: const AlwaysScrollableScrollPhysics(),

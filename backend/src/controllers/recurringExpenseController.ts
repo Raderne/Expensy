@@ -19,6 +19,7 @@ export const recurringExpenseController = {
   async list(req: Request, res: Response): Promise<void> {
     const userId = requireUserId(req);
     const recurring = await recurringExpenseService.list(userId);
+    res.setHeader('X-Total-Count', recurring.length);
     res.json({ recurring });
   },
 
@@ -48,6 +49,7 @@ export const recurringExpenseController = {
     const userId = requireUserId(req);
     const { limit } = upcomingBillsQuerySchema.parse(req.query);
     const upcoming = await recurringExpenseService.listUpcoming(userId, limit);
+    res.setHeader('X-Total-Count', upcoming.length);
     res.json({ upcoming });
   },
 };
