@@ -1,0 +1,10 @@
+# Copy this file to `key.properties` (same directory) and fill in real values.
+# `key.properties` is gitignored and must NEVER be committed.
+#
+# After generating the keystore with `keytool` (see resources/03-app-signing-keystore.md
+# step 1), point `storeFile` at the absolute path with forward slashes.
+
+storePassword=<keystore password from keytool prompt>
+keyPassword=<key password (same as storePassword if you pressed Enter when prompted)>
+keyAlias=expensy
+storeFile=C:/Users/<you>/.android/expensy-release.jks

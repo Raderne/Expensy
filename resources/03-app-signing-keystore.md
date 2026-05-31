@@ -8,6 +8,41 @@ So this file does two things:
 
 This is also the section where you make a backup decision — please don't skip it.
 
+> **Read this first if you're changing the application ID.** If you're switching from the default `com.expensy.expensy` to something like `com.<you>.expensy`, you must update **three** places in lockstep: `applicationId` and `namespace` in `build.gradle.kts`, AND move `MainActivity.kt` to the matching folder + update its `package` declaration. Skipping the file move builds fine but crashes at launch with `ClassNotFoundException: Didn't find class "com.<you>.expensy.MainActivity"`. The manifest's `.MainActivity` shorthand resolves against `namespace`, not against the file path on disk. See "Step 0" below.
+
+## Step 0: Rename the package consistently (if you're changing the application ID)
+
+You only do this once, before generating the keystore. If you're keeping `com.expensy.expensy`, skip to Step 1.
+
+Pick a final ID. It cannot change after install. Convention is reverse-DNS lowercase, e.g. `com.relmarzouki.expensy`. Then:
+
+1. `frontend/android/app/build.gradle.kts` — set BOTH:
+   ```kotlin
+   namespace = "com.relmarzouki.expensy"
+   // ...
+   applicationId = "com.relmarzouki.expensy"
+   ```
+2. Move the activity source file:
+   ```
+   from: android/app/src/main/kotlin/com/expensy/expensy/MainActivity.kt
+   to:   android/app/src/main/kotlin/com/relmarzouki/expensy/MainActivity.kt
+   ```
+   Delete the empty `com/expensy/expensy/` and `com/expensy/` folders afterward.
+3. Edit `MainActivity.kt` — its first line:
+   ```kotlin
+   package com.relmarzouki.expensy
+   ```
+4. `flutter clean` before the next build so cached dex doesn't fight you.
+
+If you change `namespace` but skip steps 2–3, the build still succeeds (Gradle doesn't check that the manifest's `.MainActivity` resolves to a class that actually exists in the dex). The crash happens at app launch:
+
+```
+ClassNotFoundException: Didn't find class "com.relmarzouki.expensy.MainActivity"
+on path: DexPathList[[zip file ".../base.apk"], ...]
+```
+
+If you want the install identity to differ from the source layout (rare; usually you don't), you can leave `namespace` matching the file path and only change `applicationId`. AGP decouples the two: `namespace` controls where `.MainActivity` resolves and where `R.java` is generated; `applicationId` is the install identity on the phone.
+
 ## Step 1: Generate the keystore
 
 `keytool` ships with the JDK; Flutter relies on a JDK so you already have it. From PowerShell:
@@ -100,11 +135,16 @@ buildTypes {
 }
 ```
 
-Replace the whole `android { ... }` block contents with:
+Move the `import` lines to the top of the file (above `plugins`), add the `keystoreProperties` loader above `android { ... }`, then replace the `signingConfigs` and `buildTypes` blocks. Final shape:
 
 ```kotlin
 import java.util.Properties
 import java.io.FileInputStream
+
+plugins {
+    id("com.android.application")
+    id("dev.flutter.flutter-gradle-plugin")
+}
 
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("key.properties")
@@ -112,9 +152,10 @@ val keystoreProperties = Properties().apply {
         FileInputStream(f).use { load(it) }
     }
 }
+val hasReleaseKeystore = keystoreProperties.getProperty("storeFile") != null
 
 android {
-    namespace = "com.expensy.expensy"
+    namespace = "com.relmarzouki.expensy"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -124,7 +165,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.expensy.expensy"
+        applicationId = "com.relmarzouki.expensy"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -133,38 +174,46 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFilePath = keystoreProperties["storeFile"] as String?
-            if (storeFilePath != null) {
-                storeFile = file(storeFilePath)
-                storePassword = keystoreProperties["storePassword"] as String?
-                keyAlias = keystoreProperties["keyAlias"] as String?
-                keyPassword = keystoreProperties["keyPassword"] as String?
+            if (hasReleaseKeystore) {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (rootProject.file("key.properties").exists()) {
+            signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")
             } else {
-                // CI without secrets, or a fresh clone — fall back to debug so the build still runs.
+                // CI without secrets, or a fresh clone — fall back to debug
+                // so the build still runs.
                 signingConfigs.getByName("debug")
             }
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+
+            // R8 minification is OFF by default. Flutter ships its own
+            // obfuscation via `flutter build --obfuscate --split-debug-info`
+            // and R8 has historically caused subtle runtime breakage with
+            // reflection-based plugins. Turn this on only after testing the
+            // resulting APK end-to-end:
+            //
+            // isMinifyEnabled = true
+            // isShrinkResources = true
+            // proguardFiles(
+            //     getDefaultProguardFile("proguard-android-optimize.txt"),
+            //     "proguard-rules.pro"
+            // )
         }
     }
 }
 ```
 
-Two important things to notice:
+Three important things to notice:
 1. **The graceful fallback.** If `key.properties` is missing, Gradle still produces a (debug-signed, unshippable) APK rather than crashing. This matters for fresh clones and CI runs that don't need to ship.
-2. **`isMinifyEnabled = true` + `isShrinkResources = true`** turn on R8, the Android code shrinker. Shrinks the APK by ~30% and obfuscates. **If you add Sentry later** (see `04-sentry-crash-reporting.md`), you'll need to upload the R8 mapping file so stack traces remain readable.
+2. **R8 is opt-in, not default.** The comment block makes it trivial to enable later — uncomment the four lines and add the right keep rules. Out of the box you get a working release build; you only take on the R8 risk if/when you decide you need it.
+3. **For Sentry**, if you later turn R8 on, you'll need to upload the mapping file so stack traces remain readable. See `04-sentry-crash-reporting.md`.
 
 ## Step 5: ProGuard / R8 rules for Flutter and your libraries
 

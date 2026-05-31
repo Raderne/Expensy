@@ -1,8 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // Generated into src/ so TypeScript/IDE resolve Prisma types without relying on
   // the @prisma/client → node_modules/.prisma re-export chain.
-  output   = "../src/generated/prisma"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

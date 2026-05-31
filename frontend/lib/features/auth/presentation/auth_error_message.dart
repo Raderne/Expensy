@@ -23,8 +23,7 @@ String authErrorMessage(Object error) {
         return 'Cannot reach the API. On a physical device, use your computer\'s '
             'LAN IP (e.g. http://192.168.1.10:3000), not localhost.';
       }
-      return 'Cannot reach the server. Check that the backend is running and '
-          'API_BASE_URL is reachable from this device.';
+      return 'Cannot reach the server. Check your connection and try again.';
     }
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
