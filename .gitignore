@@ -51,3 +51,8 @@ guides
 explainations
 /.claude/settings.local.json
 /Steps
+plans/
+resources/
+.claude/
+design/
+CLAUDE.md
