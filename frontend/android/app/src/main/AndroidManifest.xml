@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for all network access in release builds. Flutter only adds this
+         automatically to the debug/profile manifests (for hot reload), so without
+         it here every release-APK DNS lookup fails with errno=7. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Expensy"
         android:name="${applicationName}"
