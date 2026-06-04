@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/hero_gradient.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../recurring_expenses/presentation/widgets/upcoming_bills_card.dart';
@@ -29,9 +30,11 @@ class DashboardScreen extends ConsumerWidget {
     final dashState = ref.watch(dashboardControllerProvider);
 
     return dashState.when(
-      loading: () => _DashboardScaffold(
-        name: name,
-        child: _SkeletonBody(),
+      loading: () => Shimmer(
+        child: _DashboardScaffold(
+          name: name,
+          child: _SkeletonBody(),
+        ),
       ),
       error: (e, _) => _DashboardScaffold(
         name: name,
@@ -225,12 +228,11 @@ class _DashboardScaffold extends StatelessWidget {
 class _HeroPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ShimmerBox(
       height: 130,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(22),
-      ),
+      radius: 22,
+      baseColor: Colors.white.withValues(alpha: 0.10),
+      shineColor: Colors.white.withValues(alpha: 0.22),
     );
   }
 }
@@ -245,38 +247,18 @@ class _SkeletonBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SkeletonBox(height: 80, radius: 16),
+          ShimmerBox(height: 80, radius: 16),
           SizedBox(height: 14),
-          _SkeletonBox(height: 20, width: 160),
+          ShimmerBox(height: 20, width: 160),
           SizedBox(height: 12),
-          _SkeletonBox(height: 60),
+          ShimmerBox(height: 60),
           SizedBox(height: 8),
-          _SkeletonBox(height: 60),
+          ShimmerBox(height: 60),
           SizedBox(height: 8),
-          _SkeletonBox(height: 60),
+          ShimmerBox(height: 60),
           SizedBox(height: 8),
-          _SkeletonBox(height: 60),
+          ShimmerBox(height: 60),
         ],
-      ),
-    );
-  }
-}
-
-class _SkeletonBox extends StatelessWidget {
-  final double height;
-  final double? width;
-  final double radius;
-
-  const _SkeletonBox({required this.height, this.width, this.radius = 12});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      width: width ?? double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.inkFaint,
-        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
