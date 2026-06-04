@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -20,6 +21,9 @@ class _AddSideIncomeSheetState extends ConsumerState<AddSideIncomeSheet> {
   late final TextEditingController _amountCtrl = TextEditingController();
   late final TextEditingController _noteCtrl = TextEditingController();
   DateTime _date = DateTime.now();
+
+  // Stable per-sheet key so a double-tap reuses it and the backend dedupes.
+  final String _idempotencyKey = const Uuid().v4();
 
   bool _saving = false;
   String? _error;
@@ -70,6 +74,7 @@ class _AddSideIncomeSheetState extends ConsumerState<AddSideIncomeSheet> {
             amount: amount,
             note: note.isEmpty ? null : note,
             occurredAt: DateTime(_date.year, _date.month, _date.day),
+            idempotencyKey: _idempotencyKey,
           );
       ref.invalidate(dashboardControllerProvider);
       ref.invalidate(transactionsControllerProvider);

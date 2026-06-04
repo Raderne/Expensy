@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/data/categories_repository.dart';
 import '../../../../core/models/category.dart';
@@ -50,6 +51,9 @@ class _EditRecurringExpenseSheetState
       widget.existing?.frequency ?? RecurrenceFrequency.monthly;
   late DateTime _anchorDate = widget.existing?.anchorDate ?? _today();
   late bool _isActive = widget.existing?.isActive ?? true;
+
+  // Stable per-sheet key so a double-tap reuses it and the backend dedupes.
+  final String _idempotencyKey = const Uuid().v4();
 
   bool _saving = false;
   String? _error;
@@ -162,6 +166,7 @@ class _EditRecurringExpenseSheetState
           intervalDays:
               _frequency == RecurrenceFrequency.custom ? _parsedInterval : null,
           anchorDate: _anchorDate,
+          idempotencyKey: _idempotencyKey,
         );
       } else {
         await repo.update(

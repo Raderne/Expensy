@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/models/category.dart';
 import '../../analytics/application/analytics_controller.dart';
@@ -52,6 +53,11 @@ class AddExpenseState {
 }
 
 class AddExpenseController extends Notifier<AddExpenseState> {
+  // One idempotency key per logical expense entry. Reused across retries (so a
+  // slow/duplicated submit dedupes server-side) and rotated once the expense is
+  // saved or the form is reset for "Add another".
+  String _idempotencyKey = const Uuid().v4();
+
   @override
   AddExpenseState build() => const AddExpenseState();
 
@@ -71,6 +77,7 @@ class AddExpenseController extends Notifier<AddExpenseState> {
 
   /// Resets to a clean slate. Used after "Add Another".
   void reset() {
+    _idempotencyKey = const Uuid().v4();
     state = const AddExpenseState();
   }
 
@@ -83,6 +90,7 @@ class AddExpenseController extends Notifier<AddExpenseState> {
             categoryId: state.categoryId!,
             amount: AmountInput.parse(state.amount),
             note: state.note.trim().isEmpty ? null : state.note.trim(),
+            idempotencyKey: _idempotencyKey,
           );
       // Invalidate downstream caches so a return to Dashboard / Transactions /
       // Analytics shows the new row without a manual refresh.
@@ -90,6 +98,7 @@ class AddExpenseController extends Notifier<AddExpenseState> {
       ref.invalidate(transactionsControllerProvider);
       ref.invalidate(analyticsControllerProvider);
       ref.invalidate(upcomingBillsControllerProvider);
+      _idempotencyKey = const Uuid().v4();
       state = state.copyWith(saving: false, saved: tx);
     } on AddExpenseApiException catch (e) {
       state = state.copyWith(saving: false, error: e.message);
