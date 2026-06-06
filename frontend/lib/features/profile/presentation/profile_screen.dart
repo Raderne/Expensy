@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -20,6 +21,14 @@ import 'widgets/edit_budget_sheet.dart';
 import 'widgets/edit_name_sheet.dart';
 import 'widgets/edit_sheet_shell.dart';
 
+/// Reads the app version baked into the build at compile time (from
+/// `pubspec.yaml`'s `version:`), so the About section never drifts from the
+/// actual installed build.
+final _appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+});
+
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -29,6 +38,10 @@ class ProfileScreen extends ConsumerWidget {
     final dash = ref.watch(dashboardControllerProvider);
     final incomeAsync = ref.watch(incomeControllerProvider);
     final recurringAsync = ref.watch(recurringExpensesControllerProvider);
+    final appVersion = switch (ref.watch(_appVersionProvider)) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
 
     final user = switch (auth.value) {
       AuthAuthenticated(:final user) => user,
@@ -151,10 +164,10 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => _showComingSoon(context),
                   ),
                   const _Divider(),
-                  const _Row(
+                  _Row(
                     icon: Icons.info_outline_rounded,
                     label: 'App version',
-                    value: 'v0.6.0',
+                    value: appVersion != null ? 'v$appVersion' : '—',
                   ),
                 ],
               ),
