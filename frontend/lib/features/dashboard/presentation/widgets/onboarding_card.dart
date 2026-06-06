@@ -18,7 +18,8 @@ class OnboardingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: 'Welcome to Expensy. Tap the plus button at the bottom to add your first expense.',
+      label:
+          'Welcome to Expensy. Tap the plus button at the bottom to add your first expense.',
       child: Container(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
         decoration: BoxDecoration(
@@ -57,7 +58,10 @@ class OnboardingCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Welcome to Expensy', style: AppTextStyles.bodyStrong),
+                      Text(
+                        'Welcome to Expensy',
+                        style: AppTextStyles.bodyStrong,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         'Track every expense in a few taps.',
@@ -73,7 +77,7 @@ class OnboardingCard extends StatelessWidget {
               button: true,
               label: 'Add your first expense',
               child: GestureDetector(
-                onTap: () => context.go('/add'),
+                onTap: () => context.push('/add'),
                 behavior: HitTestBehavior.opaque,
                 child: Container(
                   height: 44,
@@ -92,7 +96,11 @@ class OnboardingCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                      const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Tap + to add your first expense',

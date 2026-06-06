@@ -12,7 +12,10 @@ class BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.simpleCurrency(locale: 'en_US', decimalDigits: 0);
+    final money = NumberFormat.simpleCurrency(
+      locale: 'en_US',
+      decimalDigits: 0,
+    );
 
     return Container(
       padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
@@ -35,14 +38,25 @@ class BudgetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text('Monthly Budget', style: AppTextStyles.label.copyWith(color: AppColors.ink)),
+              Text(
+                'Monthly Budget',
+                style: AppTextStyles.label.copyWith(color: AppColors.ink),
+              ),
               if (budget.isSet)
                 Text(
                   '${budget.pct}% used',
-                  style: AppTextStyles.labelStrong.copyWith(color: AppColors.accent, fontSize: 12.5),
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: AppColors.accent,
+                    fontSize: 12.5,
+                  ),
                 )
               else
-                Text('Not set', style: AppTextStyles.label.copyWith(color: AppColors.inkLight)),
+                Text(
+                  'Not set',
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.inkLight,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 8),

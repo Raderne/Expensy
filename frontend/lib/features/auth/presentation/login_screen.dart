@@ -32,10 +32,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _serverError = null);
     try {
-      await ref.read(authControllerProvider.notifier).login(
-            email: _email.text.trim(),
-            password: _password.text,
-          );
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(email: _email.text.trim(), password: _password.text);
     } catch (e) {
       setState(() => _serverError = authErrorMessage(e));
     }
@@ -61,7 +60,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               validator: (v) {
                 final s = v?.trim() ?? '';
                 if (s.isEmpty) return 'Email is required';
-                if (!s.contains('@') || !s.contains('.')) return 'Enter a valid email';
+                if (!s.contains('@') || !s.contains('.'))
+                  return 'Enter a valid email';
                 return null;
               },
             ),
@@ -77,6 +77,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 if ((v ?? '').isEmpty) return 'Password is required';
                 return null;
               },
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: busy ? null : () => context.push('/forgot-password'),
+                child: Text(
+                  'Forgot password?',
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
             ),
             if (_serverError != null) ...[
               const SizedBox(height: 12),
@@ -101,7 +114,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onTap: busy ? null : () => context.go('/signup'),
                 child: Text(
                   'Create an account',
-                  style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],

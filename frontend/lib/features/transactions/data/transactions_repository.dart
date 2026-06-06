@@ -10,7 +10,10 @@ class TransactionsPage {
   final List<Transaction> transactions;
   final String? nextCursor;
 
-  const TransactionsPage({required this.transactions, required this.nextCursor});
+  const TransactionsPage({
+    required this.transactions,
+    required this.nextCursor,
+  });
 
   bool get hasMore => nextCursor != null;
 }
@@ -103,7 +106,8 @@ class TransactionsRepository {
     throw TransactionsApiException(
       status: status,
       code: data is Map ? data['code']?.toString() : null,
-      message: (data is Map ? data['title']?.toString() : null) ?? 'Request failed',
+      message:
+          (data is Map ? data['title']?.toString() : null) ?? 'Request failed',
     );
   }
 }

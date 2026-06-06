@@ -42,15 +42,19 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
 
   void _setType(TxTypeFilter type) {
     HapticFeedback.selectionClick();
-    setState(() => _staged = _staged.copyWith(type: type, clearType: type == null));
+    setState(
+      () => _staged = _staged.copyWith(type: type, clearType: type == null),
+    );
   }
 
   void _setCategory(String? id) {
     HapticFeedback.selectionClick();
-    setState(() => _staged = _staged.copyWith(
-          categoryId: id,
-          clearCategoryId: id == null,
-        ));
+    setState(
+      () => _staged = _staged.copyWith(
+        categoryId: id,
+        clearCategoryId: id == null,
+      ),
+    );
   }
 
   void _reset() {
@@ -91,10 +95,7 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
               const SizedBox(height: 10),
               _DragHandle(),
               const SizedBox(height: 14),
-              _Header(
-                showReset: _staged.isActive,
-                onReset: _reset,
-              ),
+              _Header(showReset: _staged.isActive, onReset: _reset),
               const SizedBox(height: 18),
               Flexible(
                 child: SingleChildScrollView(
@@ -104,10 +105,7 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
                     children: [
                       const _SectionLabel(text: 'TYPE'),
                       const SizedBox(height: 10),
-                      _TypeSegment(
-                        selected: _staged.type,
-                        onSelect: _setType,
-                      ),
+                      _TypeSegment(selected: _staged.type, onSelect: _setType),
                       const SizedBox(height: 22),
                       const _SectionLabel(text: 'CATEGORY'),
                       const SizedBox(height: 10),
@@ -130,10 +128,7 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
-                child: _ApplyButton(
-                  enabled: _dirty,
-                  onTap: _apply,
-                ),
+                child: _ApplyButton(enabled: _dirty, onTap: _apply),
               ),
             ],
           ),
@@ -175,10 +170,8 @@ class _Header extends StatelessWidget {
           const Spacer(),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 180),
-            transitionBuilder: (child, anim) => FadeTransition(
-              opacity: anim,
-              child: child,
-            ),
+            transitionBuilder: (child, anim) =>
+                FadeTransition(opacity: anim, child: child),
             child: showReset
                 ? TextButton(
                     key: const ValueKey('reset'),

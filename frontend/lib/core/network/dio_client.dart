@@ -13,13 +13,13 @@ const _kBaseHeaders = {
 };
 
 BaseOptions _defaultOptions() => BaseOptions(
-      baseUrl: Env.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 15),
-      headers: _kBaseHeaders,
-      validateStatus: (status) => status != null && status < 500,
-    );
+  baseUrl: Env.apiBaseUrl,
+  connectTimeout: const Duration(seconds: 10),
+  receiveTimeout: const Duration(seconds: 15),
+  sendTimeout: const Duration(seconds: 15),
+  headers: _kBaseHeaders,
+  validateStatus: (status) => status != null && status < 500,
+);
 
 /// Bare Dio used by [AuthInterceptor] to call `/auth/refresh` and retry
 /// requests without re-entering the interceptor chain.

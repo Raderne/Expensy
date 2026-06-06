@@ -41,15 +41,14 @@ class AddExpenseState {
     String? error,
     bool clearSaved = false,
     bool clearError = false,
-  }) =>
-      AddExpenseState(
-        amount: amount ?? this.amount,
-        categoryId: categoryId ?? this.categoryId,
-        note: note ?? this.note,
-        saving: saving ?? this.saving,
-        saved: clearSaved ? null : (saved ?? this.saved),
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => AddExpenseState(
+    amount: amount ?? this.amount,
+    categoryId: categoryId ?? this.categoryId,
+    note: note ?? this.note,
+    saving: saving ?? this.saving,
+    saved: clearSaved ? null : (saved ?? this.saved),
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class AddExpenseController extends Notifier<AddExpenseState> {
@@ -61,14 +60,20 @@ class AddExpenseController extends Notifier<AddExpenseState> {
   @override
   AddExpenseState build() => const AddExpenseState();
 
-  void pressDigit(int d) =>
-      state = state.copyWith(amount: AmountInput.digit(state.amount, d), clearError: true);
+  void pressDigit(int d) => state = state.copyWith(
+    amount: AmountInput.digit(state.amount, d),
+    clearError: true,
+  );
 
-  void pressDot() =>
-      state = state.copyWith(amount: AmountInput.dot(state.amount), clearError: true);
+  void pressDot() => state = state.copyWith(
+    amount: AmountInput.dot(state.amount),
+    clearError: true,
+  );
 
-  void pressBackspace() =>
-      state = state.copyWith(amount: AmountInput.backspace(state.amount), clearError: true);
+  void pressBackspace() => state = state.copyWith(
+    amount: AmountInput.backspace(state.amount),
+    clearError: true,
+  );
 
   void selectCategory(Category c) =>
       state = state.copyWith(categoryId: c.id, clearError: true);
@@ -86,7 +91,9 @@ class AddExpenseController extends Notifier<AddExpenseState> {
 
     state = state.copyWith(saving: true, clearError: true);
     try {
-      final tx = await ref.read(addExpenseRepositoryProvider).createExpense(
+      final tx = await ref
+          .read(addExpenseRepositoryProvider)
+          .createExpense(
             categoryId: state.categoryId!,
             amount: AmountInput.parse(state.amount),
             note: state.note.trim().isEmpty ? null : state.note.trim(),
@@ -103,12 +110,15 @@ class AddExpenseController extends Notifier<AddExpenseState> {
     } on AddExpenseApiException catch (e) {
       state = state.copyWith(saving: false, error: e.message);
     } catch (_) {
-      state = state.copyWith(saving: false, error: 'Could not save. Try again.');
+      state = state.copyWith(
+        saving: false,
+        error: 'Could not save. Try again.',
+      );
     }
   }
 }
 
 final addExpenseControllerProvider =
     NotifierProvider<AddExpenseController, AddExpenseState>(
-  AddExpenseController.new,
-);
+      AddExpenseController.new,
+    );

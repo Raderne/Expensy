@@ -22,7 +22,8 @@ class EditRecurringIncomeSheet extends ConsumerStatefulWidget {
       _EditRecurringIncomeSheetState();
 }
 
-class _EditRecurringIncomeSheetState extends ConsumerState<EditRecurringIncomeSheet> {
+class _EditRecurringIncomeSheetState
+    extends ConsumerState<EditRecurringIncomeSheet> {
   late final TextEditingController _labelCtrl = TextEditingController(
     text: widget.existing?.label ?? 'Main job',
   );
@@ -150,7 +151,10 @@ class _EditRecurringIncomeSheetState extends ConsumerState<EditRecurringIncomeSh
           const SizedBox(height: 12),
           Text(
             'Paid on day',
-            style: AppTextStyles.muted.copyWith(fontSize: 12, color: AppColors.inkMid),
+            style: AppTextStyles.muted.copyWith(
+              fontSize: 12,
+              color: AppColors.inkMid,
+            ),
           ),
           const SizedBox(height: 6),
           Container(
@@ -168,7 +172,10 @@ class _EditRecurringIncomeSheetState extends ConsumerState<EditRecurringIncomeSh
                   28,
                   (i) => DropdownMenuItem(
                     value: i + 1,
-                    child: Text('Day ${i + 1}', style: AppTextStyles.bodyStrong),
+                    child: Text(
+                      'Day ${i + 1}',
+                      style: AppTextStyles.bodyStrong,
+                    ),
                   ),
                 ),
                 onChanged: (v) {

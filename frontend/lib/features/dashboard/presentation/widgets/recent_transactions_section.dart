@@ -63,24 +63,36 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 26),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.primary,
+                size: 26,
+              ),
             ),
             const SizedBox(height: 12),
             Text('No transactions yet', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
-            Text('Add your first expense to get started.', style: AppTextStyles.body),
+            Text(
+              'Add your first expense to get started.',
+              style: AppTextStyles.body,
+            ),
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () => context.go('/add'),
+              onTap: () => context.push('/add'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'Add your first expense',
-                  style: AppTextStyles.labelStrong.copyWith(color: Colors.white),
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

@@ -17,8 +17,9 @@ class EditNameSheet extends ConsumerStatefulWidget {
 }
 
 class _EditNameSheetState extends ConsumerState<EditNameSheet> {
-  late final TextEditingController _ctrl =
-      TextEditingController(text: widget.initialName);
+  late final TextEditingController _ctrl = TextEditingController(
+    text: widget.initialName,
+  );
   String _value = '';
   bool _saving = false;
   String? _error;

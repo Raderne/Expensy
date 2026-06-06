@@ -29,11 +29,10 @@ class TransactionFilters {
     TxTypeFilter type,
     bool clearCategoryId = false,
     bool clearType = false,
-  }) =>
-      TransactionFilters(
-        categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
-        type: clearType ? null : (type ?? this.type),
-      );
+  }) => TransactionFilters(
+    categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
+    type: clearType ? null : (type ?? this.type),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -92,18 +91,17 @@ class TransactionsState {
     bool? loadingMore,
     TransactionFilters? filters,
     bool clearNextCursor = false,
-  }) =>
-      TransactionsState(
-        month: month ?? this.month,
-        transactions: transactions ?? this.transactions,
-        nextCursor: clearNextCursor ? null : (nextCursor ?? this.nextCursor),
-        availableMonths: availableMonths ?? this.availableMonths,
-        income: income ?? this.income,
-        expenses: expenses ?? this.expenses,
-        net: net ?? this.net,
-        loadingMore: loadingMore ?? this.loadingMore,
-        filters: filters ?? this.filters,
-      );
+  }) => TransactionsState(
+    month: month ?? this.month,
+    transactions: transactions ?? this.transactions,
+    nextCursor: clearNextCursor ? null : (nextCursor ?? this.nextCursor),
+    availableMonths: availableMonths ?? this.availableMonths,
+    income: income ?? this.income,
+    expenses: expenses ?? this.expenses,
+    net: net ?? this.net,
+    loadingMore: loadingMore ?? this.loadingMore,
+    filters: filters ?? this.filters,
+  );
 }
 
 String _currentMonth() {
@@ -171,7 +169,8 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
   Future<void> _refreshSilently() async {
     try {
       final months = await _repo.listMonths();
-      final month = state.value?.month ??
+      final month =
+          state.value?.month ??
           (months.isNotEmpty ? months.first : _currentMonth());
       final fresh = await _loadMonth(
         month: month,
@@ -292,7 +291,8 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final months = await _repo.listMonths();
-      final month = cur?.month ?? (months.isNotEmpty ? months.first : _currentMonth());
+      final month =
+          cur?.month ?? (months.isNotEmpty ? months.first : _currentMonth());
       return _loadMonth(
         month: month,
         availableMonths: months,
@@ -322,5 +322,5 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
 
 final transactionsControllerProvider =
     AsyncNotifierProvider<TransactionsController, TransactionsState>(
-  TransactionsController.new,
-);
+      TransactionsController.new,
+    );

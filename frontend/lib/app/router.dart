@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +7,7 @@ import '../features/add_expense/presentation/add_expense_screen.dart';
 import '../features/analytics/presentation/analytics_screen.dart';
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/domain/auth_state.dart';
+import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
@@ -24,7 +25,7 @@ NavTab _tabForLocation(String location) {
   return NavTab.home;
 }
 
-const _authPaths = {'/login', '/signup'};
+const _authPaths = {'/login', '/signup', '/forgot-password'};
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _AuthRouterRefresh(ref);
@@ -59,6 +60,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'signup',
         pageBuilder: (_, _) => const NoTransitionPage(child: SignupScreen()),
       ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (_, _) => const ForgotPasswordScreen(),
+      ),
+      // Add Expense lives OUTSIDE the shell so it covers the bottom nav and
+      // presents as a full-height modal that slides up from the bottom.
+      GoRoute(
+        path: '/add',
+        name: 'add',
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          fullscreenDialog: true,
+          transitionDuration: const Duration(milliseconds: 260),
+          reverseTransitionDuration: const Duration(milliseconds: 220),
+          child: const AddExpenseScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            );
+          },
+        ),
+      ),
       ShellRoute(
         builder: (context, state, child) {
           final active = _tabForLocation(state.matchedLocation);
@@ -68,27 +101,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/',
             name: 'dashboard',
-            pageBuilder: (_, _) => const NoTransitionPage(child: DashboardScreen()),
-          ),
-          GoRoute(
-            path: '/add',
-            name: 'add',
-            pageBuilder: (_, _) => const NoTransitionPage(child: AddExpenseScreen()),
+            pageBuilder: (_, _) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
           GoRoute(
             path: '/transactions',
             name: 'transactions',
-            pageBuilder: (_, _) => const NoTransitionPage(child: TransactionsScreen()),
+            pageBuilder: (_, _) =>
+                const NoTransitionPage(child: TransactionsScreen()),
           ),
           GoRoute(
             path: '/analytics',
             name: 'analytics',
-            pageBuilder: (_, _) => const NoTransitionPage(child: AnalyticsScreen()),
+            pageBuilder: (_, _) =>
+                const NoTransitionPage(child: AnalyticsScreen()),
           ),
           GoRoute(
             path: '/profile',
             name: 'profile',
-            pageBuilder: (_, _) => const NoTransitionPage(child: ProfileScreen()),
+            pageBuilder: (_, _) =>
+                const NoTransitionPage(child: ProfileScreen()),
             routes: [
               GoRoute(
                 path: 'income-sources',

@@ -39,7 +39,10 @@ class BalanceCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 money.format(summary.net),
-                style: AppTextStyles.heroAmount.copyWith(fontSize: 38, letterSpacing: -1.5),
+                style: AppTextStyles.heroAmount.copyWith(
+                  fontSize: 38,
+                  letterSpacing: -1.5,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -52,9 +55,21 @@ class BalanceCard extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _StatBox(label: 'INCOME', amount: summary.income, money: money)),
+                  Expanded(
+                    child: _StatBox(
+                      label: 'INCOME',
+                      amount: summary.income,
+                      money: money,
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: _StatBox(label: 'EXPENSES', amount: summary.expenses, money: money)),
+                  Expanded(
+                    child: _StatBox(
+                      label: 'EXPENSES',
+                      amount: summary.expenses,
+                      money: money,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -70,7 +85,11 @@ class _StatBox extends StatelessWidget {
   final double amount;
   final NumberFormat money;
 
-  const _StatBox({required this.label, required this.amount, required this.money});
+  const _StatBox({
+    required this.label,
+    required this.amount,
+    required this.money,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +113,10 @@ class _StatBox extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             money.format(amount),
-            style: AppTextStyles.titleS.copyWith(color: Colors.white, fontSize: 16.5),
+            style: AppTextStyles.titleS.copyWith(
+              color: Colors.white,
+              fontSize: 16.5,
+            ),
           ),
         ],
       ),

@@ -42,7 +42,9 @@ class RecurringExpensesScreen extends ConsumerWidget {
                       const Spacer(),
                       Text(
                         'Recurring expenses',
-                        style: AppTextStyles.titleM.copyWith(color: Colors.white),
+                        style: AppTextStyles.titleM.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                       const Spacer(),
                       const SizedBox(width: 44),
@@ -131,10 +133,9 @@ class RecurringExpensesScreen extends ConsumerWidget {
   Future<void> _toggleActive(WidgetRef ref, RecurringExpense rule) async {
     HapticFeedback.selectionClick();
     try {
-      await ref.read(recurringExpensesRepositoryProvider).update(
-            id: rule.id,
-            isActive: !rule.isActive,
-          );
+      await ref
+          .read(recurringExpensesRepositoryProvider)
+          .update(id: rule.id, isActive: !rule.isActive);
       _invalidate(ref);
     } on RecurringExpensesApiException catch (_) {
       // swallow; surfaced as no-change on UI
@@ -162,14 +163,18 @@ class RecurringExpensesScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.inkMid,
+              ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               'Remove',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.danger),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.danger,
+              ),
             ),
           ),
         ],
@@ -283,7 +288,8 @@ class _RuleCard extends StatelessWidget {
     final categoryColor =
         AppColors.categories[rule.categoryKey]?.color ?? AppColors.primary;
     final categoryBg =
-        AppColors.categories[rule.categoryKey]?.bgTint ?? AppColors.primaryLight;
+        AppColors.categories[rule.categoryKey]?.bgTint ??
+        AppColors.primaryLight;
 
     final cadence = _cadenceLabel(rule);
     final nextDate = rule.isActive ? _nextDate(rule) : null;
@@ -348,7 +354,9 @@ class _RuleCard extends StatelessWidget {
                   if (!rule.isActive)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(999),
@@ -388,7 +396,9 @@ class _RuleCard extends StatelessWidget {
                   ),
                   label: Text(
                     rule.isActive ? 'Pause' : 'Resume',
-                    style: AppTextStyles.label.copyWith(color: AppColors.inkMid),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.inkMid,
+                    ),
                   ),
                 ),
               ),
@@ -402,7 +412,9 @@ class _RuleCard extends StatelessWidget {
                   ),
                   label: Text(
                     'Remove',
-                    style: AppTextStyles.label.copyWith(color: AppColors.danger),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.danger,
+                    ),
                   ),
                 ),
               ),
@@ -464,10 +476,7 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            'No recurring expenses yet',
-            style: AppTextStyles.bodyStrong,
-          ),
+          Text('No recurring expenses yet', style: AppTextStyles.bodyStrong),
           const SizedBox(height: 4),
           Text(
             'Add Netflix, Spotify, gym, or any subscription that posts on a schedule.',
@@ -506,7 +515,9 @@ class _AddButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'Add subscription',
-                style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),

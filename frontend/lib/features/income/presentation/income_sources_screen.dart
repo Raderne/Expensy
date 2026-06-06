@@ -38,7 +38,9 @@ class IncomeSourcesScreen extends ConsumerWidget {
                       const Spacer(),
                       Text(
                         'Income sources',
-                        style: AppTextStyles.titleM.copyWith(color: Colors.white),
+                        style: AppTextStyles.titleM.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                       const Spacer(),
                       const SizedBox(width: 44),
@@ -84,7 +86,9 @@ class IncomeSourcesScreen extends ConsumerWidget {
                       ),
                       child: Text(
                         'No recurring income yet. Add your salary or other regular pay.',
-                        style: AppTextStyles.body.copyWith(color: AppColors.inkMid),
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.inkMid,
+                        ),
                       ),
                     )
                   else
@@ -100,9 +104,7 @@ class IncomeSourcesScreen extends ConsumerWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  _AddButton(
-                    onTap: () => _openAdd(context),
-                  ),
+                  _AddButton(onTap: () => _openAdd(context)),
                 ],
               ),
             ),
@@ -144,10 +146,9 @@ class IncomeSourcesScreen extends ConsumerWidget {
 
   Future<void> _toggleActive(WidgetRef ref, RecurringIncome source) async {
     try {
-      await ref.read(incomeRepositoryProvider).updateRecurring(
-            id: source.id,
-            isActive: !source.isActive,
-          );
+      await ref
+          .read(incomeRepositoryProvider)
+          .updateRecurring(id: source.id, isActive: !source.isActive);
       ref.invalidate(incomeControllerProvider);
       ref.invalidate(dashboardControllerProvider);
       ref.invalidate(transactionsControllerProvider);
@@ -175,11 +176,21 @@ class IncomeSourcesScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Cancel', style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid)),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.inkMid,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Remove', style: AppTextStyles.labelStrong.copyWith(color: AppColors.danger)),
+            child: Text(
+              'Remove',
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.danger,
+              ),
+            ),
           ),
         ],
       ),
@@ -192,9 +203,9 @@ class IncomeSourcesScreen extends ConsumerWidget {
       ref.invalidate(dashboardControllerProvider);
       ref.invalidate(transactionsControllerProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Income source removed')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Income source removed')));
       }
     } on IncomeApiException catch (e) {
       if (context.mounted) {
@@ -250,7 +261,11 @@ class _SourceCard extends StatelessWidget {
                       color: AppColors.successLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.payments_outlined, color: AppColors.success, size: 20),
+                    child: const Icon(
+                      Icons.payments_outlined,
+                      color: AppColors.success,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -268,45 +283,68 @@ class _SourceCard extends StatelessWidget {
                   ),
                   if (!source.isActive)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         'Paused',
-                        style: AppTextStyles.mutedSmall.copyWith(color: AppColors.inkMid),
+                        style: AppTextStyles.mutedSmall.copyWith(
+                          color: AppColors.inkMid,
+                        ),
                       ),
                     ),
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.inkLight),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.inkLight,
+                  ),
                 ],
               ),
             ),
           ),
-          const Divider(height: 1, thickness: 1, color: AppColors.border, indent: 68),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: AppColors.border,
+            indent: 68,
+          ),
           Row(
             children: [
               Expanded(
                 child: TextButton.icon(
                   onPressed: onToggle,
                   icon: Icon(
-                    source.isActive ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                    source.isActive
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
                     size: 18,
                     color: AppColors.inkMid,
                   ),
                   label: Text(
                     source.isActive ? 'Pause' : 'Resume',
-                    style: AppTextStyles.label.copyWith(color: AppColors.inkMid),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.inkMid,
+                    ),
                   ),
                 ),
               ),
               Expanded(
                 child: TextButton.icon(
                   onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: AppColors.danger,
+                  ),
                   label: Text(
                     'Remove',
-                    style: AppTextStyles.label.copyWith(color: AppColors.danger),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.danger,
+                    ),
                   ),
                 ),
               ),
@@ -344,7 +382,9 @@ class _AddButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'Add income source',
-                style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),

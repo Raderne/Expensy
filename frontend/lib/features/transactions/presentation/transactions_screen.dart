@@ -39,7 +39,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   void _onScroll() {
     // Trigger the next page when the user is within ~400px of the bottom.
     if (!_scroll.hasClients) return;
-    final remaining = _scroll.position.maxScrollExtent - _scroll.position.pixels;
+    final remaining =
+        _scroll.position.maxScrollExtent - _scroll.position.pixels;
     if (remaining < 400) {
       ref.read(transactionsControllerProvider.notifier).loadMore();
     }
@@ -125,22 +126,22 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     showTransactionsFiltersSheet(
       context,
       initial: current,
-      onApply: (filters) =>
-          ref.read(transactionsControllerProvider.notifier).applyFilters(filters),
+      onApply: (filters) => ref
+          .read(transactionsControllerProvider.notifier)
+          .applyFilters(filters),
     );
   }
 
   Future<void> _deleteTransaction(String id) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(transactionsControllerProvider.notifier).deleteTransaction(id);
+      await ref
+          .read(transactionsControllerProvider.notifier)
+          .deleteTransaction(id);
     } on TransactionsApiException catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-          backgroundColor: AppColors.danger,
-        ),
+        SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
       );
     }
   }
@@ -152,10 +153,7 @@ class _Header extends StatelessWidget {
   final bool filtersActive;
   final VoidCallback onOpenFilters;
 
-  const _Header({
-    required this.filtersActive,
-    required this.onOpenFilters,
-  });
+  const _Header({required this.filtersActive, required this.onOpenFilters});
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +282,9 @@ class _Loading extends StatelessWidget {
           ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
-            sliver: SliverToBoxAdapter(child: ShimmerBox(height: 44, radius: 14)),
+            sliver: SliverToBoxAdapter(
+              child: ShimmerBox(height: 44, radius: 14),
+            ),
           ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
@@ -333,7 +333,11 @@ class _SkeletonDayGroup extends StatelessWidget {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
-              BoxShadow(color: Color(0x0A000C22), blurRadius: 10, offset: Offset(0, 2)),
+              BoxShadow(
+                color: Color(0x0A000C22),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              ),
             ],
           ),
           child: ClipRRect(
@@ -342,7 +346,12 @@ class _SkeletonDayGroup extends StatelessWidget {
               children: [
                 for (int i = 0; i < rows; i++) ...[
                   if (i > 0)
-                    const Divider(height: 1, thickness: 1, indent: 68, color: AppColors.border),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 68,
+                      color: AppColors.border,
+                    ),
                   const _SkeletonTransactionRow(),
                 ],
               ],
@@ -395,17 +404,29 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 40,
+              color: AppColors.inkLight,
+            ),
             const SizedBox(height: 12),
-            Text('Could not load transactions', style: AppTextStyles.bodyStrong),
+            Text(
+              'Could not load transactions',
+              style: AppTextStyles.bodyStrong,
+            ),
             const SizedBox(height: 4),
-            Text('Check your connection and try again.', style: AppTextStyles.body),
+            Text(
+              'Check your connection and try again.',
+              style: AppTextStyles.body,
+            ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: onRetry,
               child: Text(
                 'Retry',
-                style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ],
@@ -480,8 +501,19 @@ class _EmptyState extends StatelessWidget {
   }
 
   static const _names = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   static String _monthName(int m) =>
@@ -499,7 +531,10 @@ class _PageSpinner extends StatelessWidget {
         child: SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.primary,
+          ),
         ),
       ),
     );

@@ -8,19 +8,28 @@ enum NavTab { home, add, transactions, analytics, profile }
 
 extension NavTabPath on NavTab {
   String get path => switch (this) {
-        NavTab.home => '/',
-        NavTab.add => '/add',
-        NavTab.transactions => '/transactions',
-        NavTab.analytics => '/analytics',
-        NavTab.profile => '/profile',
-      };
+    NavTab.home => '/',
+    NavTab.add => '/add',
+    NavTab.transactions => '/transactions',
+    NavTab.analytics => '/analytics',
+    NavTab.profile => '/profile',
+  };
 }
 
 class BottomNav extends StatelessWidget {
   final NavTab active;
   final ValueChanged<NavTab> onTap;
 
-  const BottomNav({super.key, required this.active, required this.onTap});
+  /// Invoked by the center "+" button. Add Expense is a modal route rather than
+  /// a tab, so it gets its own callback instead of going through [onTap].
+  final VoidCallback onAdd;
+
+  const BottomNav({
+    super.key,
+    required this.active,
+    required this.onTap,
+    required this.onAdd,
+  });
 
   void _switchTab(NavTab tab) {
     // Selection-style click — soft tick that matches iOS / Android tab-bar
@@ -28,6 +37,11 @@ class BottomNav extends StatelessWidget {
     // tapping the already-active tab stays silent.
     if (tab != active) HapticFeedback.selectionClick();
     onTap(tab);
+  }
+
+  void _pressAdd() {
+    HapticFeedback.selectionClick();
+    onAdd();
   }
 
   @override
@@ -44,11 +58,35 @@ class BottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(tab: NavTab.home, icon: Icons.home_rounded, label: 'Home', active: active, onTap: _switchTab),
-              _NavItem(tab: NavTab.transactions, icon: Icons.receipt_long_rounded, label: 'List', active: active, onTap: _switchTab),
-              _AddButton(onTap: () => _switchTab(NavTab.add)),
-              _NavItem(tab: NavTab.analytics, icon: Icons.pie_chart_rounded, label: 'Stats', active: active, onTap: _switchTab),
-              _NavItem(tab: NavTab.profile, icon: Icons.person_rounded, label: 'Me', active: active, onTap: _switchTab),
+              _NavItem(
+                tab: NavTab.home,
+                icon: Icons.home_rounded,
+                label: 'Home',
+                active: active,
+                onTap: _switchTab,
+              ),
+              _NavItem(
+                tab: NavTab.transactions,
+                icon: Icons.receipt_long_rounded,
+                label: 'List',
+                active: active,
+                onTap: _switchTab,
+              ),
+              _AddButton(onTap: _pressAdd),
+              _NavItem(
+                tab: NavTab.analytics,
+                icon: Icons.pie_chart_rounded,
+                label: 'Stats',
+                active: active,
+                onTap: _switchTab,
+              ),
+              _NavItem(
+                tab: NavTab.profile,
+                icon: Icons.person_rounded,
+                label: 'Me',
+                active: active,
+                onTap: _switchTab,
+              ),
             ],
           ),
         ),
@@ -94,7 +132,10 @@ class _NavItem extends StatelessWidget {
             children: [
               Icon(icon, size: 22, color: color),
               const SizedBox(height: 2),
-              Text(label, style: AppTextStyles.mutedSmall.copyWith(color: color)),
+              Text(
+                label,
+                style: AppTextStyles.mutedSmall.copyWith(color: color),
+              ),
             ],
           ),
         ),

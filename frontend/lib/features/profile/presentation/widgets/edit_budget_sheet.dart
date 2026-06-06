@@ -82,9 +82,7 @@ class _EditBudgetSheetState extends ConsumerState<EditBudgetSheet> {
         controller: _ctrl,
         autofocus: true,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-        ],
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
         style: AppTextStyles.body.copyWith(
           color: AppColors.ink,
           fontSize: 18,

@@ -53,12 +53,35 @@ model User {
   updatedById String?
   deletedAt   DateTime?
 
-  transactions      Transaction[]
-  budget            Budget?
-  recurringIncomes  RecurringIncome[]
-  recurringExpenses RecurringExpense[]
-  categories        Category[]
+  transactions        Transaction[]
+  budget              Budget?
+  recurringIncomes    RecurringIncome[]
+  recurringExpenses   RecurringExpense[]
+  categories          Category[]
+  passwordResetTokens PasswordResetToken[]
 
+  @@index([deletedAt])
+}
+
+model PasswordResetToken {
+  id     String @id @default(cuid())
+  userId String
+  // sha256 of the 6-digit code — the raw code is never stored.
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
   @@index([deletedAt])
 }
 

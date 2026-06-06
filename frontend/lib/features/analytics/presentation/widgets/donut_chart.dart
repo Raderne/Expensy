@@ -77,9 +77,7 @@ class _DonutChartState extends State<DonutChart>
                 const SizedBox(height: 2),
                 Text(
                   _formatCurrency(widget.data.total),
-                  style: AppTextStyles.titleM.copyWith(
-                    letterSpacing: -0.5,
-                  ),
+                  style: AppTextStyles.titleM.copyWith(letterSpacing: -0.5),
                 ),
               ],
             ),

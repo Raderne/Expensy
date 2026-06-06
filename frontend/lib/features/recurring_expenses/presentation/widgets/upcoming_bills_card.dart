@@ -49,7 +49,9 @@ class UpcomingBillsCard extends ConsumerWidget {
                     const Spacer(),
                     Text(
                       'Manage →',
-                      style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -79,7 +81,8 @@ class _BillRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppColors.categories[bill.categoryKey]?.color ??
+    final color =
+        AppColors.categories[bill.categoryKey]?.color ??
         _parseHex(bill.categoryColor) ??
         AppColors.primary;
     final money = NumberFormat.simpleCurrency(decimalDigits: 2);
@@ -89,10 +92,7 @@ class _BillRow extends StatelessWidget {
           width: 8,
           height: 8,
           margin: const EdgeInsets.only(right: 10),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         Expanded(
           child: Column(

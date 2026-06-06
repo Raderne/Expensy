@@ -110,5 +110,5 @@ class DashboardController extends AsyncNotifier<DashboardState> {
 
 final dashboardControllerProvider =
     AsyncNotifierProvider<DashboardController, DashboardState>(
-  DashboardController.new,
-);
+      DashboardController.new,
+    );

@@ -31,14 +31,14 @@ class DashboardScreen extends ConsumerWidget {
 
     return dashState.when(
       loading: () => Shimmer(
-        child: _DashboardScaffold(
-          name: name,
-          child: _SkeletonBody(),
-        ),
+        child: _DashboardScaffold(name: name, child: _SkeletonBody()),
       ),
       error: (e, _) => _DashboardScaffold(
         name: name,
-        child: _ErrorBody(onRetry: () => ref.read(dashboardControllerProvider.notifier).refresh()),
+        child: _ErrorBody(
+          onRetry: () =>
+              ref.read(dashboardControllerProvider.notifier).refresh(),
+        ),
       ),
       data: (state) => RefreshIndicator(
         onRefresh: withRefreshHaptic(
@@ -84,7 +84,9 @@ class _DashboardContent extends StatelessWidget {
               // When the onboarding card is showing the dashboard already has a
               // primary CTA; the section's own empty state would be redundant.
               if (!isFirstRun)
-                RecentTransactionsSection(transactions: state.recentTransactions),
+                RecentTransactionsSection(
+                  transactions: state.recentTransactions,
+                ),
               const SizedBox(height: 24),
             ],
           ),
@@ -112,7 +114,11 @@ class _Hero extends StatelessWidget {
   final double topInset;
   final DashboardSummary summary;
 
-  const _Hero({required this.name, required this.topInset, required this.summary});
+  const _Hero({
+    required this.name,
+    required this.topInset,
+    required this.summary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,15 +284,27 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 40,
+              color: AppColors.inkLight,
+            ),
             const SizedBox(height: 12),
             Text('Could not load dashboard', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
-            Text('Check your connection and try again.', style: AppTextStyles.body),
+            Text(
+              'Check your connection and try again.',
+              style: AppTextStyles.body,
+            ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: onRetry,
-              child: Text('Retry', style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary)),
+              child: Text(
+                'Retry',
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
             ),
           ],
         ),

@@ -7,6 +7,7 @@ String authErrorMessage(Object error) {
   if (error is AuthApiException) {
     return switch (error.code) {
       'INVALID_CREDENTIALS' => 'Wrong email or password.',
+      'INVALID_RESET_CODE' => 'That code is invalid or has expired.',
       'EMAIL_TAKEN' => 'That email is already registered.',
       'RATE_LIMITED' => 'Too many attempts. Try again in a few minutes.',
       'VALIDATION_ERROR' => 'Check the fields and try again.',
@@ -16,7 +17,8 @@ String authErrorMessage(Object error) {
 
   if (error is DioException) {
     final base = error.requestOptions.baseUrl;
-    final usedLocalhost = base.contains('localhost') || base.contains('127.0.0.1');
+    final usedLocalhost =
+        base.contains('localhost') || base.contains('127.0.0.1');
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.unknown) {
       if (usedLocalhost) {

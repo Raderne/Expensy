@@ -37,8 +37,9 @@ class DashboardRepository {
     return _decodeRecent(res.data!);
   }
 
-  Future<List<RecentTransaction>?> readCachedRecentTransactions({int limit = 4}) =>
-      _readCached(_recentKey(limit), _decodeRecent);
+  Future<List<RecentTransaction>?> readCachedRecentTransactions({
+    int limit = 4,
+  }) => _readCached(_recentKey(limit), _decodeRecent);
 
   static List<RecentTransaction> _decodeRecent(Map<String, dynamic> data) {
     final list = data['transactions'] as List<dynamic>;
@@ -73,7 +74,10 @@ class DashboardRepository {
     final code = data is Map ? data['code']?.toString() : null;
     final title = data is Map ? data['title']?.toString() : null;
     throw DashboardApiException(
-        status: status, code: code, message: title ?? 'Request failed');
+      status: status,
+      code: code,
+      message: title ?? 'Request failed',
+    );
   }
 }
 
@@ -81,16 +85,17 @@ class DashboardApiException implements Exception {
   final int status;
   final String? code;
   final String message;
-  const DashboardApiException(
-      {required this.status, required this.message, this.code});
+  const DashboardApiException({
+    required this.status,
+    required this.message,
+    this.code,
+  });
 
   @override
   String toString() => 'DashboardApiException($status, $code): $message';
 }
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>(
-  (ref) => DashboardRepository(
-    ref.watch(dioProvider),
-    ref.watch(httpCacheProvider),
-  ),
+  (ref) =>
+      DashboardRepository(ref.watch(dioProvider), ref.watch(httpCacheProvider)),
 );

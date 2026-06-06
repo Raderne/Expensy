@@ -76,7 +76,10 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat.simpleCurrency(locale: 'en_US', decimalDigits: 0);
+    final money = NumberFormat.simpleCurrency(
+      locale: 'en_US',
+      decimalDigits: 0,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(

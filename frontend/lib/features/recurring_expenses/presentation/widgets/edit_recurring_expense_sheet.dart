@@ -36,7 +36,8 @@ class _EditRecurringExpenseSheetState
   late final TextEditingController _amountCtrl = TextEditingController(
     text: widget.existing != null && widget.existing!.amount > 0
         ? widget.existing!.amount.toStringAsFixed(
-            widget.existing!.amount.truncateToDouble() == widget.existing!.amount
+            widget.existing!.amount.truncateToDouble() ==
+                    widget.existing!.amount
                 ? 0
                 : 2,
           )
@@ -139,7 +140,9 @@ class _EditRecurringExpenseSheetState
       ),
     );
     if (picked != null) {
-      setState(() => _anchorDate = DateTime(picked.year, picked.month, picked.day));
+      setState(
+        () => _anchorDate = DateTime(picked.year, picked.month, picked.day),
+      );
     }
   }
 
@@ -163,8 +166,9 @@ class _EditRecurringExpenseSheetState
           amount: amount,
           categoryId: _categoryId,
           frequency: _frequency,
-          intervalDays:
-              _frequency == RecurrenceFrequency.custom ? _parsedInterval : null,
+          intervalDays: _frequency == RecurrenceFrequency.custom
+              ? _parsedInterval
+              : null,
           anchorDate: _anchorDate,
           idempotencyKey: _idempotencyKey,
         );
@@ -175,8 +179,9 @@ class _EditRecurringExpenseSheetState
           amount: amount,
           categoryId: _categoryId,
           frequency: _frequency,
-          intervalDays:
-              _frequency == RecurrenceFrequency.custom ? _parsedInterval : null,
+          intervalDays: _frequency == RecurrenceFrequency.custom
+              ? _parsedInterval
+              : null,
           clearIntervalDays: _frequency != RecurrenceFrequency.custom,
           anchorDate: _anchorDate,
           isActive: _isActive,
@@ -226,7 +231,10 @@ class _EditRecurringExpenseSheetState
             textCapitalization: TextCapitalization.words,
             maxLength: 40,
             style: AppTextStyles.body.copyWith(color: AppColors.ink),
-            decoration: _fieldDecoration(hint: 'YouTube Premium', counter: true),
+            decoration: _fieldDecoration(
+              hint: 'YouTube Premium',
+              counter: true,
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -264,9 +272,7 @@ class _EditRecurringExpenseSheetState
                     child: TextField(
                       controller: _intervalCtrl,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       style: AppTextStyles.body.copyWith(color: AppColors.ink),
                       decoration: _fieldDecoration(
                         hint: '45',
@@ -314,10 +320,7 @@ class _EditRecurringExpenseSheetState
           const SizedBox(height: 16),
           const _SectionLabel('Starts on'),
           const SizedBox(height: 6),
-          _AnchorRow(
-            date: _anchorDate,
-            onTap: _pickAnchorDate,
-          ),
+          _AnchorRow(date: _anchorDate, onTap: _pickAnchorDate),
           if (isEdit) ...[
             const SizedBox(height: 16),
             _ActiveToggle(
@@ -331,8 +334,7 @@ class _EditRecurringExpenseSheetState
   }
 
   void _ensureCategoryDefault(List<Category> categories) {
-    if (_categoryId != null &&
-        categories.any((c) => c.id == _categoryId)) {
+    if (_categoryId != null && categories.any((c) => c.id == _categoryId)) {
       return;
     }
     // Default to subscriptions, fall back to first category.
@@ -485,9 +487,7 @@ class _AnchorRow extends StatelessWidget {
                 color: AppColors.inkMid,
               ),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(fmt, style: AppTextStyles.bodyStrong),
-              ),
+              Expanded(child: Text(fmt, style: AppTextStyles.bodyStrong)),
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 20,

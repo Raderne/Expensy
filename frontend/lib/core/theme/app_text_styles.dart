@@ -14,14 +14,13 @@ class AppTextStyles {
     Color color = AppColors.ink,
     double? height,
     double? letterSpacing,
-  }) =>
-      GoogleFonts.dmSans(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        height: height,
-        letterSpacing: letterSpacing,
-      );
+  }) => GoogleFonts.dmSans(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 
   // Display / hero
   static TextStyle heroAmount = _base(

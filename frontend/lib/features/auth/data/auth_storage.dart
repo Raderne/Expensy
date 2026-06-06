@@ -38,7 +38,10 @@ class AuthStorage {
     ]);
   }
 
-  Future<void> writeTokens({required String accessToken, required String refreshToken}) async {
+  Future<void> writeTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     await Future.wait([
       _store.write(key: _kAccess, value: accessToken),
       _store.write(key: _kRefresh, value: refreshToken),

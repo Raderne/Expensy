@@ -6,9 +6,7 @@ import 'package:flutter/services.dart';
 ///
 /// The error is rethrown so RefreshIndicator can keep its existing failure
 /// semantics (it pulls the spinner up either way; we just add the haptic).
-Future<void> Function() withRefreshHaptic(
-  Future<void> Function() refresh,
-) {
+Future<void> Function() withRefreshHaptic(Future<void> Function() refresh) {
   return () async {
     try {
       await refresh();

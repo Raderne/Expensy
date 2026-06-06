@@ -32,7 +32,10 @@ class AuthInterceptor extends Interceptor {
       path.contains('/auth/refresh');
 
   @override
-  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     if (options.extra[_skipAuthFlag] == true || _isAuthEndpoint(options.path)) {
       return handler.next(options);
     }
@@ -44,7 +47,10 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  Future<void> onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) async {
+  Future<void> onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) async {
     if (response.statusCode != 401 ||
         response.requestOptions.extra[_retryFlag] == true ||
         _isAuthEndpoint(response.requestOptions.path)) {
@@ -73,7 +79,9 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<bool> _refreshOnce() {
-    return _inFlightRefresh ??= _doRefresh().whenComplete(() => _inFlightRefresh = null);
+    return _inFlightRefresh ??= _doRefresh().whenComplete(
+      () => _inFlightRefresh = null,
+    );
   }
 
   Future<bool> _doRefresh() async {

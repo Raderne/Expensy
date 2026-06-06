@@ -23,10 +23,7 @@ class ProfileRepository {
   }) async {
     final res = await _dio.patch(
       '/me/password',
-      data: {
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-      },
+      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
     );
     _ensureOk(res);
   }

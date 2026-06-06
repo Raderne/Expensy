@@ -21,12 +21,12 @@ class UpcomingBill {
   });
 
   factory UpcomingBill.fromJson(Map<String, dynamic> json) => UpcomingBill(
-        ruleId: json['ruleId'] as String,
-        label: json['label'] as String,
-        amount: (json['amount'] as num).toDouble(),
-        occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
-        categoryId: json['categoryId'] as String,
-        categoryKey: json['categoryKey'] as String,
-        categoryColor: json['categoryColor'] as String,
-      );
+    ruleId: json['ruleId'] as String,
+    label: json['label'] as String,
+    amount: (json['amount'] as num).toDouble(),
+    occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
+    categoryId: json['categoryId'] as String,
+    categoryKey: json['categoryKey'] as String,
+    categoryColor: json['categoryColor'] as String,
+  );
 }
