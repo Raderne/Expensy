@@ -57,6 +57,7 @@ model User {
   budget            Budget?
   recurringIncomes  RecurringIncome[]
   recurringExpenses RecurringExpense[]
+  categories        Category[]
 
   @@index([deletedAt])
 }
@@ -64,6 +65,7 @@ model User {
 model Category {
   id       String  @id @default(cuid())
   key      String  @unique
+  userId   String?
   label    String
   abbr     String
   color    String
@@ -71,12 +73,18 @@ model Category {
   sort     Int
   isSystem Boolean @default(true)
 
-  // Required for the $allModels soft-delete extension in src/lib/prisma.ts
-  deletedAt DateTime?
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
 
+  user              User?             @relation(fields: [userId], references: [id])
   transactions      Transaction[]
   recurringExpenses RecurringExpense[]
 
+  @@index([userId])
   @@index([deletedAt])
 }
 

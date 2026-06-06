@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/categories_repository.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
+import 'add_edit_category_sheet.dart';
 
 const double _kTileSize = 80.0;
 
@@ -23,18 +27,26 @@ class CategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final twoRows = categories.length > 6;
+    final rowCount = twoRows ? 2 : 1;
+    final height = twoRows ? _kTileSize * 2 + 8 : _kTileSize;
+
     return SizedBox(
-      height: _kTileSize,
-      child: ListView.separated(
+      height: height,
+      child: GridView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         // categories + "+" tile
         itemCount: categories.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: rowCount,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 1.0,
+        ),
         itemBuilder: (ctx, i) {
           if (i == categories.length) {
             return _MoreTile(
-              categories: categories,
               selectedId: selectedId,
               onSelect: onSelect,
             );
@@ -58,11 +70,13 @@ class _Tile extends StatelessWidget {
   final Category category;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _Tile({
     required this.category,
     required this.selected,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -72,6 +86,7 @@ class _Tile extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
@@ -125,12 +140,10 @@ class _Tile extends StatelessWidget {
 }
 
 class _MoreTile extends StatelessWidget {
-  final List<Category> categories;
   final String? selectedId;
   final ValueChanged<Category> onSelect;
 
   const _MoreTile({
-    required this.categories,
     required this.selectedId,
     required this.onSelect,
   });
@@ -187,7 +200,6 @@ class _MoreTile extends StatelessWidget {
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x66000C22),
       builder: (sheetCtx) => _AllCategoriesSheet(
-        categories: categories,
         selectedId: selectedId,
         onSelect: (c) {
           HapticFeedback.selectionClick();
@@ -199,19 +211,23 @@ class _MoreTile extends StatelessWidget {
   }
 }
 
-class _AllCategoriesSheet extends StatelessWidget {
-  final List<Category> categories;
+class _AllCategoriesSheet extends ConsumerWidget {
   final String? selectedId;
   final ValueChanged<Category> onSelect;
 
   const _AllCategoriesSheet({
-    required this.categories,
     required this.selectedId,
     required this.onSelect,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final categories = categoriesAsync.value ?? const [];
+    final displayCats = categories
+        .where((c) => c.key != 'income' && c.key != 'subscriptions')
+        .toList();
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -249,7 +265,7 @@ class _AllCategoriesSheet extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: EdgeInsets.zero,
-                itemCount: categories.length,
+                itemCount: displayCats.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 8,
@@ -257,16 +273,63 @@ class _AllCategoriesSheet extends StatelessWidget {
                   childAspectRatio: 1.0,
                 ),
                 itemBuilder: (_, i) {
-                  final c = categories[i];
+                  final c = displayCats[i];
                   return _Tile(
                     category: c,
                     selected: c.id == selectedId,
                     onTap: () => onSelect(c),
+                    onLongPress: c.isSystem
+                        ? null
+                        : () async {
+                            await showEditSheet<bool>(
+                              context,
+                              (_) => AddEditCategorySheet(existing: c),
+                            );
+                          },
                   );
                 },
               ),
+              const SizedBox(height: 12),
+              _AddCategoryButton(onDone: () {}),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddCategoryButton extends StatelessWidget {
+  final VoidCallback onDone;
+  const _AddCategoryButton({required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await showEditSheet<bool>(
+          context,
+          (_) => const AddEditCategorySheet(),
+        );
+        onDone();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 1.2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_rounded, size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Add category',
+              style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+            ),
+          ],
         ),
       ),
     );

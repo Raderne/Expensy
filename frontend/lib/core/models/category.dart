@@ -10,6 +10,7 @@ class Category {
   final String abbr;
   final String color;
   final String bgTint;
+  final bool isSystem;
 
   const Category({
     required this.id,
@@ -18,6 +19,7 @@ class Category {
     required this.abbr,
     required this.color,
     required this.bgTint,
+    this.isSystem = true,
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
@@ -28,11 +30,17 @@ class Category {
         abbr: json['abbr'] as String,
         color: json['color'] as String,
         bgTint: json['bgTint'] as String,
+        isSystem: json['isSystem'] as bool? ?? true,
       );
 
+  static Color _parseHex(String hex) {
+    final clean = hex.replaceAll('#', '');
+    return Color(int.parse('FF$clean', radix: 16));
+  }
+
   Color get colorValue =>
-      AppColors.categories[key]?.color ?? const Color(0xFF96A5BE);
+      AppColors.categories[key]?.color ?? _parseHex(color);
 
   Color get bgTintValue =>
-      AppColors.categories[key]?.bgTint ?? const Color(0xFFEEF3FF);
+      AppColors.categories[key]?.bgTint ?? _parseHex(bgTint);
 }

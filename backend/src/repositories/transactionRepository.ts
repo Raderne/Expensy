@@ -158,6 +158,9 @@ export const transactionRepository = {
       ORDER BY 1 DESC
     `,
 
+  countByCategory: (categoryId: string, userId: string) =>
+    prisma.transaction.count({ where: { categoryId, userId } }),
+
   // Phase 06 — group expense rows by category for the donut + breakdown bars.
   // amount < 0 selects expenses only; the absolute sum is computed in the
   // service so we can keep returning a Decimal here.

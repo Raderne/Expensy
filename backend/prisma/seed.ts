@@ -18,7 +18,7 @@ async function main() {
     await prisma.category.upsert({
       where: { key: cat.key },
       update: { label: cat.label, abbr: cat.abbr, color: cat.color, bgTint: cat.bgTint, sort: cat.sort },
-      create: cat,
+      create: { ...cat, userId: null, isSystem: true },
     });
   }
   console.log(`Seeded ${CATEGORIES.length} categories`);
