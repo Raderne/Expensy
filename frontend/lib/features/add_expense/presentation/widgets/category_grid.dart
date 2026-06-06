@@ -9,11 +9,13 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
 import 'add_edit_category_sheet.dart';
 
-const double _kTileSize = 80.0;
-
-/// Horizontal scroll row of category tiles followed by a "+" tile that opens
-/// a full-grid sheet — always visible so the user can always browse all options.
-class CategoryGrid extends StatelessWidget {
+/// Horizontal 2-row grid of category tiles.
+///
+/// Tile size is derived from the screen width so exactly 3 tiles are visible
+/// per row (6 total) before the user scrolls. The calculation runs once in
+/// [didChangeDependencies] and is only repeated on screen-size changes
+/// (orientation flip, window resize) — not on every parent rebuild.
+class CategoryGrid extends StatefulWidget {
   final List<Category> categories;
   final String? selectedId;
   final ValueChanged<Category> onSelect;
@@ -26,38 +28,54 @@ class CategoryGrid extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final twoRows = categories.length > 6;
-    final rowCount = twoRows ? 2 : 1;
-    final height = twoRows ? _kTileSize * 2 + 8 : _kTileSize;
+  State<CategoryGrid> createState() => _CategoryGridState();
+}
 
+class _CategoryGridState extends State<CategoryGrid> {
+  // 3 tiles per row across (screenWidth − 36 outer padding − 16 inter-tile gaps) / 3
+  // Initial value is a reasonable fallback before the first frame.
+  double _tileSize = 80.0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    // Parent SliverPadding: 18 left + 18 right = 36 px
+    // 3 tiles per row → 2 gaps of 8 px = 16 px
+    _tileSize = (screenWidth - 36.0 - 16.0) / 3.0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
-      height: height,
+      height: _tileSize * 2 + 8,
       child: GridView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        // categories + "+" tile
-        itemCount: categories.length + 1,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: rowCount,
+        // categories + "More" tile
+        itemCount: widget.categories.length + 1,
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          // cross-axis = vertical in a horizontal scroll → tile height
+          maxCrossAxisExtent: _tileSize,
+          // main-axis = horizontal → tile width
+          mainAxisExtent: _tileSize,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
-          childAspectRatio: 1.0,
         ),
         itemBuilder: (ctx, i) {
-          if (i == categories.length) {
+          if (i == widget.categories.length) {
             return _MoreTile(
-              selectedId: selectedId,
-              onSelect: onSelect,
+              selectedId: widget.selectedId,
+              onSelect: widget.onSelect,
             );
           }
-          final c = categories[i];
+          final c = widget.categories[i];
           return _Tile(
             category: c,
-            selected: c.id == selectedId,
+            selected: c.id == widget.selectedId,
             onTap: () {
               HapticFeedback.selectionClick();
-              onSelect(c);
+              widget.onSelect(c);
             },
           );
         },
@@ -90,8 +108,6 @@ class _Tile extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        width: _kTileSize,
-        height: _kTileSize,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: selected ? color : AppColors.surface,
@@ -154,8 +170,6 @@ class _MoreTile extends StatelessWidget {
       onTap: () => _showAll(context),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: _kTileSize,
-        height: _kTileSize,
         decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border.all(color: AppColors.border, width: 2),

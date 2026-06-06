@@ -44,7 +44,7 @@ class AddExpenseScreen extends ConsumerWidget {
               _Header(onBack: () => context.go('/')),
               const SizedBox(height: 6),
               AmountDisplay(value: state.amount),
-              const SizedBox(height: 14),
+              const SizedBox(height: 6),
             ],
           ),
         ),
