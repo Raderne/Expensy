@@ -12,6 +12,8 @@ import '../data/income_repository.dart';
 import '../domain/recurring_income.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../profile/presentation/widgets/edit_sheet_shell.dart';
+import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
+import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../transactions/application/transactions_controller.dart';
 import 'widgets/edit_recurring_income_sheet.dart';
 
@@ -48,7 +50,7 @@ class IncomeSourcesScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Recurring jobs are posted automatically on their payday.',
+                    'On payday we’ll ask you to confirm the income or postpone it.',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.body.copyWith(
                       color: Colors.white.withValues(alpha: 0.75),
@@ -104,7 +106,7 @@ class IncomeSourcesScreen extends ConsumerWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  _AddButton(onTap: () => _openAdd(context)),
+                  _AddButton(onTap: () => _openAdd(context, ref)),
                 ],
               ),
             ),
@@ -114,19 +116,24 @@ class IncomeSourcesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openAdd(BuildContext context) async {
+  Future<void> _openAdd(BuildContext context, WidgetRef ref) async {
     final ok = await showEditSheet<bool>(
       context,
       (_) => const EditRecurringIncomeSheet(),
     );
-    if (ok == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Income source added'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
+    if (ok != true || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Income source added'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+
+    // If the new source's payday is today, prompt to confirm/postpone right away
+    // (reuses the same dashboard modal).
+    ref.invalidate(pendingOccurrencesControllerProvider);
+    await runConfirmationQueue(context);
   }
 
   Future<void> _openEdit(BuildContext context, RecurringIncome source) async {

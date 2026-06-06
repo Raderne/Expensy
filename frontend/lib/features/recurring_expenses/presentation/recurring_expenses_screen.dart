@@ -11,6 +11,8 @@ import '../../../core/widgets/hero_gradient.dart';
 import '../../analytics/application/analytics_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../profile/presentation/widgets/edit_sheet_shell.dart';
+import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
+import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../transactions/application/transactions_controller.dart';
 import '../application/recurring_expenses_controller.dart';
 import '../application/upcoming_bills_controller.dart';
@@ -90,7 +92,7 @@ class RecurringExpensesScreen extends ConsumerWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  _AddButton(onTap: () => _openAdd(context)),
+                  _AddButton(onTap: () => _openAdd(context, ref)),
                 ],
               ),
             ),
@@ -100,19 +102,24 @@ class RecurringExpensesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openAdd(BuildContext context) async {
+  Future<void> _openAdd(BuildContext context, WidgetRef ref) async {
     final ok = await showEditSheet<bool>(
       context,
       (_) => const EditRecurringExpenseSheet(),
     );
-    if (ok == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Subscription added'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
+    if (ok != true || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Subscription added'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+
+    // If the new rule's first charge is due today, prompt to confirm/postpone
+    // right away (reuses the same dashboard modal).
+    ref.invalidate(pendingOccurrencesControllerProvider);
+    await runConfirmationQueue(context);
   }
 
   Future<void> _openEdit(BuildContext context, RecurringExpense rule) async {

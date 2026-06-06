@@ -9,6 +9,8 @@ import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
+import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../recurring_expenses/presentation/widgets/upcoming_bills_card.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_summary.dart';
@@ -28,6 +30,20 @@ class DashboardScreen extends ConsumerWidget {
       _ => '',
     };
     final dashState = ref.watch(dashboardControllerProvider);
+
+    // Auto-prompt the user to confirm/postpone any due recurring items once the
+    // dashboard is up. The queue runner guards against double-presentation.
+    ref.watch(pendingOccurrencesControllerProvider);
+    ref.listen(pendingOccurrencesControllerProvider, (_, next) {
+      final due = next.maybeWhen(
+        data: (value) => value,
+        orElse: () => const [],
+      );
+      if (due.isEmpty) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) runConfirmationQueue(context);
+      });
+    });
 
     return dashState.when(
       loading: () => Shimmer(
