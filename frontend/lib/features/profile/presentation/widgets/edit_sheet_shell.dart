@@ -83,7 +83,9 @@ class EditSheetShell extends StatelessWidget {
                             const SizedBox(height: 10),
                             Text(
                               error!,
-                              style: AppTextStyles.label.copyWith(color: AppColors.danger),
+                              style: AppTextStyles.label.copyWith(
+                                color: AppColors.danger,
+                              ),
                             ),
                           ],
                           const SizedBox(height: 16),

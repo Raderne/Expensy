@@ -23,11 +23,11 @@ class Transaction {
   bool get isRecurringIncome => recurringIncomeId != null;
 
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
-        id: json['id'] as String,
-        amount: (json['amount'] as num).toDouble(),
-        note: json['note'] as String?,
-        occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
-        category: Category.fromJson(json['category'] as Map<String, dynamic>),
-        recurringIncomeId: json['recurringIncomeId'] as String?,
-      );
+    id: json['id'] as String,
+    amount: (json['amount'] as num).toDouble(),
+    note: json['note'] as String?,
+    occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
+    category: Category.fromJson(json['category'] as Map<String, dynamic>),
+    recurringIncomeId: json['recurringIncomeId'] as String?,
+  );
 }

@@ -21,7 +21,8 @@ class AddExpenseRepository {
         'categoryId': categoryId,
         'amount': amount,
         if (note != null && note.isNotEmpty) 'note': note,
-        if (occurredAt != null) 'occurredAt': occurredAt.toUtc().toIso8601String(),
+        if (occurredAt != null)
+          'occurredAt': occurredAt.toUtc().toIso8601String(),
       },
       options: idempotencyKey == null
           ? null

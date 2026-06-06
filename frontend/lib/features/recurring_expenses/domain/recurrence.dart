@@ -6,15 +6,18 @@ import 'recurring_expense.dart';
 
 DateTime _startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-DateTime _addDays(DateTime d, int days) => DateTime(d.year, d.month, d.day + days);
+DateTime _addDays(DateTime d, int days) =>
+    DateTime(d.year, d.month, d.day + days);
 
 // `month` is 1-based (Jan = 1).
-int _lastDayOfMonth(int year, int month) =>
-    DateTime(year, month + 1, 0).day;
+int _lastDayOfMonth(int year, int month) => DateTime(year, month + 1, 0).day;
 
 DateTime _addMonthsClamped(DateTime d, int months) {
   final zeroBased = (d.month - 1) + months;
-  final year = d.year + (zeroBased ~/ 12) - (zeroBased < 0 && zeroBased % 12 != 0 ? 1 : 0);
+  final year =
+      d.year +
+      (zeroBased ~/ 12) -
+      (zeroBased < 0 && zeroBased % 12 != 0 ? 1 : 0);
   final month = (((zeroBased % 12) + 12) % 12) + 1; // 1-based target month
   final last = _lastDayOfMonth(year, month);
   final day = d.day <= last ? d.day : last;

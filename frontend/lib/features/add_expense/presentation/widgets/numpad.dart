@@ -28,7 +28,8 @@ class Numpad extends StatelessWidget {
       mainAxisSpacing: 7,
       childAspectRatio: 2.6,
       children: [
-        for (var n = 1; n <= 9; n++) _Key.digit(n: n, onTap: () => _tapDigit(n)),
+        for (var n = 1; n <= 9; n++)
+          _Key.digit(n: n, onTap: () => _tapDigit(n)),
         _Key.dot(onTap: _tapDot),
         _Key.digit(n: 0, onTap: () => _tapDigit(0)),
         _Key.backspace(onTap: _tapBackspace),
@@ -57,7 +58,11 @@ class _Key extends StatelessWidget {
   final bool isBackspace;
   final VoidCallback onTap;
 
-  const _Key._({required this.label, required this.onTap, this.isBackspace = false});
+  const _Key._({
+    required this.label,
+    required this.onTap,
+    this.isBackspace = false,
+  });
 
   factory _Key.digit({required int n, required VoidCallback onTap}) =>
       _Key._(label: '$n', onTap: onTap);

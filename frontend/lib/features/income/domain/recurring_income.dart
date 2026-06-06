@@ -16,7 +16,8 @@ class RecurringIncome {
     required this.isActive,
   });
 
-  factory RecurringIncome.fromJson(Map<String, dynamic> json) => RecurringIncome(
+  factory RecurringIncome.fromJson(Map<String, dynamic> json) =>
+      RecurringIncome(
         id: json['id'] as String,
         label: json['label'] as String,
         amount: (json['amount'] as num).toDouble(),

@@ -13,8 +13,7 @@ Future<bool> showDeleteTransactionDialog(
   final money = NumberFormat.simpleCurrency(locale: 'en_US');
   final isIncome = transaction.amount >= 0;
   final sign = isIncome ? '+' : '-';
-  final amountLabel =
-      '$sign${money.format(transaction.amount.abs())}';
+  final amountLabel = '$sign${money.format(transaction.amount.abs())}';
   final title = transaction.note?.isNotEmpty == true
       ? transaction.note!
       : transaction.category.label;

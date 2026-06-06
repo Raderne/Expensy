@@ -22,13 +22,39 @@ class AuthRepository {
     return AuthSession.fromJson(res.data!);
   }
 
-  Future<AuthSession> login({required String email, required String password}) async {
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/auth/login',
       data: {'email': email, 'password': password},
     );
     _ensureOk(res);
     return AuthSession.fromJson(res.data!);
+  }
+
+  /// Requests a password-reset code. The server responds 200 whether or not the
+  /// email is registered, so this never reveals account existence.
+  Future<void> forgotPassword(String email) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/forgot-password',
+      data: {'email': email},
+    );
+    _ensureOk(res);
+  }
+
+  /// Sets a new password using the emailed 6-digit code.
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/reset-password',
+      data: {'email': email, 'code': code, 'newPassword': newPassword},
+    );
+    _ensureOk(res);
   }
 
   Future<AuthUser> me() async {
@@ -43,7 +69,11 @@ class AuthRepository {
     final data = res.data;
     final code = data is Map ? data['code']?.toString() : null;
     final title = data is Map ? data['title']?.toString() : null;
-    throw AuthApiException(status: status, code: code, message: title ?? 'Request failed');
+    throw AuthApiException(
+      status: status,
+      code: code,
+      message: title ?? 'Request failed',
+    );
   }
 }
 
@@ -51,7 +81,11 @@ class AuthApiException implements Exception {
   final int status;
   final String? code;
   final String message;
-  const AuthApiException({required this.status, required this.message, this.code});
+  const AuthApiException({
+    required this.status,
+    required this.message,
+    this.code,
+  });
 
   @override
   String toString() => 'AuthApiException($status, $code): $message';

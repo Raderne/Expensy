@@ -28,7 +28,9 @@ class CategoriesRepository {
       throw Exception('GET /categories failed with $status');
     }
     final list = res.data!['categories'] as List<dynamic>;
-    return list.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => Category.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Category> create({

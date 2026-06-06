@@ -237,7 +237,11 @@ class _LoadingScaffold extends StatelessWidget {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(22),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x12000C22), blurRadius: 18, offset: Offset(0, 4)),
+                        BoxShadow(
+                          color: Color(0x12000C22),
+                          blurRadius: 18,
+                          offset: Offset(0, 4),
+                        ),
                       ],
                     ),
                     child: const Row(
@@ -269,7 +273,11 @@ class _LoadingScaffold extends StatelessWidget {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x10000C22), blurRadius: 14, offset: Offset(0, 3)),
+                        BoxShadow(
+                          color: Color(0x10000C22),
+                          blurRadius: 14,
+                          offset: Offset(0, 3),
+                        ),
                       ],
                     ),
                     child: const Column(
@@ -352,7 +360,11 @@ class _ErrorScaffold extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 40,
+              color: AppColors.inkLight,
+            ),
             const SizedBox(height: 12),
             Text('Could not load analytics', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),

@@ -34,7 +34,8 @@ class RecurringExpensesRepository {
       'anchorDate': _isoDate(anchorDate),
     };
     if (categoryId != null) body['categoryId'] = categoryId;
-    if (frequency == RecurrenceFrequency.custom) body['intervalDays'] = intervalDays;
+    if (frequency == RecurrenceFrequency.custom)
+      body['intervalDays'] = intervalDays;
 
     final res = await _dio.post<Map<String, dynamic>>(
       '/me/expenses/recurring',
@@ -136,5 +137,5 @@ class RecurringExpensesApiException implements Exception {
 
 final recurringExpensesRepositoryProvider =
     Provider<RecurringExpensesRepository>(
-  (ref) => RecurringExpensesRepository(ref.watch(dioProvider)),
-);
+      (ref) => RecurringExpensesRepository(ref.watch(dioProvider)),
+    );

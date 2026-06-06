@@ -28,13 +28,12 @@ class AnalyticsState {
     AnalyticsBreakdown? data,
     List<String>? availableMonths,
     bool? loading,
-  }) =>
-      AnalyticsState(
-        month: month ?? this.month,
-        data: data ?? this.data,
-        availableMonths: availableMonths ?? this.availableMonths,
-        loading: loading ?? this.loading,
-      );
+  }) => AnalyticsState(
+    month: month ?? this.month,
+    data: data ?? this.data,
+    availableMonths: availableMonths ?? this.availableMonths,
+    loading: loading ?? this.loading,
+  );
 }
 
 String _currentMonth() {
@@ -84,14 +83,13 @@ class AnalyticsController extends AsyncNotifier<AnalyticsState> {
   Future<void> _refreshSilently() async {
     try {
       final months = await _txRepo.listMonths();
-      final month = state.value?.month ??
+      final month =
+          state.value?.month ??
           (months.isNotEmpty ? months.first : _currentMonth());
       final data = await _repo.get(month: month);
-      state = AsyncData(AnalyticsState(
-        month: month,
-        data: data,
-        availableMonths: months,
-      ));
+      state = AsyncData(
+        AnalyticsState(month: month, data: data, availableMonths: months),
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('Analytics background refresh failed: $e');
     }
@@ -128,5 +126,5 @@ class AnalyticsController extends AsyncNotifier<AnalyticsState> {
 
 final analyticsControllerProvider =
     AsyncNotifierProvider<AnalyticsController, AnalyticsState>(
-  AnalyticsController.new,
-);
+      AnalyticsController.new,
+    );

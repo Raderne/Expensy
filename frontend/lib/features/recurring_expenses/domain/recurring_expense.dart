@@ -4,26 +4,26 @@ enum RecurrenceFrequency { weekly, biweekly, monthly, custom }
 
 extension RecurrenceFrequencyX on RecurrenceFrequency {
   String get wireValue => switch (this) {
-        RecurrenceFrequency.weekly => 'WEEKLY',
-        RecurrenceFrequency.biweekly => 'BIWEEKLY',
-        RecurrenceFrequency.monthly => 'MONTHLY',
-        RecurrenceFrequency.custom => 'CUSTOM',
-      };
+    RecurrenceFrequency.weekly => 'WEEKLY',
+    RecurrenceFrequency.biweekly => 'BIWEEKLY',
+    RecurrenceFrequency.monthly => 'MONTHLY',
+    RecurrenceFrequency.custom => 'CUSTOM',
+  };
 
   String get label => switch (this) {
-        RecurrenceFrequency.weekly => 'Weekly',
-        RecurrenceFrequency.biweekly => 'Biweekly',
-        RecurrenceFrequency.monthly => 'Monthly',
-        RecurrenceFrequency.custom => 'Custom',
-      };
+    RecurrenceFrequency.weekly => 'Weekly',
+    RecurrenceFrequency.biweekly => 'Biweekly',
+    RecurrenceFrequency.monthly => 'Monthly',
+    RecurrenceFrequency.custom => 'Custom',
+  };
 
   static RecurrenceFrequency fromWire(String value) => switch (value) {
-        'WEEKLY' => RecurrenceFrequency.weekly,
-        'BIWEEKLY' => RecurrenceFrequency.biweekly,
-        'MONTHLY' => RecurrenceFrequency.monthly,
-        'CUSTOM' => RecurrenceFrequency.custom,
-        _ => throw ArgumentError('Unknown frequency: $value'),
-      };
+    'WEEKLY' => RecurrenceFrequency.weekly,
+    'BIWEEKLY' => RecurrenceFrequency.biweekly,
+    'MONTHLY' => RecurrenceFrequency.monthly,
+    'CUSTOM' => RecurrenceFrequency.custom,
+    _ => throw ArgumentError('Unknown frequency: $value'),
+  };
 }
 
 @immutable
@@ -54,7 +54,8 @@ class RecurringExpense {
     required this.isActive,
   });
 
-  factory RecurringExpense.fromJson(Map<String, dynamic> json) => RecurringExpense(
+  factory RecurringExpense.fromJson(Map<String, dynamic> json) =>
+      RecurringExpense(
         id: json['id'] as String,
         label: json['label'] as String,
         amount: (json['amount'] as num).toDouble(),

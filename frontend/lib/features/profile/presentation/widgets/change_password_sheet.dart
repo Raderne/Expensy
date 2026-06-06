@@ -11,7 +11,8 @@ class ChangePasswordSheet extends ConsumerStatefulWidget {
   const ChangePasswordSheet({super.key});
 
   @override
-  ConsumerState<ChangePasswordSheet> createState() => _ChangePasswordSheetState();
+  ConsumerState<ChangePasswordSheet> createState() =>
+      _ChangePasswordSheetState();
 }
 
 class _ChangePasswordSheetState extends ConsumerState<ChangePasswordSheet> {
@@ -35,7 +36,9 @@ class _ChangePasswordSheetState extends ConsumerState<ChangePasswordSheet> {
   }
 
   bool get _valid =>
-      _current.text.isNotEmpty && _next.text.length >= 8 && _next.text.length <= 128;
+      _current.text.isNotEmpty &&
+      _next.text.length >= 8 &&
+      _next.text.length <= 128;
 
   Future<void> _save() async {
     setState(() {
@@ -43,7 +46,9 @@ class _ChangePasswordSheetState extends ConsumerState<ChangePasswordSheet> {
       _error = null;
     });
     try {
-      await ref.read(profileRepositoryProvider).changePassword(
+      await ref
+          .read(profileRepositoryProvider)
+          .changePassword(
             currentPassword: _current.text,
             newPassword: _next.text,
           );

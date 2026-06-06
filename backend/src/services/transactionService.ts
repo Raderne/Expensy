@@ -93,7 +93,7 @@ export const transactionService = {
     query: { month?: string; categoryId?: string; type?: 'income' | 'expense'; cursor?: string },
   ): Promise<{ transactions: TransactionDto[]; nextCursor: string | null }> {
     if (query.month) {
-      await incomeService.ensureMaterialized(userId, query.month);
+      await incomeService.ensureMaterialized(userId);
     }
 
     const filters: ListFilters = { userId };

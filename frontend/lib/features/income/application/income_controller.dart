@@ -25,8 +25,8 @@ class IncomeController extends AsyncNotifier<List<RecurringIncome>> {
 
 final incomeControllerProvider =
     AsyncNotifierProvider<IncomeController, List<RecurringIncome>>(
-  IncomeController.new,
-);
+      IncomeController.new,
+    );
 
 extension RecurringIncomeListX on List<RecurringIncome> {
   double get activeMonthlyTotal =>

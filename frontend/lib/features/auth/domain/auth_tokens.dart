@@ -7,9 +7,9 @@ class AuthTokens {
   const AuthTokens({required this.accessToken, required this.refreshToken});
 
   factory AuthTokens.fromJson(Map<String, dynamic> json) => AuthTokens(
-        accessToken: json['accessToken'] as String,
-        refreshToken: json['refreshToken'] as String,
-      );
+    accessToken: json['accessToken'] as String,
+    refreshToken: json['refreshToken'] as String,
+  );
 }
 
 class AuthSession {
@@ -19,7 +19,7 @@ class AuthSession {
   const AuthSession({required this.user, required this.tokens});
 
   factory AuthSession.fromJson(Map<String, dynamic> json) => AuthSession(
-        user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
-        tokens: AuthTokens.fromJson(json),
-      );
+    user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
+    tokens: AuthTokens.fromJson(json),
+  );
 }

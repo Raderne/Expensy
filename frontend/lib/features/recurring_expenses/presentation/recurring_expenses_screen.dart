@@ -11,6 +11,8 @@ import '../../../core/widgets/hero_gradient.dart';
 import '../../analytics/application/analytics_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../profile/presentation/widgets/edit_sheet_shell.dart';
+import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
+import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../transactions/application/transactions_controller.dart';
 import '../application/recurring_expenses_controller.dart';
 import '../application/upcoming_bills_controller.dart';
@@ -42,7 +44,9 @@ class RecurringExpensesScreen extends ConsumerWidget {
                       const Spacer(),
                       Text(
                         'Recurring expenses',
-                        style: AppTextStyles.titleM.copyWith(color: Colors.white),
+                        style: AppTextStyles.titleM.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                       const Spacer(),
                       const SizedBox(width: 44),
@@ -88,7 +92,7 @@ class RecurringExpensesScreen extends ConsumerWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  _AddButton(onTap: () => _openAdd(context)),
+                  _AddButton(onTap: () => _openAdd(context, ref)),
                 ],
               ),
             ),
@@ -98,19 +102,24 @@ class RecurringExpensesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openAdd(BuildContext context) async {
+  Future<void> _openAdd(BuildContext context, WidgetRef ref) async {
     final ok = await showEditSheet<bool>(
       context,
       (_) => const EditRecurringExpenseSheet(),
     );
-    if (ok == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Subscription added'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
+    if (ok != true || !context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Subscription added'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+
+    // If the new rule's first charge is due today, prompt to confirm/postpone
+    // right away (reuses the same dashboard modal).
+    ref.invalidate(pendingOccurrencesControllerProvider);
+    await runConfirmationQueue(context);
   }
 
   Future<void> _openEdit(BuildContext context, RecurringExpense rule) async {
@@ -131,10 +140,9 @@ class RecurringExpensesScreen extends ConsumerWidget {
   Future<void> _toggleActive(WidgetRef ref, RecurringExpense rule) async {
     HapticFeedback.selectionClick();
     try {
-      await ref.read(recurringExpensesRepositoryProvider).update(
-            id: rule.id,
-            isActive: !rule.isActive,
-          );
+      await ref
+          .read(recurringExpensesRepositoryProvider)
+          .update(id: rule.id, isActive: !rule.isActive);
       _invalidate(ref);
     } on RecurringExpensesApiException catch (_) {
       // swallow; surfaced as no-change on UI
@@ -162,14 +170,18 @@ class RecurringExpensesScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.inkMid,
+              ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               'Remove',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.danger),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.danger,
+              ),
             ),
           ),
         ],
@@ -283,7 +295,8 @@ class _RuleCard extends StatelessWidget {
     final categoryColor =
         AppColors.categories[rule.categoryKey]?.color ?? AppColors.primary;
     final categoryBg =
-        AppColors.categories[rule.categoryKey]?.bgTint ?? AppColors.primaryLight;
+        AppColors.categories[rule.categoryKey]?.bgTint ??
+        AppColors.primaryLight;
 
     final cadence = _cadenceLabel(rule);
     final nextDate = rule.isActive ? _nextDate(rule) : null;
@@ -348,7 +361,9 @@ class _RuleCard extends StatelessWidget {
                   if (!rule.isActive)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(999),
@@ -388,7 +403,9 @@ class _RuleCard extends StatelessWidget {
                   ),
                   label: Text(
                     rule.isActive ? 'Pause' : 'Resume',
-                    style: AppTextStyles.label.copyWith(color: AppColors.inkMid),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.inkMid,
+                    ),
                   ),
                 ),
               ),
@@ -402,7 +419,9 @@ class _RuleCard extends StatelessWidget {
                   ),
                   label: Text(
                     'Remove',
-                    style: AppTextStyles.label.copyWith(color: AppColors.danger),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.danger,
+                    ),
                   ),
                 ),
               ),
@@ -464,10 +483,7 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            'No recurring expenses yet',
-            style: AppTextStyles.bodyStrong,
-          ),
+          Text('No recurring expenses yet', style: AppTextStyles.bodyStrong),
           const SizedBox(height: 4),
           Text(
             'Add Netflix, Spotify, gym, or any subscription that posts on a schedule.',
@@ -506,7 +522,9 @@ class _AddButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'Add subscription',
-                style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),

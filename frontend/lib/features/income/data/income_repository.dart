@@ -70,7 +70,8 @@ class IncomeRepository {
   }) async {
     final body = <String, dynamic>{'amount': amount};
     if (note != null && note.isNotEmpty) body['note'] = note;
-    if (occurredAt != null) body['occurredAt'] = occurredAt.toUtc().toIso8601String();
+    if (occurredAt != null)
+      body['occurredAt'] = occurredAt.toUtc().toIso8601String();
 
     final res = await _dio.post(
       '/me/income',

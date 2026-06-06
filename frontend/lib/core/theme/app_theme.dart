@@ -21,10 +21,9 @@ class AppTheme {
         onError: AppColors.surface,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      textTheme: GoogleFonts.dmSansTextTheme(base.textTheme).apply(
-        bodyColor: AppColors.ink,
-        displayColor: AppColors.ink,
-      ),
+      textTheme: GoogleFonts.dmSansTextTheme(
+        base.textTheme,
+      ).apply(bodyColor: AppColors.ink, displayColor: AppColors.ink),
       dividerColor: AppColors.border,
       splashFactory: InkSparkle.splashFactory,
     );

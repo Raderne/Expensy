@@ -16,7 +16,8 @@ class AddEditCategorySheet extends ConsumerStatefulWidget {
   const AddEditCategorySheet({super.key, this.existing});
 
   @override
-  ConsumerState<AddEditCategorySheet> createState() => _AddEditCategorySheetState();
+  ConsumerState<AddEditCategorySheet> createState() =>
+      _AddEditCategorySheetState();
 }
 
 class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
@@ -192,7 +193,10 @@ class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Color', style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid)),
+          Text(
+            'Color',
+            style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid),
+          ),
           const SizedBox(height: 10),
           _ColorPalettePicker(
             selectedHex: _selectedColorHex,
@@ -208,7 +212,10 @@ class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.dangerLight, width: 1.2),
+                    border: Border.all(
+                      color: AppColors.dangerLight,
+                      width: 1.2,
+                    ),
                     borderRadius: BorderRadius.circular(14),
                     color: AppColors.dangerLight,
                   ),
@@ -219,19 +226,25 @@ class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(AppColors.danger),
+                            valueColor: AlwaysStoppedAnimation(
+                              AppColors.danger,
+                            ),
                           ),
                         )
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.delete_outline_rounded,
-                                size: 16, color: AppColors.danger),
+                            const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16,
+                              color: AppColors.danger,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Delete category',
-                              style: AppTextStyles.labelStrong
-                                  .copyWith(color: AppColors.danger),
+                              style: AppTextStyles.labelStrong.copyWith(
+                                color: AppColors.danger,
+                              ),
                             ),
                           ],
                         ),
@@ -246,7 +259,8 @@ class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
 
   Widget _fieldDecoration({required Widget child}) => child;
 
-  InputDecoration _inputDecoration(String label, String hint) => InputDecoration(
+  InputDecoration _inputDecoration(String label, String hint) =>
+      InputDecoration(
         labelText: label,
         labelStyle: AppTextStyles.label.copyWith(color: AppColors.inkLight),
         hintText: hint,
@@ -254,7 +268,10 @@ class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
         filled: true,
         fillColor: AppColors.background,
         counterText: '',
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.border, width: 1.2),
@@ -275,8 +292,7 @@ class _UpperCaseFormatter extends TextInputFormatter {
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
-  ) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
+  ) => newValue.copyWith(text: newValue.text.toUpperCase());
 }
 
 class _ColorPalettePicker extends StatelessWidget {

@@ -9,6 +9,8 @@ import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
+import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../recurring_expenses/presentation/widgets/upcoming_bills_card.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_summary.dart';
@@ -29,16 +31,30 @@ class DashboardScreen extends ConsumerWidget {
     };
     final dashState = ref.watch(dashboardControllerProvider);
 
+    // Auto-prompt the user to confirm/postpone any due recurring items once the
+    // dashboard is up. The queue runner guards against double-presentation.
+    ref.watch(pendingOccurrencesControllerProvider);
+    ref.listen(pendingOccurrencesControllerProvider, (_, next) {
+      final due = next.maybeWhen(
+        data: (value) => value,
+        orElse: () => const [],
+      );
+      if (due.isEmpty) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) runConfirmationQueue(context);
+      });
+    });
+
     return dashState.when(
       loading: () => Shimmer(
-        child: _DashboardScaffold(
-          name: name,
-          child: _SkeletonBody(),
-        ),
+        child: _DashboardScaffold(name: name, child: _SkeletonBody()),
       ),
       error: (e, _) => _DashboardScaffold(
         name: name,
-        child: _ErrorBody(onRetry: () => ref.read(dashboardControllerProvider.notifier).refresh()),
+        child: _ErrorBody(
+          onRetry: () =>
+              ref.read(dashboardControllerProvider.notifier).refresh(),
+        ),
       ),
       data: (state) => RefreshIndicator(
         onRefresh: withRefreshHaptic(
@@ -84,7 +100,9 @@ class _DashboardContent extends StatelessWidget {
               // When the onboarding card is showing the dashboard already has a
               // primary CTA; the section's own empty state would be redundant.
               if (!isFirstRun)
-                RecentTransactionsSection(transactions: state.recentTransactions),
+                RecentTransactionsSection(
+                  transactions: state.recentTransactions,
+                ),
               const SizedBox(height: 24),
             ],
           ),
@@ -112,7 +130,11 @@ class _Hero extends StatelessWidget {
   final double topInset;
   final DashboardSummary summary;
 
-  const _Hero({required this.name, required this.topInset, required this.summary});
+  const _Hero({
+    required this.name,
+    required this.topInset,
+    required this.summary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,15 +300,27 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 40,
+              color: AppColors.inkLight,
+            ),
             const SizedBox(height: 12),
             Text('Could not load dashboard', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
-            Text('Check your connection and try again.', style: AppTextStyles.body),
+            Text(
+              'Check your connection and try again.',
+              style: AppTextStyles.body,
+            ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: onRetry,
-              child: Text('Retry', style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary)),
+              child: Text(
+                'Retry',
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
             ),
           ],
         ),

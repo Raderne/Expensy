@@ -25,5 +25,5 @@ class UpcomingBillsController extends AsyncNotifier<List<UpcomingBill>> {
 
 final upcomingBillsControllerProvider =
     AsyncNotifierProvider<UpcomingBillsController, List<UpcomingBill>>(
-  UpcomingBillsController.new,
-);
+      UpcomingBillsController.new,
+    );

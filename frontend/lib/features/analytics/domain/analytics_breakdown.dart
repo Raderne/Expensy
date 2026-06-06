@@ -21,13 +21,13 @@ class BreakdownItem {
   });
 
   factory BreakdownItem.fromJson(Map<String, dynamic> json) => BreakdownItem(
-        categoryId: json['categoryId'] as String,
-        key: json['key'] as String,
-        label: json['label'] as String,
-        color: json['color'] as String,
-        amount: (json['amount'] as num).toDouble(),
-        pct: (json['pct'] as num).toDouble(),
-      );
+    categoryId: json['categoryId'] as String,
+    key: json['key'] as String,
+    label: json['label'] as String,
+    color: json['color'] as String,
+    amount: (json['amount'] as num).toDouble(),
+    pct: (json['pct'] as num).toDouble(),
+  );
 
   Color get colorValue =>
       AppColors.categories[key]?.color ?? const Color(0xFF96A5BE);

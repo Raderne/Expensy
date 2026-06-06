@@ -21,17 +21,16 @@ class AppShell extends StatelessWidget {
     final hasHero = active == NavTab.home || active == NavTab.profile;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: hasHero ? AppSystemOverlays.hero : AppSystemOverlays.lightBackground,
+      value: hasHero
+          ? AppSystemOverlays.hero
+          : AppSystemOverlays.lightBackground,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: SafeArea(
-          top: !hasHero,
-          bottom: false,
-          child: child,
-        ),
+        body: SafeArea(top: !hasHero, bottom: false, child: child),
         bottomNavigationBar: BottomNav(
           active: active,
           onTap: (tab) => context.go(tab.path),
+          onAdd: () => context.push('/add'),
         ),
       ),
     );

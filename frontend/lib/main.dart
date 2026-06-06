@@ -18,10 +18,12 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: AppColors.surface,
-    statusBarIconBrightness: Brightness.dark,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: AppColors.surface,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   // Open the SWR cache before the first frame so controllers can read it
   // synchronously. Falls back to in-memory if Hive can't initialize so the

@@ -42,7 +42,7 @@ export interface RecentTx {
 
 export const dashboardService = {
   async getSummary(userId: string, month: string): Promise<DashboardSummary> {
-    await incomeService.ensureMaterialized(userId, month);
+    await incomeService.ensureMaterialized(userId);
     await recurringExpenseService.ensureMaterialized(userId);
     const { from, to } = parseMonth(month);
 

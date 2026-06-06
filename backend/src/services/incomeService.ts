@@ -2,24 +2,15 @@ import { Prisma } from '../lib/prismaTypes.js';
 import { AppError } from '../lib/errors.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
 import { recurringIncomeRepository } from '../repositories/recurringIncomeRepository.js';
+import { recurringOccurrenceRepository } from '../repositories/recurringOccurrenceRepository.js';
 import { transactionRepository } from '../repositories/transactionRepository.js';
-
-const parseMonth = (month: string): { from: Date; to: Date; year: number; m: number } => {
-  const sep = month.indexOf('-');
-  const year = parseInt(month.slice(0, sep), 10);
-  const m = parseInt(month.slice(sep + 1), 10);
-  return { from: new Date(year, m - 1, 1), to: new Date(year, m, 1), year, m };
-};
-
-const currentMonth = (): string => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
 
 const paydayInMonth = (year: number, month: number, dayOfMonth: number): Date =>
   new Date(year, month - 1, dayOfMonth);
 
 const startOfDay = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+const startOfMonth = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), 1);
 
 export interface RecurringIncomeDto {
   id: string;
@@ -79,7 +70,7 @@ export const incomeService = {
       amount: new Prisma.Decimal(input.amount),
       dayOfMonth: input.dayOfMonth,
     });
-    await incomeService.ensureMaterialized(userId, currentMonth());
+    await incomeService.ensureMaterialized(userId);
     return toRecurringDto(row);
   },
 
@@ -110,23 +101,20 @@ export const incomeService = {
 
     await recurringIncomeRepository.update(id, userId, data);
 
-    const month = currentMonth();
-    await incomeService.ensureMaterialized(userId, month);
-
-    const label = input.label ?? existing.label;
-    const amount = input.amount ?? existing.amount.toNumber();
-    const dayOfMonth = input.dayOfMonth ?? existing.dayOfMonth;
-    const { year, m } = parseMonth(month);
-    const payday = paydayInMonth(year, m, dayOfMonth);
-
-    const linked = await transactionRepository.findByRecurringInMonth(id, userId, month);
-    if (linked) {
-      await transactionRepository.update(linked.id, userId, {
-        amount: new Prisma.Decimal(amount),
-        note: label,
-        occurredAt: payday,
-      });
+    // Keep still-actionable occurrences' snapshot in step with the edit; already
+    // confirmed paydays keep their original transaction.
+    const snapshot: Partial<{ amount: Prisma.Decimal; label: string }> = {};
+    if (input.amount !== undefined) snapshot.amount = new Prisma.Decimal(input.amount);
+    if (input.label !== undefined) snapshot.label = input.label;
+    if (Object.keys(snapshot).length > 0) {
+      await recurringOccurrenceRepository.updateSnapshotForRule(
+        { recurringIncomeId: id },
+        userId,
+        snapshot,
+      );
     }
+
+    await incomeService.ensureMaterialized(userId);
 
     const updated = await recurringIncomeRepository.findById(id, userId);
     return toRecurringDto(updated!);
@@ -164,47 +152,40 @@ export const incomeService = {
     };
   },
 
-  async ensureMaterialized(userId: string, month: string): Promise<void> {
-    const { year, m } = parseMonth(month);
+  // Generate a PENDING occurrence for every payday from each source's creation
+  // month up to the current month (paydays still in the future are skipped). No
+  // Transaction is created here — confirmation does that — so unconfirmed income
+  // never affects balances. Idempotent via the (rule, scheduledFor) unique index.
+  async ensureMaterialized(userId: string): Promise<void> {
     const today = startOfDay(new Date());
     const sources = await recurringIncomeRepository.findByUser(userId);
     const active = sources.filter((s) => s.isActive);
     if (active.length === 0) return;
 
-    const categoryId = await getIncomeCategoryId();
+    const endMonth = startOfMonth(today);
 
     for (const source of active) {
-      const sourceCreatedMonth = `${source.createdAt.getFullYear()}-${String(source.createdAt.getMonth() + 1).padStart(2, '0')}`;
-      if (month < sourceCreatedMonth) continue;
+      const createdStart = startOfDay(source.createdAt);
+      let cursor = startOfMonth(source.createdAt);
 
-      const payday = paydayInMonth(year, m, source.dayOfMonth);
-      const paydayStart = startOfDay(payday);
-      const sourceCreatedStart = startOfDay(source.createdAt);
-
-      const existing = await transactionRepository.findByRecurringInMonth(
-        source.id,
-        userId,
-        month,
-      );
-      if (existing) {
-        // Remove transactions that were materialised before this rule existed.
-        if (sourceCreatedStart > paydayStart) {
-          await transactionRepository.softDelete(existing.id, userId);
+      while (cursor <= endMonth) {
+        const payday = startOfDay(
+          paydayInMonth(cursor.getFullYear(), cursor.getMonth() + 1, source.dayOfMonth),
+        );
+        // Only generate paydays that have arrived and that fall on/after the
+        // source's creation day (so a mid-month signup doesn't backfill an
+        // earlier payday in the same month).
+        if (payday <= today && payday >= createdStart) {
+          await recurringOccurrenceRepository.upsertScheduled({
+            userId,
+            recurringIncomeId: source.id,
+            scheduledFor: payday,
+            amount: new Prisma.Decimal(source.amount),
+            label: source.label,
+          });
         }
-        continue;
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
       }
-
-      if (paydayStart > today) continue;
-      if (sourceCreatedStart > paydayStart) continue;
-
-      await transactionRepository.create({
-        userId,
-        categoryId,
-        amount: source.amount,
-        note: source.label,
-        occurredAt: payday,
-        recurringIncomeId: source.id,
-      });
     }
   },
 };

@@ -30,7 +30,9 @@ class _BarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amount = NumberFormat.simpleCurrency(decimalDigits: 0).format(item.amount);
+    final amount = NumberFormat.simpleCurrency(
+      decimalDigits: 0,
+    ).format(item.amount);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -91,11 +93,8 @@ class _AnimatedBar extends StatelessWidget {
               duration: const Duration(milliseconds: 700),
               curve: Curves.easeOutCubic,
               tween: Tween(begin: 0, end: target),
-              builder: (_, value, _) => Container(
-                height: 6,
-                width: c.maxWidth * value,
-                color: color,
-              ),
+              builder: (_, value, _) =>
+                  Container(height: 6, width: c.maxWidth * value, color: color),
             ),
           ),
         ],

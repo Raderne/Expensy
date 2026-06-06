@@ -2,7 +2,7 @@ import { Prisma } from '../lib/prismaTypes.js';
 import { AppError } from '../lib/errors.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
 import { recurringExpenseRepository } from '../repositories/recurringExpenseRepository.js';
-import { transactionRepository } from '../repositories/transactionRepository.js';
+import { recurringOccurrenceRepository } from '../repositories/recurringOccurrenceRepository.js';
 import {
   occurrencesBetween,
   upcomingOccurrences,
@@ -154,6 +154,19 @@ export const recurringExpenseService = {
     if (newFrequency !== 'CUSTOM') data.intervalDays = null;
 
     await recurringExpenseRepository.update(id, userId, data);
+
+    // Keep still-actionable occurrences' snapshot in step with the edit.
+    const snapshot: Partial<{ amount: Prisma.Decimal; label: string }> = {};
+    if (input.amount !== undefined) snapshot.amount = new Prisma.Decimal(input.amount);
+    if (input.label !== undefined) snapshot.label = input.label;
+    if (Object.keys(snapshot).length > 0) {
+      await recurringOccurrenceRepository.updateSnapshotForRule(
+        { recurringExpenseId: id },
+        userId,
+        snapshot,
+      );
+    }
+
     await recurringExpenseService.ensureMaterialized(userId);
 
     const updated = await recurringExpenseRepository.findById(id, userId);
@@ -172,6 +185,10 @@ export const recurringExpenseService = {
     await recurringExpenseRepository.softDelete(id, userId);
   },
 
+  // Generate a PENDING occurrence for every due charge up to `untilDate`. No
+  // Transaction is created here — that happens only when the user confirms
+  // (recurringOccurrenceService.confirm), so unconfirmed charges never affect
+  // balances. Idempotent via the (rule, scheduledFor) unique index.
   async ensureMaterialized(userId: string, untilDate: Date = new Date()): Promise<void> {
     const rules = await recurringExpenseRepository.findActiveByUser(userId);
     if (rules.length === 0) return;
@@ -196,26 +213,16 @@ export const recurringExpenseService = {
         today,
       );
 
-      const amount = new Prisma.Decimal(rule.amount).negated();
+      // Stored positive; the sign is flipped when a Transaction is created.
+      const amount = new Prisma.Decimal(rule.amount);
 
       for (const dueDate of dueDates) {
-        const dayStart = startOfDay(dueDate);
-        const dayEnd = addDays(dayStart, 1);
-        const existing = await transactionRepository.findByRecurringExpenseOnDay(
-          rule.id,
+        await recurringOccurrenceRepository.upsertScheduled({
           userId,
-          dayStart,
-          dayEnd,
-        );
-        if (existing) continue;
-
-        await transactionRepository.create({
-          userId,
-          categoryId: rule.categoryId,
-          amount,
-          note: rule.label,
-          occurredAt: dayStart,
           recurringExpenseId: rule.id,
+          scheduledFor: startOfDay(dueDate),
+          amount,
+          label: rule.label,
         });
       }
     }

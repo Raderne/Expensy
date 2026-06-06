@@ -27,7 +27,11 @@ class AuthController extends AsyncNotifier<AuthState> {
   }) async {
     state = const AsyncLoading();
     try {
-      final session = await _repo.signup(email: email, password: password, name: name);
+      final session = await _repo.signup(
+        email: email,
+        password: password,
+        name: name,
+      );
       await _storage.writeSession(
         accessToken: session.tokens.accessToken,
         refreshToken: session.tokens.refreshToken,
@@ -75,5 +79,6 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);

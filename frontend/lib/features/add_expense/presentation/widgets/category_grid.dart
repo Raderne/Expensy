@@ -159,10 +159,7 @@ class _MoreTile extends StatelessWidget {
   final String? selectedId;
   final ValueChanged<Category> onSelect;
 
-  const _MoreTile({
-    required this.selectedId,
-    required this.onSelect,
-  });
+  const _MoreTile({required this.selectedId, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -229,10 +226,7 @@ class _AllCategoriesSheet extends ConsumerWidget {
   final String? selectedId;
   final ValueChanged<Category> onSelect;
 
-  const _AllCategoriesSheet({
-    required this.selectedId,
-    required this.onSelect,
-  });
+  const _AllCategoriesSheet({required this.selectedId, required this.onSelect});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -321,10 +315,7 @@ class _AddCategoryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        await showEditSheet<bool>(
-          context,
-          (_) => const AddEditCategorySheet(),
-        );
+        await showEditSheet<bool>(context, (_) => const AddEditCategorySheet());
         onDone();
       },
       child: Container(
@@ -341,7 +332,9 @@ class _AddCategoryButton extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'Add category',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.primary,
+              ),
             ),
           ],
         ),

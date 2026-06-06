@@ -35,7 +35,9 @@ class AuthScaffold extends StatelessWidget {
           top: false,
           bottom: false,
           child: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom + 24),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -51,7 +53,9 @@ class AuthScaffold extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         subtitle,
-                        style: AppTextStyles.body.copyWith(color: Colors.white70),
+                        style: AppTextStyles.body.copyWith(
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),
@@ -81,7 +85,8 @@ class AuthScaffold extends StatelessWidget {
 }
 
 /// Outline-bordered text field that matches the Add Expense Note field.
-class AuthTextField extends StatelessWidget {
+/// When [obscure] is true it renders a trailing eye button to reveal the text.
+class AuthTextField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final TextInputType keyboardType;
@@ -106,6 +111,13 @@ class AuthTextField extends StatelessWidget {
   });
 
   @override
+  State<AuthTextField> createState() => _AuthTextFieldState();
+}
+
+class _AuthTextFieldState extends State<AuthTextField> {
+  late bool _obscured = widget.obscure;
+
+  @override
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
@@ -114,27 +126,49 @@ class AuthTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.labelStrong),
+        Text(widget.label, style: AppTextStyles.labelStrong),
         const SizedBox(height: 8),
         TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          obscureText: obscure,
-          validator: validator,
-          onFieldSubmitted: onSubmitted,
+          controller: widget.controller,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          obscureText: _obscured,
+          validator: widget.validator,
+          onFieldSubmitted: widget.onSubmitted,
           style: AppTextStyles.bodyStrong,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: AppTextStyles.body.copyWith(color: AppColors.inkLight),
-            prefixIcon: icon == null ? null : Icon(icon, color: AppColors.inkLight, size: 20),
+            prefixIcon: widget.icon == null
+                ? null
+                : Icon(widget.icon, color: AppColors.inkLight, size: 20),
+            suffixIcon: widget.obscure
+                ? IconButton(
+                    onPressed: () => setState(() => _obscured = !_obscured),
+                    icon: Icon(
+                      _obscured
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      color: AppColors.inkLight,
+                      size: 20,
+                    ),
+                    tooltip: _obscured ? 'Show password' : 'Hide password',
+                    splashRadius: 20,
+                  )
+                : null,
             filled: true,
             fillColor: AppColors.background,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
             border: border,
             enabledBorder: border,
             focusedBorder: border.copyWith(
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             errorBorder: border.copyWith(
               borderSide: const BorderSide(color: AppColors.danger),
@@ -174,7 +208,9 @@ class AuthPrimaryButton extends StatelessWidget {
           disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.5),
           disabledForegroundColor: AppColors.surface,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           textStyle: AppTextStyles.titleS.copyWith(color: AppColors.surface),
         ),
         child: busy

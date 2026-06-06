@@ -34,7 +34,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _serverError = null);
     try {
-      await ref.read(authControllerProvider.notifier).signup(
+      await ref
+          .read(authControllerProvider.notifier)
+          .signup(
             email: _email.text.trim(),
             password: _password.text,
             name: _name.text.trim(),
@@ -76,7 +78,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               validator: (v) {
                 final s = v?.trim() ?? '';
                 if (s.isEmpty) return 'Email is required';
-                if (!s.contains('@') || !s.contains('.')) return 'Enter a valid email';
+                if (!s.contains('@') || !s.contains('.'))
+                  return 'Enter a valid email';
                 return null;
               },
             ),
@@ -109,7 +112,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AuthPrimaryButton(label: 'Create account', onPressed: _submit, busy: busy),
+          AuthPrimaryButton(
+            label: 'Create account',
+            onPressed: _submit,
+            busy: busy,
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -119,7 +126,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 onTap: busy ? null : () => context.go('/login'),
                 child: Text(
                   'Sign in',
-                  style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],

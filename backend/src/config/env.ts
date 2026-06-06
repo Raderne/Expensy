@@ -14,6 +14,18 @@ const EnvSchema = z.object({
     .string()
     .default('')
     .transform((s) => s.split(',').map((o) => o.trim()).filter(Boolean)),
+
+  // Password reset (OTP). Code lifetime in minutes.
+  RESET_CODE_TTL_MIN: z.coerce.number().int().positive().default(15),
+
+  // SMTP — optional. When SMTP_HOST is unset, the mailer logs the message
+  // (including the OTP) via Pino instead of sending, so local dev needs no
+  // mail provider.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

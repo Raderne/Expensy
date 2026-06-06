@@ -51,8 +51,6 @@ class AnalyticsApiException implements Exception {
 }
 
 final analyticsRepositoryProvider = Provider<AnalyticsRepository>(
-  (ref) => AnalyticsRepository(
-    ref.watch(dioProvider),
-    ref.watch(httpCacheProvider),
-  ),
+  (ref) =>
+      AnalyticsRepository(ref.watch(dioProvider), ref.watch(httpCacheProvider)),
 );

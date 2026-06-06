@@ -27,8 +27,8 @@ class RecurringExpensesController
 
 final recurringExpensesControllerProvider =
     AsyncNotifierProvider<RecurringExpensesController, List<RecurringExpense>>(
-  RecurringExpensesController.new,
-);
+      RecurringExpensesController.new,
+    );
 
 extension RecurringExpensesListX on List<RecurringExpense> {
   int get activeCount => where((s) => s.isActive).length;

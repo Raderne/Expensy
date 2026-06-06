@@ -58,9 +58,7 @@ class _MonthPickerSheet extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
-                  children: [
-                    Text('Pick a month', style: AppTextStyles.titleM),
-                  ],
+                  children: [Text('Pick a month', style: AppTextStyles.titleM)],
                 ),
               ),
               const SizedBox(height: 8),
@@ -105,9 +103,9 @@ class _MonthTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = month.split('-');
     final label = parts.length == 2
-        ? DateFormat('MMMM yyyy').format(
-            DateTime(int.parse(parts[0]), int.parse(parts[1])),
-          )
+        ? DateFormat(
+            'MMMM yyyy',
+          ).format(DateTime(int.parse(parts[0]), int.parse(parts[1])))
         : month;
 
     return Material(

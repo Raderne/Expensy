@@ -18,7 +18,8 @@ class RecentTransaction {
     required this.category,
   });
 
-  factory RecentTransaction.fromJson(Map<String, dynamic> json) => RecentTransaction(
+  factory RecentTransaction.fromJson(Map<String, dynamic> json) =>
+      RecentTransaction(
         id: json['id'] as String,
         amount: (json['amount'] as num).toDouble(),
         note: json['note'] as String?,
