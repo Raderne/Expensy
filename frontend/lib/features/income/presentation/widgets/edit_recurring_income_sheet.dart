@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -31,6 +32,10 @@ class _EditRecurringIncomeSheetState extends ConsumerState<EditRecurringIncomeSh
         : '',
   );
   late int _dayOfMonth = widget.existing?.dayOfMonth ?? 1;
+
+  // One idempotency key for this sheet's lifetime, so a double-tap (or a retry
+  // while the request is slow) reuses the same key and the backend dedupes it.
+  final String _idempotencyKey = const Uuid().v4();
 
   bool _saving = false;
   String? _error;
@@ -82,6 +87,7 @@ class _EditRecurringIncomeSheetState extends ConsumerState<EditRecurringIncomeSh
           label: _trimmedLabel,
           amount: amount,
           dayOfMonth: _dayOfMonth,
+          idempotencyKey: _idempotencyKey,
         );
       } else {
         await repo.updateRecurring(

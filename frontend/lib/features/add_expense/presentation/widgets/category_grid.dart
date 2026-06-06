@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/data/categories_repository.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
+import 'add_edit_category_sheet.dart';
 
-const double _kTileSize = 80.0;
-
-/// Horizontal scroll row of category tiles followed by a "+" tile that opens
-/// a full-grid sheet — always visible so the user can always browse all options.
-class CategoryGrid extends StatelessWidget {
+/// Horizontal 2-row grid of category tiles.
+///
+/// Tile size is derived from the screen width so exactly 3 tiles are visible
+/// per row (6 total) before the user scrolls. The calculation runs once in
+/// [didChangeDependencies] and is only repeated on screen-size changes
+/// (orientation flip, window resize) — not on every parent rebuild.
+class CategoryGrid extends StatefulWidget {
   final List<Category> categories;
   final String? selectedId;
   final ValueChanged<Category> onSelect;
@@ -22,30 +28,54 @@ class CategoryGrid extends StatelessWidget {
   });
 
   @override
+  State<CategoryGrid> createState() => _CategoryGridState();
+}
+
+class _CategoryGridState extends State<CategoryGrid> {
+  // 3 tiles per row across (screenWidth − 36 outer padding − 16 inter-tile gaps) / 3
+  // Initial value is a reasonable fallback before the first frame.
+  double _tileSize = 80.0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    // Parent SliverPadding: 18 left + 18 right = 36 px
+    // 3 tiles per row → 2 gaps of 8 px = 16 px
+    _tileSize = (screenWidth - 36.0 - 16.0) / 3.0;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: _kTileSize,
-      child: ListView.separated(
+      height: _tileSize * 2 + 8,
+      child: GridView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        // categories + "+" tile
-        itemCount: categories.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        // categories + "More" tile
+        itemCount: widget.categories.length + 1,
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          // cross-axis = vertical in a horizontal scroll → tile height
+          maxCrossAxisExtent: _tileSize,
+          // main-axis = horizontal → tile width
+          mainAxisExtent: _tileSize,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
         itemBuilder: (ctx, i) {
-          if (i == categories.length) {
+          if (i == widget.categories.length) {
             return _MoreTile(
-              categories: categories,
-              selectedId: selectedId,
-              onSelect: onSelect,
+              selectedId: widget.selectedId,
+              onSelect: widget.onSelect,
             );
           }
-          final c = categories[i];
+          final c = widget.categories[i];
           return _Tile(
             category: c,
-            selected: c.id == selectedId,
+            selected: c.id == widget.selectedId,
             onTap: () {
               HapticFeedback.selectionClick();
-              onSelect(c);
+              widget.onSelect(c);
             },
           );
         },
@@ -58,11 +88,13 @@ class _Tile extends StatelessWidget {
   final Category category;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _Tile({
     required this.category,
     required this.selected,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -72,11 +104,10 @@ class _Tile extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        width: _kTileSize,
-        height: _kTileSize,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: selected ? color : AppColors.surface,
@@ -125,12 +156,10 @@ class _Tile extends StatelessWidget {
 }
 
 class _MoreTile extends StatelessWidget {
-  final List<Category> categories;
   final String? selectedId;
   final ValueChanged<Category> onSelect;
 
   const _MoreTile({
-    required this.categories,
     required this.selectedId,
     required this.onSelect,
   });
@@ -141,8 +170,6 @@ class _MoreTile extends StatelessWidget {
       onTap: () => _showAll(context),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: _kTileSize,
-        height: _kTileSize,
         decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border.all(color: AppColors.border, width: 2),
@@ -187,7 +214,6 @@ class _MoreTile extends StatelessWidget {
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x66000C22),
       builder: (sheetCtx) => _AllCategoriesSheet(
-        categories: categories,
         selectedId: selectedId,
         onSelect: (c) {
           HapticFeedback.selectionClick();
@@ -199,19 +225,23 @@ class _MoreTile extends StatelessWidget {
   }
 }
 
-class _AllCategoriesSheet extends StatelessWidget {
-  final List<Category> categories;
+class _AllCategoriesSheet extends ConsumerWidget {
   final String? selectedId;
   final ValueChanged<Category> onSelect;
 
   const _AllCategoriesSheet({
-    required this.categories,
     required this.selectedId,
     required this.onSelect,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final categories = categoriesAsync.value ?? const [];
+    final displayCats = categories
+        .where((c) => c.key != 'income' && c.key != 'subscriptions')
+        .toList();
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -249,7 +279,7 @@ class _AllCategoriesSheet extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: EdgeInsets.zero,
-                itemCount: categories.length,
+                itemCount: displayCats.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 8,
@@ -257,16 +287,63 @@ class _AllCategoriesSheet extends StatelessWidget {
                   childAspectRatio: 1.0,
                 ),
                 itemBuilder: (_, i) {
-                  final c = categories[i];
+                  final c = displayCats[i];
                   return _Tile(
                     category: c,
                     selected: c.id == selectedId,
                     onTap: () => onSelect(c),
+                    onLongPress: c.isSystem
+                        ? null
+                        : () async {
+                            await showEditSheet<bool>(
+                              context,
+                              (_) => AddEditCategorySheet(existing: c),
+                            );
+                          },
                   );
                 },
               ),
+              const SizedBox(height: 12),
+              _AddCategoryButton(onDone: () {}),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddCategoryButton extends StatelessWidget {
+  final VoidCallback onDone;
+  const _AddCategoryButton({required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await showEditSheet<bool>(
+          context,
+          (_) => const AddEditCategorySheet(),
+        );
+        onDone();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 1.2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_rounded, size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Add category',
+              style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+            ),
+          ],
         ),
       ),
     );

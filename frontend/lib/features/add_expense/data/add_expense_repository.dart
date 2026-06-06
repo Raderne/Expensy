@@ -13,6 +13,7 @@ class AddExpenseRepository {
     required double amount,
     String? note,
     DateTime? occurredAt,
+    String? idempotencyKey,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/transactions',
@@ -22,6 +23,9 @@ class AddExpenseRepository {
         if (note != null && note.isNotEmpty) 'note': note,
         if (occurredAt != null) 'occurredAt': occurredAt.toUtc().toIso8601String(),
       },
+      options: idempotencyKey == null
+          ? null
+          : Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
 
     final status = res.statusCode ?? 0;

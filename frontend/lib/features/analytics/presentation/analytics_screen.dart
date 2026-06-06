@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/haptic_refresh.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../application/analytics_controller.dart';
 import '../domain/analytics_breakdown.dart';
 import 'widgets/donut_chart.dart';
@@ -208,8 +209,133 @@ class _LoadingScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: AppColors.primary),
+    return Shimmer(
+      child: CustomScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        slivers: [
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(18, 4, 18, 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerBox(height: 22, width: 100, radius: 6),
+                  ShimmerBox(height: 34, width: 120, radius: 11),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x12000C22), blurRadius: 18, offset: Offset(0, 4)),
+                      ],
+                    ),
+                    child: const Row(
+                      children: [
+                        ShimmerBox(height: 130, width: 130, radius: 65),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _SkeletonLegendItem(),
+                              SizedBox(height: 12),
+                              _SkeletonLegendItem(),
+                              SizedBox(height: 12),
+                              _SkeletonLegendItem(),
+                              SizedBox(height: 12),
+                              _SkeletonLegendItem(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const ShimmerBox(height: 16, width: 160, radius: 4),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x10000C22), blurRadius: 14, offset: Offset(0, 3)),
+                      ],
+                    ),
+                    child: const Column(
+                      children: [
+                        _SkeletonBarRow(),
+                        SizedBox(height: 16),
+                        _SkeletonBarRow(),
+                        SizedBox(height: 16),
+                        _SkeletonBarRow(),
+                        SizedBox(height: 16),
+                        _SkeletonBarRow(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonLegendItem extends StatelessWidget {
+  const _SkeletonLegendItem();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        ShimmerBox(height: 10, width: 10, radius: 2),
+        SizedBox(width: 8),
+        Expanded(child: ShimmerBox(height: 11, radius: 4)),
+      ],
+    );
+  }
+}
+
+class _SkeletonBarRow extends StatelessWidget {
+  const _SkeletonBarRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        ShimmerBox(height: 10, width: 10, radius: 5),
+        SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerBox(height: 12, width: 80, radius: 4),
+                  ShimmerBox(height: 12, width: 48, radius: 4),
+                ],
+              ),
+              SizedBox(height: 6),
+              ShimmerBox(height: 6, radius: 3),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -21,10 +21,12 @@ class IncomeRepository {
     required String label,
     required double amount,
     required int dayOfMonth,
+    String? idempotencyKey,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/me/income/recurring',
       data: {'label': label, 'amount': amount, 'dayOfMonth': dayOfMonth},
+      options: _idempotent(idempotencyKey),
     );
     _ensureOk(res);
     return RecurringIncome.fromJson(
@@ -64,14 +66,25 @@ class IncomeRepository {
     required double amount,
     String? note,
     DateTime? occurredAt,
+    String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{'amount': amount};
     if (note != null && note.isNotEmpty) body['note'] = note;
     if (occurredAt != null) body['occurredAt'] = occurredAt.toUtc().toIso8601String();
 
-    final res = await _dio.post('/me/income', data: body);
+    final res = await _dio.post(
+      '/me/income',
+      data: body,
+      options: _idempotent(idempotencyKey),
+    );
     _ensureOk(res);
   }
+
+  /// Builds request options carrying an explicit `Idempotency-Key` so the
+  /// backend dedupes a re-submitted create. Null → let the Dio interceptor
+  /// attach a per-request key instead.
+  Options? _idempotent(String? key) =>
+      key == null ? null : Options(headers: {'Idempotency-Key': key});
 
   void _ensureOk(Response<dynamic> res) {
     final status = res.statusCode ?? 0;

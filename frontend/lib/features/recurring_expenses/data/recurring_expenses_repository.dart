@@ -25,6 +25,7 @@ class RecurringExpensesRepository {
     required RecurrenceFrequency frequency,
     int? intervalDays,
     required DateTime anchorDate,
+    String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{
       'label': label,
@@ -38,6 +39,9 @@ class RecurringExpensesRepository {
     final res = await _dio.post<Map<String, dynamic>>(
       '/me/expenses/recurring',
       data: body,
+      options: idempotencyKey == null
+          ? null
+          : Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     _ensureOk(res);
     return RecurringExpense.fromJson(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/haptic_refresh.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../application/transactions_controller.dart';
 import '../data/transactions_repository.dart';
 import '../domain/date_grouping.dart';
@@ -265,8 +266,119 @@ class _Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: AppColors.primary),
+    return const Shimmer(
+      child: CustomScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(18, 4, 18, 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerBox(height: 22, width: 148, radius: 6),
+                  ShimmerBox(height: 36, width: 36, radius: 11),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
+            sliver: SliverToBoxAdapter(child: ShimmerBox(height: 44, radius: 14)),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
+            sliver: SliverToBoxAdapter(
+              child: Row(
+                children: [
+                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
+                  SizedBox(width: 8),
+                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
+                  SizedBox(width: 8),
+                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
+            sliver: SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 3)),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
+            sliver: SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 2)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonDayGroup extends StatelessWidget {
+  const _SkeletonDayGroup({required this.rows});
+
+  final int rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 2, bottom: 8),
+          child: ShimmerBox(height: 13, width: 90, radius: 4),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(color: Color(0x0A000C22), blurRadius: 10, offset: Offset(0, 2)),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              children: [
+                for (int i = 0; i < rows; i++) ...[
+                  if (i > 0)
+                    const Divider(height: 1, thickness: 1, indent: 68, color: AppColors.border),
+                  const _SkeletonTransactionRow(),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SkeletonTransactionRow extends StatelessWidget {
+  const _SkeletonTransactionRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          ShimmerBox(height: 40, width: 40, radius: 12),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(height: 13, width: 120, radius: 4),
+                SizedBox(height: 6),
+                ShimmerBox(height: 11, width: 70, radius: 4),
+              ],
+            ),
+          ),
+          SizedBox(width: 12),
+          ShimmerBox(height: 13, width: 56, radius: 4),
+        ],
+      ),
     );
   }
 }

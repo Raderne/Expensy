@@ -34,6 +34,21 @@ class AppColors {
   static const Color inkLight = Color(0xFF7A8AAA);
   static const Color inkFaint = Color(0xFFD5DDF0);
 
+  // Curated picker palette — must match CATEGORY_PALETTE in backend/src/schemas/categories.ts
+  static const List<Color> categoryPalette = [
+    Color(0xFFF56B1E), Color(0xFFFBBF24), Color(0xFF16A34A), Color(0xFF0891B2),
+    Color(0xFF1B45D0), Color(0xFF6366F1), Color(0xFF7C3AED), Color(0xFF8B5CF6),
+    Color(0xFFDB2777), Color(0xFFE11D48), Color(0xFFDC2626), Color(0xFF64748B),
+    Color(0xFF0F766E), Color(0xFFB45309),
+  ];
+
+  static const List<String> categoryPaletteHex = [
+    '#F56B1E', '#FBBF24', '#16A34A', '#0891B2',
+    '#1B45D0', '#6366F1', '#7C3AED', '#8B5CF6',
+    '#DB2777', '#E11D48', '#DC2626', '#64748B',
+    '#0F766E', '#B45309',
+  ];
+
   // Category palette (key, color, bgTint)
   static const Map<String, CategoryColor> categories = {
     'food': CategoryColor(Color(0xFFF56B1E), Color(0xFFFEF0E8)),

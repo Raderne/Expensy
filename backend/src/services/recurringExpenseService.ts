@@ -60,8 +60,8 @@ const toDto = (row: RuleWithCategory): RecurringExpenseDto => ({
   isActive: row.isActive,
 });
 
-const resolveCategoryId = async (categoryId: string | undefined): Promise<string> => {
-  const categories = await categoryRepository.findAll();
+const resolveCategoryId = async (categoryId: string | undefined, userId: string): Promise<string> => {
+  const categories = await categoryRepository.findAll(userId);
   if (categoryId) {
     const match = categories.find((c) => c.id === categoryId);
     if (!match) {
@@ -101,7 +101,7 @@ export const recurringExpenseService = {
       anchorDate: string;
     },
   ): Promise<RecurringExpenseDto> {
-    const categoryId = await resolveCategoryId(input.categoryId);
+    const categoryId = await resolveCategoryId(input.categoryId, userId);
     const created = await recurringExpenseRepository.create({
       userId,
       categoryId,
@@ -142,7 +142,7 @@ export const recurringExpenseService = {
     if (input.label !== undefined) data.label = input.label;
     if (input.amount !== undefined) data.amount = new Prisma.Decimal(input.amount);
     if (input.categoryId !== undefined) {
-      data.categoryId = await resolveCategoryId(input.categoryId);
+      data.categoryId = await resolveCategoryId(input.categoryId, userId);
     }
     if (input.frequency !== undefined) data.frequency = input.frequency;
     if (input.intervalDays !== undefined) data.intervalDays = input.intervalDays;

@@ -5,6 +5,7 @@ import '../../config/env.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/data/auth_interceptor.dart';
 import '../../features/auth/data/auth_storage.dart';
+import 'idempotency_interceptor.dart';
 
 const _kBaseHeaders = {
   'Accept': 'application/json',
@@ -40,5 +41,8 @@ final dioProvider = Provider<Dio>((ref) {
       },
     ),
   );
+  // Stamp a write request with an Idempotency-Key so duplicates are rejected
+  // server-side. Runs after AuthInterceptor; both only touch onRequest.
+  dio.interceptors.add(IdempotencyInterceptor());
   return dio;
 });

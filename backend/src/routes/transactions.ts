@@ -29,5 +29,6 @@ transactionsRouter.post(
 transactionsRouter.delete(
   '/transactions/:id',
   requireAuth,
+  idempotencyMiddleware,
   asyncHandler(transactionController.delete),
 );

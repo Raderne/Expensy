@@ -29,6 +29,7 @@ export interface CategoryDto {
   abbr: string;
   color: string;
   bgTint: string;
+  isSystem: boolean;
 }
 
 export interface RecentTx {
@@ -74,12 +75,13 @@ export const dashboardService = {
         abbr: t.category.abbr,
         color: t.category.color,
         bgTint: t.category.bgTint,
+        isSystem: t.category.isSystem,
       },
     }));
   },
 
-  async getCategories() {
-    return categoryRepository.findAll();
+  async getCategories(userId?: string) {
+    return categoryRepository.findAll(userId);
   },
 
   async upsertBudget(userId: string, amount: number) {
