@@ -59,6 +59,27 @@ export const recurringOccurrenceRepository = {
       },
     }),
 
+  // All occurrences the user has actively postponed (status POSTPONED),
+  // soonest re-prompt first. Used to surface "this cycle is postponed to …" on
+  // the rule in edit mode.
+  findActivePostponed: (userId: string) =>
+    prisma.recurringOccurrence.findMany({
+      where: { userId, status: 'POSTPONED' },
+      orderBy: [{ dueAt: 'asc' }],
+    }),
+
+  // Postponed occurrences with their rule/category, soonest re-prompt first.
+  // Powers the "Postponed" management surface (confirm early or reschedule).
+  findPostponed: (userId: string) =>
+    prisma.recurringOccurrence.findMany({
+      where: { userId, status: 'POSTPONED' },
+      orderBy: [{ dueAt: 'asc' }],
+      include: {
+        recurringExpense: { include: { category: true } },
+        recurringIncome: true,
+      },
+    }),
+
   // Occurrences the app should prompt for now: pending/postponed and due today
   // or earlier, oldest schedule first.
   findDue: (userId: string, before: Date) =>
@@ -85,6 +106,14 @@ export const recurringOccurrenceRepository = {
     prisma.recurringOccurrence.updateMany({
       where: { id, userId },
       data: { status: 'POSTPONED', dueAt },
+    }),
+
+  // Undo a postpone: re-prompt on the original scheduled day. Caller supplies
+  // scheduledFor (read via findById) since Prisma can't reference another column.
+  resetToScheduled: (id: string, userId: string, scheduledFor: Date) =>
+    prisma.recurringOccurrence.updateMany({
+      where: { id, userId },
+      data: { status: 'PENDING', dueAt: scheduledFor },
     }),
 
   // Keep the snapshot of still-actionable occurrences in step with rule edits

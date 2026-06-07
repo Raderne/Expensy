@@ -11,6 +11,11 @@ recurringOccurrencesRouter.get(
   requireAuth,
   asyncHandler(recurringOccurrenceController.listPending),
 );
+recurringOccurrencesRouter.get(
+  '/me/recurring/postponed',
+  requireAuth,
+  asyncHandler(recurringOccurrenceController.listPostponed),
+);
 recurringOccurrencesRouter.post(
   '/me/recurring/occurrences/:id/confirm',
   requireAuth,
@@ -22,4 +27,10 @@ recurringOccurrencesRouter.post(
   requireAuth,
   idempotencyMiddleware,
   asyncHandler(recurringOccurrenceController.postpone),
+);
+recurringOccurrencesRouter.post(
+  '/me/recurring/occurrences/:id/reset',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(recurringOccurrenceController.reset),
 );

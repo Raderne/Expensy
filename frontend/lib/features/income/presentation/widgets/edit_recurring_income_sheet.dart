@@ -11,6 +11,7 @@ import '../../application/income_controller.dart';
 import '../../data/income_repository.dart';
 import '../../domain/recurring_income.dart';
 import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
+import '../../../recurring_confirmations/presentation/postponed_cycle_section.dart';
 
 class EditRecurringIncomeSheet extends ConsumerStatefulWidget {
   final RecurringIncome? existing;
@@ -184,6 +185,11 @@ class _EditRecurringIncomeSheetState
               ),
             ),
           ),
+          if (isEdit && widget.existing!.postponed != null)
+            PostponedCycleSection(
+              initial: widget.existing!.postponed!,
+              onChanged: () => ref.invalidate(incomeControllerProvider),
+            ),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import { AppError } from '../lib/errors.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
 import { recurringExpenseRepository } from '../repositories/recurringExpenseRepository.js';
 import { recurringOccurrenceRepository } from '../repositories/recurringOccurrenceRepository.js';
+import type { PostponedOccurrenceDto } from './incomeService.js';
 import {
   occurrencesBetween,
   upcomingOccurrences,
@@ -32,6 +33,7 @@ export interface RecurringExpenseDto {
   intervalDays: number | null;
   anchorDate: string;
   isActive: boolean;
+  postponed: PostponedOccurrenceDto | null;
 }
 
 export interface UpcomingBillDto {
@@ -46,7 +48,10 @@ export interface UpcomingBillDto {
 
 type RuleWithCategory = Awaited<ReturnType<typeof recurringExpenseRepository.findByUser>>[number];
 
-const toDto = (row: RuleWithCategory): RecurringExpenseDto => ({
+const toDto = (
+  row: RuleWithCategory,
+  postponed: PostponedOccurrenceDto | null = null,
+): RecurringExpenseDto => ({
   id: row.id,
   label: row.label,
   amount: row.amount.toNumber(),
@@ -58,7 +63,27 @@ const toDto = (row: RuleWithCategory): RecurringExpenseDto => ({
   intervalDays: row.intervalDays,
   anchorDate: row.anchorDate.toISOString(),
   isActive: row.isActive,
+  postponed,
 });
+
+// Map each recurring-expense rule id → its soonest active postpone (if any).
+const loadPostponedExpense = async (
+  userId: string,
+): Promise<Map<string, PostponedOccurrenceDto>> => {
+  const rows = await recurringOccurrenceRepository.findActivePostponed(userId);
+  const byRule = new Map<string, PostponedOccurrenceDto>();
+  for (const row of rows) {
+    if (!row.recurringExpenseId) continue;
+    // findActivePostponed is ordered by dueAt asc, so the first wins.
+    if (byRule.has(row.recurringExpenseId)) continue;
+    byRule.set(row.recurringExpenseId, {
+      id: row.id,
+      scheduledFor: row.scheduledFor.toISOString(),
+      dueAt: row.dueAt.toISOString(),
+    });
+  }
+  return byRule;
+};
 
 const resolveCategoryId = async (categoryId: string | undefined, userId: string): Promise<string> => {
   const categories = await categoryRepository.findAll(userId);
@@ -87,7 +112,8 @@ const resolveCategoryId = async (categoryId: string | undefined, userId: string)
 export const recurringExpenseService = {
   async list(userId: string): Promise<RecurringExpenseDto[]> {
     const rows = await recurringExpenseRepository.findByUser(userId);
-    return rows.map(toDto);
+    const postponedByRule = await loadPostponedExpense(userId);
+    return rows.map((row) => toDto(row, postponedByRule.get(row.id) ?? null));
   },
 
   async create(

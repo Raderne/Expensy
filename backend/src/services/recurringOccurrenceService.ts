@@ -61,26 +61,14 @@ export const recurringOccurrenceService = {
 
     const today = startOfDay(new Date());
     const rows = await recurringOccurrenceRepository.findDue(userId, today);
-    if (rows.length === 0) return [];
+    return toPendingDtos(rows);
+  },
 
-    // Income occurrences share the global income category for display.
-    const needsIncomeCategory = rows.some((r) => r.recurringIncomeId);
-    const incomeCategory = needsIncomeCategory ? await getIncomeCategory() : null;
-
-    return rows.map((row) => {
-      const isIncome = Boolean(row.recurringIncomeId);
-      const category = isIncome ? incomeCategory! : row.recurringExpense!.category;
-      return {
-        id: row.id,
-        type: isIncome ? 'income' : 'expense',
-        label: row.label,
-        amount: row.amount.toNumber(),
-        scheduledFor: row.scheduledFor.toISOString(),
-        dueAt: row.dueAt.toISOString(),
-        categoryKey: category.key,
-        categoryColor: category.color,
-      };
-    });
+  // Occurrences the user pushed to a later day — shown on the "Postponed"
+  // management surface so they can confirm early or reschedule again.
+  async listPostponed(userId: string): Promise<PendingOccurrenceDto[]> {
+    const rows = await recurringOccurrenceRepository.findPostponed(userId);
+    return toPendingDtos(rows);
   },
 
   async confirm(userId: string, id: string): Promise<ConfirmedTransactionDto> {
@@ -103,12 +91,18 @@ export const recurringOccurrenceService = {
     const isIncome = Boolean(occurrence.recurringIncomeId);
     const { categoryId, amount } = await resolveTransactionFields(occurrence, isIncome);
 
+    // Record on the due day, but never in the future: an early-confirmed
+    // postponed item (dueAt still ahead) lands on today instead.
+    const today = startOfDay(new Date());
+    const due = startOfDay(occurrence.dueAt);
+    const occurredAt = due > today ? today : due;
+
     const tx = await transactionRepository.create({
       userId,
       categoryId,
       amount,
       note: occurrence.label,
-      occurredAt: startOfDay(occurrence.dueAt),
+      occurredAt,
       recurringIncomeId: occurrence.recurringIncomeId ?? undefined,
       recurringExpenseId: occurrence.recurringExpenseId ?? undefined,
     });
@@ -161,6 +155,51 @@ export const recurringOccurrenceService = {
 
     await recurringOccurrenceRepository.postpone(id, userId, target);
   },
+
+  // Undo a postpone: re-prompt on the original scheduled day (status → PENDING,
+  // dueAt → scheduledFor). The recurrence schedule is unaffected either way.
+  async resetPostpone(userId: string, id: string): Promise<void> {
+    const occurrence = await recurringOccurrenceRepository.findById(id, userId);
+    if (!occurrence) {
+      throw new AppError({
+        status: 404,
+        code: 'OCCURRENCE_NOT_FOUND',
+        message: 'Recurring occurrence not found',
+      });
+    }
+    if (occurrence.status === 'CONFIRMED') {
+      throw new AppError({
+        status: 409,
+        code: 'OCCURRENCE_ALREADY_CONFIRMED',
+        message: 'A confirmed occurrence cannot be reset',
+      });
+    }
+
+    await recurringOccurrenceRepository.resetToScheduled(id, userId, occurrence.scheduledFor);
+  },
+};
+
+// Shared row → DTO mapping for the due/postponed lists. Income occurrences
+// share the global income category for display.
+const toPendingDtos = async (rows: OccurrenceRow[]): Promise<PendingOccurrenceDto[]> => {
+  if (rows.length === 0) return [];
+  const needsIncomeCategory = rows.some((r) => r.recurringIncomeId);
+  const incomeCategory = needsIncomeCategory ? await getIncomeCategory() : null;
+
+  return rows.map((row) => {
+    const isIncome = Boolean(row.recurringIncomeId);
+    const category = isIncome ? incomeCategory! : row.recurringExpense!.category;
+    return {
+      id: row.id,
+      type: isIncome ? 'income' : 'expense',
+      label: row.label,
+      amount: row.amount.toNumber(),
+      scheduledFor: row.scheduledFor.toISOString(),
+      dueAt: row.dueAt.toISOString(),
+      categoryKey: category.key,
+      categoryColor: category.color,
+    };
+  });
 };
 
 // Income → positive amount + income category. Expense → negated amount + the

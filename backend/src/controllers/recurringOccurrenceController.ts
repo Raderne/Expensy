@@ -21,6 +21,13 @@ export const recurringOccurrenceController = {
     res.json({ pending });
   },
 
+  async listPostponed(req: Request, res: Response): Promise<void> {
+    const userId = requireUserId(req);
+    const postponed = await recurringOccurrenceService.listPostponed(userId);
+    res.setHeader('X-Total-Count', postponed.length);
+    res.json({ postponed });
+  },
+
   async confirm(req: Request, res: Response): Promise<void> {
     const userId = requireUserId(req);
     const { id } = occurrenceIdParamsSchema.parse(req.params);
@@ -33,6 +40,13 @@ export const recurringOccurrenceController = {
     const { id } = occurrenceIdParamsSchema.parse(req.params);
     const { postponeTo } = postponeOccurrenceBodySchema.parse(req.body);
     await recurringOccurrenceService.postpone(userId, id, postponeTo);
+    res.status(204).send();
+  },
+
+  async reset(req: Request, res: Response): Promise<void> {
+    const userId = requireUserId(req);
+    const { id } = occurrenceIdParamsSchema.parse(req.params);
+    await recurringOccurrenceService.resetPostpone(userId, id);
     res.status(204).send();
   },
 };

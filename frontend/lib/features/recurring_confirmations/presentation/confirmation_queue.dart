@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../dashboard/application/dashboard_controller.dart';
+import '../../income/application/income_controller.dart';
+import '../../recurring_expenses/application/recurring_expenses_controller.dart';
 import '../../recurring_expenses/application/upcoming_bills_controller.dart';
 import '../../transactions/application/transactions_controller.dart';
 import '../application/pending_occurrences_controller.dart';
+import '../application/postponed_occurrences_controller.dart';
 import '../data/recurring_confirmations_repository.dart';
 import '../domain/pending_occurrence.dart';
 import 'confirmation_modal.dart';
@@ -60,10 +63,15 @@ Future<void> runConfirmationQueue(BuildContext context) async {
     // will retry.
   } finally {
     _queueRunning = false;
-    // Reflect new transactions / cleared prompts everywhere.
+    // Reflect new transactions / cleared prompts everywhere. The recurring
+    // lists carry each rule's postponed cycle, so refreshing them is what makes
+    // a just-postponed date show up in the edit sheet.
     container.invalidate(pendingOccurrencesControllerProvider);
+    container.invalidate(postponedOccurrencesControllerProvider);
     container.invalidate(dashboardControllerProvider);
     container.invalidate(upcomingBillsControllerProvider);
     container.invalidate(transactionsControllerProvider);
+    container.invalidate(incomeControllerProvider);
+    container.invalidate(recurringExpensesControllerProvider);
   }
 }

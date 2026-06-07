@@ -39,6 +39,7 @@ const occStore = new Map<string, OccRow>();
 const createdTx: Array<Record<string, unknown>> = [];
 const confirmCalls: Array<{ id: string; transactionId: string }> = [];
 const postponeCalls: Array<{ id: string; dueAt: Date }> = [];
+const resetCalls: Array<{ id: string; scheduledFor: Date }> = [];
 let txCounter = 0;
 
 vi.mock('../src/services/incomeService.js', () => ({
@@ -69,6 +70,11 @@ vi.mock('../src/repositories/recurringOccurrenceRepository.js', () => ({
           o.dueAt <= before,
       ),
     ),
+    findPostponed: vi.fn(async (userId: string) =>
+      [...occStore.values()]
+        .filter((o) => o.userId === userId && o.status === 'POSTPONED')
+        .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime()),
+    ),
     markConfirmed: vi.fn(async (id: string, _userId: string, transactionId: string) => {
       confirmCalls.push({ id, transactionId });
       const row = occStore.get(id);
@@ -81,6 +87,15 @@ vi.mock('../src/repositories/recurringOccurrenceRepository.js', () => ({
       if (row) {
         row.status = 'POSTPONED';
         row.dueAt = dueAt;
+      }
+      return { count: 1 };
+    }),
+    resetToScheduled: vi.fn(async (id: string, _userId: string, scheduledFor: Date) => {
+      resetCalls.push({ id, scheduledFor });
+      const row = occStore.get(id);
+      if (row) {
+        row.status = 'PENDING';
+        row.dueAt = scheduledFor;
       }
       return { count: 1 };
     }),
@@ -129,6 +144,7 @@ beforeEach(() => {
   createdTx.length = 0;
   confirmCalls.length = 0;
   postponeCalls.length = 0;
+  resetCalls.length = 0;
   txCounter = 0;
   vi.useRealTimers();
 });
@@ -222,6 +238,75 @@ describe('recurringOccurrenceService.postpone', () => {
     await expect(
       recurringOccurrenceService.postpone('u1', 'occ_c', new Date(2099, 0, 1).toISOString()),
     ).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe('recurringOccurrenceService.resetPostpone', () => {
+  it('restores a postponed occurrence to its scheduled day (PENDING)', async () => {
+    const occ = addOccurrence({
+      id: 'occ_r',
+      recurringIncomeId: 'rec_1',
+      status: 'POSTPONED',
+      scheduledFor: new Date(2026, 5, 7),
+      dueAt: new Date(2026, 5, 20),
+    });
+
+    await recurringOccurrenceService.resetPostpone('u1', 'occ_r');
+
+    expect(resetCalls).toHaveLength(1);
+    expect(resetCalls[0]!.scheduledFor.getDate()).toBe(7);
+    expect(occ.status).toBe('PENDING');
+    expect(occ.dueAt.getDate()).toBe(7);
+  });
+
+  it('rejects resetting a confirmed occurrence', async () => {
+    addOccurrence({ id: 'occ_rc', recurringIncomeId: 'rec_1', status: 'CONFIRMED' });
+    await expect(
+      recurringOccurrenceService.resetPostpone('u1', 'occ_rc'),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('404s for an unknown occurrence', async () => {
+    await expect(
+      recurringOccurrenceService.resetPostpone('u1', 'nope'),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('recurringOccurrenceService.listPostponed', () => {
+  it('returns only postponed occurrences as typed DTOs, soonest first', async () => {
+    addOccurrence({
+      id: 'occ_due',
+      recurringIncomeId: 'rec_1',
+      status: 'PENDING',
+      dueAt: new Date(2026, 5, 7),
+    });
+    addOccurrence({
+      id: 'occ_late',
+      recurringExpenseId: 'rex_1',
+      status: 'POSTPONED',
+      amount: new Prisma.Decimal(40),
+      label: 'Netflix',
+      scheduledFor: new Date(2026, 5, 9),
+      dueAt: new Date(2026, 5, 25),
+      recurringExpense: { categoryId: EXPENSE_CATEGORY.id, category: EXPENSE_CATEGORY },
+    });
+    addOccurrence({
+      id: 'occ_soon',
+      recurringIncomeId: 'rec_1',
+      status: 'POSTPONED',
+      amount: new Prisma.Decimal(5200),
+      label: 'Salary',
+      scheduledFor: new Date(2026, 5, 7),
+      dueAt: new Date(2026, 5, 12),
+    });
+
+    const postponed = await recurringOccurrenceService.listPostponed('u1');
+
+    expect(postponed.map((p) => p.id)).toEqual(['occ_soon', 'occ_late']);
+    expect(postponed[0]!.type).toBe('income');
+    expect(postponed[0]!.amount).toBe(5200);
+    expect(postponed[1]!.categoryColor).toBe(EXPENSE_CATEGORY.color);
   });
 });
 
