@@ -35,6 +35,9 @@ dependencies:
   # Device / app metadata
   package_info_plus: ^10.1.0
 
+  # Home-screen widgets (Android AppWidgets)
+  home_widget: ^0.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

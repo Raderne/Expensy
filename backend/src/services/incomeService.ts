@@ -12,12 +12,19 @@ const startOfDay = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.
 
 const startOfMonth = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), 1);
 
+export interface PostponedOccurrenceDto {
+  id: string;
+  scheduledFor: string;
+  dueAt: string;
+}
+
 export interface RecurringIncomeDto {
   id: string;
   label: string;
   amount: number;
   dayOfMonth: number;
   isActive: boolean;
+  postponed: PostponedOccurrenceDto | null;
 }
 
 export interface SideIncomeDto {
@@ -27,19 +34,42 @@ export interface SideIncomeDto {
   occurredAt: string;
 }
 
-const toRecurringDto = (row: {
-  id: string;
-  label: string;
-  amount: Prisma.Decimal;
-  dayOfMonth: number;
-  isActive: boolean;
-}): RecurringIncomeDto => ({
+const toRecurringDto = (
+  row: {
+    id: string;
+    label: string;
+    amount: Prisma.Decimal;
+    dayOfMonth: number;
+    isActive: boolean;
+  },
+  postponed: PostponedOccurrenceDto | null = null,
+): RecurringIncomeDto => ({
   id: row.id,
   label: row.label,
   amount: row.amount.toNumber(),
   dayOfMonth: row.dayOfMonth,
   isActive: row.isActive,
+  postponed,
 });
+
+// Map each recurring-income rule id → its soonest active postpone (if any).
+const loadPostponedIncome = async (
+  userId: string,
+): Promise<Map<string, PostponedOccurrenceDto>> => {
+  const rows = await recurringOccurrenceRepository.findActivePostponed(userId);
+  const byRule = new Map<string, PostponedOccurrenceDto>();
+  for (const row of rows) {
+    if (!row.recurringIncomeId) continue;
+    // findActivePostponed is ordered by dueAt asc, so the first wins.
+    if (byRule.has(row.recurringIncomeId)) continue;
+    byRule.set(row.recurringIncomeId, {
+      id: row.id,
+      scheduledFor: row.scheduledFor.toISOString(),
+      dueAt: row.dueAt.toISOString(),
+    });
+  }
+  return byRule;
+};
 
 const getIncomeCategoryId = async (): Promise<string> => {
   const categories = await categoryRepository.findAll();
@@ -57,7 +87,8 @@ const getIncomeCategoryId = async (): Promise<string> => {
 export const incomeService = {
   async listRecurring(userId: string): Promise<RecurringIncomeDto[]> {
     const rows = await recurringIncomeRepository.findByUser(userId);
-    return rows.map(toRecurringDto);
+    const postponedByRule = await loadPostponedIncome(userId);
+    return rows.map((row) => toRecurringDto(row, postponedByRule.get(row.id) ?? null));
   },
 
   async createRecurring(

@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#0E1B4D</color>
+
+    <!-- Home-screen widget palette (mirrors lib/core/theme/app_colors.dart). -->
+    <color name="widget_bg">#FFFFFF</color>
+    <color name="widget_ink">#0C1530</color>
+    <color name="widget_muted">#7A8AAA</color>
+    <color name="widget_accent">#F56B1E</color>
+    <color name="widget_primary">#1B45D0</color>
+    <color name="widget_success">#16A34A</color>
+    <color name="widget_track">#DDE6FF</color>
+    <color name="widget_chip_bg">#EEF3FF</color>
 </resources>

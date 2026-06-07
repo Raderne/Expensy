@@ -11,6 +11,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../analytics/application/analytics_controller.dart';
 import '../../../dashboard/application/dashboard_controller.dart';
 import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
+import '../../../recurring_confirmations/presentation/postponed_cycle_section.dart';
 import '../../../transactions/application/transactions_controller.dart';
 import '../../application/recurring_expenses_controller.dart';
 import '../../application/upcoming_bills_controller.dart';
@@ -328,6 +329,12 @@ class _EditRecurringExpenseSheetState
               onChanged: (v) => setState(() => _isActive = v),
             ),
           ],
+          if (isEdit && widget.existing!.postponed != null)
+            PostponedCycleSection(
+              initial: widget.existing!.postponed!,
+              onChanged: () =>
+                  ref.invalidate(recurringExpensesControllerProvider),
+            ),
         ],
       ),
     );

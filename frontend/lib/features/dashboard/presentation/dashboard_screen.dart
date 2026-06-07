@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
@@ -11,6 +12,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
 import '../../recurring_confirmations/presentation/confirmation_queue.dart';
+import '../../recurring_confirmations/presentation/postponed_items_card.dart';
 import '../../recurring_expenses/presentation/widgets/upcoming_bills_card.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_summary.dart';
@@ -80,16 +82,23 @@ class _DashboardContent extends StatelessWidget {
     final topInset = MediaQuery.paddingOf(context).top;
     final isFirstRun = _isFirstRun(state);
 
-    return ListView(
-      padding: EdgeInsets.zero,
+    return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        _Hero(name: name, topInset: topInset, summary: state.summary),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      slivers: [
+        SliverCollapsingHero(
+          minHeight: topInset + 56,
+          maxHeight: topInset + 272,
+          expanded: _HeroExpanded(
+            name: name,
+            topInset: topInset,
+            summary: state.summary,
+          ),
+          collapsed: _HeroCollapsed(name: name, topInset: topInset),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
               if (isFirstRun) ...[
                 const OnboardingCard(),
                 const SizedBox(height: 14),
@@ -97,14 +106,14 @@ class _DashboardContent extends StatelessWidget {
               BudgetCard(budget: state.summary.budget),
               const SizedBox(height: 14),
               const UpcomingBillsCard(),
+              const PostponedItemsCard(),
               // When the onboarding card is showing the dashboard already has a
               // primary CTA; the section's own empty state would be redundant.
               if (!isFirstRun)
                 RecentTransactionsSection(
                   transactions: state.recentTransactions,
                 ),
-              const SizedBox(height: 24),
-            ],
+            ]),
           ),
         ),
       ],
@@ -125,12 +134,12 @@ class _DashboardContent extends StatelessWidget {
 
 // ─── Hero section ────────────────────────────────────────────────────────────
 
-class _Hero extends StatelessWidget {
+class _HeroExpanded extends StatelessWidget {
   final String name;
   final double topInset;
   final DashboardSummary summary;
 
-  const _Hero({
+  const _HeroExpanded({
     required this.name,
     required this.topInset,
     required this.summary,
@@ -138,9 +147,10 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HeroGradient(
+    return Padding(
       padding: EdgeInsets.fromLTRB(22, topInset + 4, 22, 22),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -181,6 +191,41 @@ class _Hero extends StatelessWidget {
     if (h >= 5 && h < 12) return 'Good morning,';
     if (h >= 12 && h < 18) return 'Good afternoon,';
     return 'Good evening,';
+  }
+}
+
+/// Compact bar shown once the hero is scrolled away: full name + profile button.
+class _HeroCollapsed extends StatelessWidget {
+  final String name;
+  final double topInset;
+
+  const _HeroCollapsed({required this.name, required this.topInset});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: topInset, left: 22, right: 22),
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.titleM.copyWith(
+                  color: Colors.white,
+                  letterSpacing: -0.4,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            _AvatarPill(),
+          ],
+        ),
+      ),
+    );
   }
 }
 

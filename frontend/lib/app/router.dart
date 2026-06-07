@@ -13,6 +13,7 @@ import '../features/auth/presentation/signup_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/income/presentation/income_sources_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/recurring_confirmations/presentation/postponed_occurrences_screen.dart';
 import '../features/recurring_expenses/presentation/recurring_expenses_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
 import 'app_shell.dart';
@@ -109,6 +110,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'transactions',
             pageBuilder: (_, _) =>
                 const NoTransitionPage(child: TransactionsScreen()),
+          ),
+          GoRoute(
+            path: '/postponed',
+            name: 'postponed',
+            pageBuilder: (_, _) =>
+                const NoTransitionPage(child: PostponedOccurrencesScreen()),
           ),
           GoRoute(
             path: '/analytics',

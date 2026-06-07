@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../recurring_confirmations/domain/postponed_info.dart';
+
 enum RecurrenceFrequency { weekly, biweekly, monthly, custom }
 
 extension RecurrenceFrequencyX on RecurrenceFrequency {
@@ -40,6 +42,9 @@ class RecurringExpense {
   final DateTime anchorDate;
   final bool isActive;
 
+  /// Set when this rule has an actively-postponed occurrence for the cycle.
+  final PostponedInfo? postponed;
+
   const RecurringExpense({
     required this.id,
     required this.label,
@@ -52,6 +57,7 @@ class RecurringExpense {
     required this.intervalDays,
     required this.anchorDate,
     required this.isActive,
+    this.postponed,
   });
 
   factory RecurringExpense.fromJson(Map<String, dynamic> json) =>
@@ -67,5 +73,8 @@ class RecurringExpense {
         intervalDays: (json['intervalDays'] as num?)?.toInt(),
         anchorDate: DateTime.parse(json['anchorDate'] as String).toLocal(),
         isActive: json['isActive'] as bool? ?? true,
+        postponed: json['postponed'] == null
+            ? null
+            : PostponedInfo.fromJson(json['postponed'] as Map<String, dynamic>),
       );
 }

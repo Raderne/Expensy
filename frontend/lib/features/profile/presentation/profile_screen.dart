@@ -7,8 +7,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/header_back_button.dart';
-import '../../../core/widgets/hero_gradient.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../auth/domain/auth_user.dart';
@@ -76,8 +76,11 @@ class ProfileScreen extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(
-          child: _ProfileHero(topInset: topInset, user: user),
+        SliverCollapsingHero(
+          minHeight: topInset + 56,
+          maxHeight: topInset + 220,
+          expanded: _ProfileHeroExpanded(topInset: topInset, user: user),
+          collapsed: _ProfileHeroCollapsed(topInset: topInset, name: user.name),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
@@ -285,17 +288,18 @@ class ProfileScreen extends ConsumerWidget {
 
 // ─── Hero ────────────────────────────────────────────────────────────────────
 
-class _ProfileHero extends StatelessWidget {
+class _ProfileHeroExpanded extends StatelessWidget {
   final double topInset;
   final AuthUser user;
 
-  const _ProfileHero({required this.topInset, required this.user});
+  const _ProfileHeroExpanded({required this.topInset, required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return HeroGradient(
+    return Padding(
       padding: EdgeInsets.fromLTRB(22, topInset + 8, 22, 24),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
@@ -335,6 +339,46 @@ class _ProfileHero extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Compact bar shown once the profile hero is scrolled away: back + full name.
+class _ProfileHeroCollapsed extends StatelessWidget {
+  final double topInset;
+  final String name;
+
+  const _ProfileHeroCollapsed({required this.topInset, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: topInset, left: 22, right: 22),
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            HeaderBackButton.onHero(
+              onTap: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleM.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(width: 44),
+          ],
+        ),
       ),
     );
   }

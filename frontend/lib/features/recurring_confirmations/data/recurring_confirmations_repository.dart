@@ -17,6 +17,16 @@ class RecurringConfirmationsRepository {
         .toList();
   }
 
+  /// Occurrences the user pushed to a later day (awaiting confirm/reschedule).
+  Future<List<PendingOccurrence>> listPostponed() async {
+    final res = await _dio.get<Map<String, dynamic>>('/me/recurring/postponed');
+    _ensureOk(res);
+    final list = res.data!['postponed'] as List<dynamic>;
+    return list
+        .map((e) => PendingOccurrence.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Confirm the occurrence — the backend creates the real transaction.
   Future<void> confirm(String id, {String? idempotencyKey}) async {
     final res = await _dio.post(
@@ -35,6 +45,15 @@ class RecurringConfirmationsRepository {
     final res = await _dio.post(
       '/me/recurring/occurrences/$id/postpone',
       data: {'postponeTo': DateTime(date.year, date.month, date.day).toIso8601String()},
+      options: _idempotent(idempotencyKey),
+    );
+    _ensureOk(res);
+  }
+
+  /// Undo a postpone — re-prompt on the original scheduled day.
+  Future<void> reset(String id, {String? idempotencyKey}) async {
+    final res = await _dio.post(
+      '/me/recurring/occurrences/$id/reset',
       options: _idempotent(idempotencyKey),
     );
     _ensureOk(res);
