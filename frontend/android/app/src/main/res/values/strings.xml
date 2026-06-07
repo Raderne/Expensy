@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_quick_add_title">Quick add</string>
+    <string name="widget_quick_add_button">+  Add expense</string>
+
+    <string name="widget_recent_title">Recent activity</string>
+    <string name="widget_recent_empty">No transactions yet</string>
+
+    <string name="widget_budget_title">Monthly Budget</string>
+    <string name="widget_budget_not_set">Not set</string>
+    <string name="widget_budget_hint">Set a budget to track your spending</string>
+</resources>
