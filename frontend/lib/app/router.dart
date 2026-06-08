@@ -15,6 +15,8 @@ import '../features/income/presentation/income_sources_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/recurring_confirmations/presentation/postponed_occurrences_screen.dart';
 import '../features/recurring_expenses/presentation/recurring_expenses_screen.dart';
+import '../features/settings/presentation/appearance_screen.dart';
+import '../features/settings/presentation/widget_appearance_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
 import 'app_shell.dart';
 
@@ -140,6 +142,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'recurring-expenses',
                 pageBuilder: (_, _) =>
                     const NoTransitionPage(child: RecurringExpensesScreen()),
+              ),
+              GoRoute(
+                path: 'appearance',
+                name: 'appearance',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: AppearanceScreen()),
+              ),
+              GoRoute(
+                path: 'widget-appearance',
+                name: 'widget-appearance',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: WidgetAppearanceScreen()),
               ),
             ],
           ),

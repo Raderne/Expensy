@@ -130,7 +130,7 @@ class _EditRecurringExpenseSheetState
       lastDate: DateTime(now.year + 2, now.month, now.day),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
             primary: AppColors.primary,
             onPrimary: Colors.white,
             surface: AppColors.surface,
@@ -380,11 +380,11 @@ class _EditRecurringExpenseSheetState
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
+        borderSide: BorderSide(color: AppColors.border, width: 1.2),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
+        borderSide: BorderSide(color: AppColors.border, width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -488,14 +488,14 @@ class _AnchorRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.calendar_today_outlined,
                 size: 18,
                 color: AppColors.inkMid,
               ),
               const SizedBox(width: 10),
               Expanded(child: Text(fmt, style: AppTextStyles.bodyStrong)),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
                 color: AppColors.inkLight,
@@ -525,7 +525,7 @@ class _ActiveToggle extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.autorenew_rounded,
             size: 18,
             color: AppColors.inkMid,

@@ -1,38 +1,48 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens mirroring `design/Expensy.html` theme object `T`.
-/// Treat this as the single source of truth; never hard-code hex in widgets.
+import 'app_palette.dart';
+
+/// Design tokens. Brand colors are compile-time `const`; theme-variant tokens
+/// (surfaces, text, tints, effects) resolve against the globally-active
+/// [AppPalette], which `ExpensyApp` keeps in sync with the resolved brightness
+/// (Light / Dark / AMOLED). Never hard-code hex in widgets.
 @immutable
 class AppColors {
   const AppColors._();
 
-  // Primary (blue)
+  /// The palette backing the theme-variant getters below. Swapped by
+  /// `ExpensyApp.build` before descendants render, so every `AppColors.x`
+  /// access reflects the current theme without threading [BuildContext].
+  static AppPalette active = AppPalette.light;
+
+  // ── Brand (theme-invariant) ────────────────────────────────────────────────
   static const Color primary = Color(0xFF1B45D0);
   static const Color primaryDark = Color(0xFF0C228E);
-  static const Color primaryLight = Color(0xFFE8EFFE);
-
-  // Accent (orange)
   static const Color accent = Color(0xFFF56B1E);
-  static const Color accentLight = Color(0xFFFEF0E8);
-
-  // Status
   static const Color success = Color(0xFF16A34A);
-  static const Color successLight = Color(0xFFDCFCE7);
   static const Color danger = Color(0xFFDC2626);
-  static const Color dangerLight = Color(0xFFFEE2E2);
 
-  // Surfaces
-  static const Color background = Color(0xFFEEF3FF);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color border = Color(0xFFDDE6FF);
-
-  // Ink (text)
-  static const Color ink = Color(0xFF0C1530);
-  static const Color inkMid = Color(0xFF4A5675);
-  // Body-text safe muted ink. Bumped from #96A5BE so it clears WCAG AA on the
-  // app background (#EEF3FF) for regular text.
-  static const Color inkLight = Color(0xFF7A8AAA);
-  static const Color inkFaint = Color(0xFFD5DDF0);
+  // ── Theme-variant (resolve against [active]) ───────────────────────────────
+  static Color get background => active.background;
+  static Color get surface => active.surface;
+  static Color get surfaceAlt => active.surfaceAlt;
+  static Color get border => active.border;
+  static Color get ink => active.ink;
+  static Color get inkMid => active.inkMid;
+  static Color get inkLight => active.inkLight;
+  static Color get inkFaint => active.inkFaint;
+  static Color get primaryLight => active.primaryLight;
+  static Color get accentLight => active.accentLight;
+  static Color get successLight => active.successLight;
+  static Color get dangerLight => active.dangerLight;
+  static Color get primaryInk => active.primaryInk;
+  static Color get accentInk => active.accentInk;
+  static Color get successInk => active.successInk;
+  static Color get dangerInk => active.dangerInk;
+  static Color get shadow => active.shadow;
+  static Color get scrim => active.scrim;
+  static Color get shimmerBase => active.shimmerBase;
+  static Color get shimmerHighlight => active.shimmerHighlight;
 
   // Curated picker palette — must match CATEGORY_PALETTE in backend/src/schemas/categories.ts
   static const List<Color> categoryPalette = [
@@ -69,7 +79,8 @@ class AppColors {
     '#B45309',
   ];
 
-  // Category palette (key, color, bgTint)
+  // Category palette (key, color, bgTint). bgTint is a light wash used behind
+  // category glyphs; kept fixed for brand recognition across themes.
   static const Map<String, CategoryColor> categories = {
     'food': CategoryColor(Color(0xFFF56B1E), Color(0xFFFEF0E8)),
     'travel': CategoryColor(Color(0xFF1B45D0), Color(0xFFE8EFFE)),

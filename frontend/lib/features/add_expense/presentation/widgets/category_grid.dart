@@ -209,7 +209,7 @@ class _MoreTile extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: const Color(0x66000C22),
+      barrierColor: AppColors.scrim,
       builder: (sheetCtx) => _AllCategoriesSheet(
         selectedId: selectedId,
         onSelect: (c) {
@@ -237,14 +237,14 @@ class _AllCategoriesSheet extends ConsumerWidget {
         .toList();
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x22000C22),
+            color: AppColors.scrim,
             blurRadius: 24,
-            offset: Offset(0, -4),
+            offset: const Offset(0, -4),
           ),
         ],
       ),

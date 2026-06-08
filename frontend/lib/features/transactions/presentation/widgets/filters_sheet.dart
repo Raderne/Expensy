@@ -20,7 +20,7 @@ Future<void> showTransactionsFiltersSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: const Color(0x66000C22),
+    barrierColor: AppColors.scrim,
     builder: (_) => _FiltersSheet(initial: initial, onApply: onApply),
   );
 }
@@ -76,14 +76,14 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Color(0x22000C22),
+              color: AppColors.scrim,
               blurRadius: 24,
-              offset: Offset(0, -4),
+              offset: const Offset(0, -4),
             ),
           ],
         ),

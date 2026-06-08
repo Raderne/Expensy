@@ -346,7 +346,7 @@ class _SkeletonDayGroup extends StatelessWidget {
               children: [
                 for (int i = 0; i < rows; i++) ...[
                   if (i > 0)
-                    const Divider(
+                    Divider(
                       height: 1,
                       thickness: 1,
                       indent: 68,
@@ -404,7 +404,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.wifi_off_rounded,
               size: 40,
               color: AppColors.inkLight,
@@ -576,7 +576,7 @@ class _DayGroup extends StatelessWidget {
               children: [
                 for (int i = 0; i < group.transactions.length; i++) ...[
                   if (i > 0)
-                    const Divider(
+                    Divider(
                       height: 1,
                       thickness: 1,
                       indent: 68,

@@ -31,11 +31,20 @@ class RecentTxWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences,
     ) {
-        val inkColor = context.getColor(R.color.widget_ink)
         val successColor = context.getColor(R.color.widget_success)
 
         appWidgetIds.forEach { id ->
             val views = RemoteViews(context.packageName, R.layout.widget_recent_tx)
+
+            val isDark = WidgetStyle.applyBackground(
+                context, appWidgetManager, id, views, "recent", widgetData,
+            )
+            val inkColor = WidgetStyle.inkColor(context, isDark)
+            val mutedColor = WidgetStyle.mutedColor(context, isDark)
+
+            views.setTextColor(R.id.recent_title, inkColor)
+            views.setTextColor(R.id.tx_empty, mutedColor)
+
             val count = widgetData.getString("tx_count", "0")?.toIntOrNull() ?: 0
 
             views.setViewVisibility(
@@ -60,15 +69,18 @@ class RecentTxWidgetProvider : HomeWidgetProvider() {
                     views.setTextViewText(chipIds[i], abbr)
                     views.setTextColor(chipIds[i], chipColor)
                     views.setTextViewText(labelIds[i], label)
+                    views.setTextColor(labelIds[i], inkColor)
                     views.setTextViewText(amountIds[i], amount)
                     views.setTextColor(amountIds[i], if (isIncome) successColor else inkColor)
                     views.setTextViewText(dateIds[i], date)
+                    views.setTextColor(dateIds[i], mutedColor)
 
                     if (note.isEmpty()) {
                         views.setViewVisibility(noteIds[i], View.GONE)
                     } else {
                         views.setViewVisibility(noteIds[i], View.VISIBLE)
                         views.setTextViewText(noteIds[i], note)
+                        views.setTextColor(noteIds[i], mutedColor)
                     }
                 } else {
                     views.setViewVisibility(rowIds[i], View.GONE)

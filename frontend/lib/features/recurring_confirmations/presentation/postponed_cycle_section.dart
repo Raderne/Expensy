@@ -52,7 +52,7 @@ class _PostponedCycleSectionState extends ConsumerState<PostponedCycleSection> {
       lastDate: DateTime(now.year + 2, now.month, now.day),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
+          colorScheme: Theme.of(ctx).colorScheme.copyWith(
             primary: AppColors.primary,
             onPrimary: Colors.white,
             surface: AppColors.surface,

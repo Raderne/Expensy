@@ -140,14 +140,14 @@ class _AddSideIncomeSheetState extends ConsumerState<AddSideIncomeSheet> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
+                borderSide: BorderSide(
                   color: AppColors.border,
                   width: 1.2,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
+                borderSide: BorderSide(
                   color: AppColors.border,
                   width: 1.2,
                 ),
@@ -177,14 +177,14 @@ class _AddSideIncomeSheetState extends ConsumerState<AddSideIncomeSheet> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
+                borderSide: BorderSide(
                   color: AppColors.border,
                   width: 1.2,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
+                borderSide: BorderSide(
                   color: AppColors.border,
                   width: 1.2,
                 ),
@@ -216,7 +216,7 @@ class _AddSideIncomeSheetState extends ConsumerState<AddSideIncomeSheet> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.calendar_today_outlined,
                       size: 18,
                       color: AppColors.inkMid,
@@ -224,7 +224,7 @@ class _AddSideIncomeSheetState extends ConsumerState<AddSideIncomeSheet> {
                     const SizedBox(width: 10),
                     Text(dateLabel, style: AppTextStyles.bodyStrong),
                     const Spacer(),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       color: AppColors.inkLight,
                     ),

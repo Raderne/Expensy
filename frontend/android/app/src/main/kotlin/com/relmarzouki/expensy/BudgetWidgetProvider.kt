@@ -20,6 +20,12 @@ class BudgetWidgetProvider : HomeWidgetProvider() {
         appWidgetIds.forEach { id ->
             val views = RemoteViews(context.packageName, R.layout.widget_budget)
 
+            val isDark = WidgetStyle.applyBackground(
+                context, appWidgetManager, id, views, "budget", widgetData,
+            )
+            views.setTextColor(R.id.budget_title, WidgetStyle.inkColor(context, isDark))
+            views.setTextColor(R.id.budget_detail, WidgetStyle.mutedColor(context, isDark))
+
             val isSet = widgetData.getBoolean("budget_is_set", false)
             val pct = widgetData.getString("budget_pct", "0")?.toIntOrNull() ?: 0
 

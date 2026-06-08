@@ -18,7 +18,7 @@ Future<String?> showMonthPickerSheet(
   return showModalBottomSheet<String>(
     context: context,
     backgroundColor: Colors.transparent,
-    barrierColor: const Color(0x66000C22),
+    barrierColor: AppColors.scrim,
     isScrollControlled: true,
     builder: (_) => _MonthPickerSheet(months: list, selected: selected),
   );
@@ -34,9 +34,9 @@ class _MonthPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxH = MediaQuery.sizeOf(context).height * 0.55;
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
