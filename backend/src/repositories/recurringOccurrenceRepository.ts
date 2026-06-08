@@ -64,7 +64,7 @@ export const recurringOccurrenceRepository = {
   // the rule in edit mode.
   findActivePostponed: (userId: string) =>
     prisma.recurringOccurrence.findMany({
-      where: { userId, status: 'POSTPONED' },
+      where: { userId, status: 'POSTPONED', deletedAt: null },
       orderBy: [{ dueAt: 'asc' }],
     }),
 
@@ -72,7 +72,7 @@ export const recurringOccurrenceRepository = {
   // Powers the "Postponed" management surface (confirm early or reschedule).
   findPostponed: (userId: string) =>
     prisma.recurringOccurrence.findMany({
-      where: { userId, status: 'POSTPONED' },
+      where: { userId, status: 'POSTPONED', deletedAt: null },
       orderBy: [{ dueAt: 'asc' }],
       include: {
         recurringExpense: { include: { category: true } },
@@ -88,12 +88,30 @@ export const recurringOccurrenceRepository = {
         userId,
         status: { in: [...PENDING_STATUSES] },
         dueAt: { lte: before },
+        deletedAt: null,
       },
       orderBy: [{ scheduledFor: 'asc' }],
       include: {
         recurringExpense: { include: { category: true } },
         recurringIncome: true,
       },
+    }),
+
+  // Cancel all non-confirmed occurrences when their parent rule is deleted.
+  // Confirmed occurrences are left intact — they already have a Transaction.
+  cancelForRule: (
+    rule: { recurringIncomeId?: string; recurringExpenseId?: string },
+    userId: string,
+  ) =>
+    prisma.recurringOccurrence.updateMany({
+      where: {
+        userId,
+        status: { in: [...PENDING_STATUSES] },
+        recurringIncomeId: rule.recurringIncomeId,
+        recurringExpenseId: rule.recurringExpenseId,
+        deletedAt: null,
+      },
+      data: { deletedAt: new Date() },
     }),
 
   markConfirmed: (id: string, userId: string, transactionId: string) =>

@@ -46,7 +46,7 @@ class RecentTransactionsSection extends StatelessWidget {
           if (transactions.isEmpty)
             const _EmptyState()
           else
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
+            Divider(height: 1, thickness: 1, color: AppColors.border),
           if (transactions.isNotEmpty)
             ...List.generate(transactions.length, (i) {
               final t = transactions[i];
@@ -54,7 +54,7 @@ class RecentTransactionsSection extends StatelessWidget {
                 children: [
                   _RecentTile(transaction: t),
                   if (i != transactions.length - 1)
-                    const Divider(
+                    Divider(
                       height: 1,
                       thickness: 1,
                       color: AppColors.border,

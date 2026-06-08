@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'config/env.dart';
 import 'core/cache/http_cache.dart';
-import 'core/theme/app_colors.dart';
+import 'features/settings/data/settings_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +18,6 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: AppColors.surface,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
 
   // Open the SWR cache before the first frame so controllers can read it
   // synchronously. Falls back to in-memory if Hive can't initialize so the
@@ -38,9 +32,25 @@ Future<void> main() async {
     cache = InMemoryHttpCache();
   }
 
+  // Same deal for app preferences (theme mode, widget appearance) — read
+  // synchronously on launch so there's no light-mode flash before the saved
+  // theme applies.
+  SettingsStore settings;
+  try {
+    settings = await HiveSettingsStore.open();
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('HiveSettingsStore.open failed ($e); falling back to in-memory');
+    }
+    settings = InMemorySettingsStore();
+  }
+
   runApp(
     ProviderScope(
-      overrides: [httpCacheProvider.overrideWithValue(cache)],
+      overrides: [
+        httpCacheProvider.overrideWithValue(cache),
+        settingsStoreProvider.overrideWithValue(settings),
+      ],
       child: const ExpensyApp(),
     ),
   );

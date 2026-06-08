@@ -56,19 +56,18 @@ android {
                 signingConfigs.getByName("debug")
             }
 
-            // R8 minification is OFF by default for safety — Flutter ships its
-            // own obfuscation via `flutter build --obfuscate --split-debug-info`
-            // and R8 has historically caused subtle runtime breakage with
-            // reflection-based plugins. Turn this on only after testing the
-            // resulting APK end-to-end and confirming proguard-rules.pro covers
-            // every package that complains:
-            //
-            // isMinifyEnabled = true
-            // isShrinkResources = true
-            // proguardFiles(
-            //     getDefaultProguardFile("proguard-android-optimize.txt"),
-            //     "proguard-rules.pro"
-            // )
+            // Keep R8 OFF. AGP 9 flipped the release default for `isMinifyEnabled`
+            // to true, and R8 strips WorkManager's reflectively-instantiated Room
+            // database (pulled in transitively by the home_widget plugin), which
+            // crashes the app at startup with:
+            //   "Failed to create an instance of androidx.work.impl.WorkDatabase".
+            // Flutter already obfuscates Dart via `--obfuscate --split-debug-info`,
+            // and R8 has historically broken reflection-based plugins. Only enable
+            // it after testing the APK end-to-end with keep rules in
+            // proguard-rules.pro covering every package that complains (WorkManager,
+            // Room, and friends).
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

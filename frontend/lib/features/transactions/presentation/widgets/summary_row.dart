@@ -19,7 +19,7 @@ class SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final netFg = net >= 0 ? AppColors.primary : AppColors.danger;
+    final netFg = net >= 0 ? AppColors.primaryInk : AppColors.dangerInk;
     final netBg = net >= 0 ? AppColors.primaryLight : AppColors.dangerLight;
     final netSign = net >= 0 ? '+' : '-';
 
@@ -29,7 +29,7 @@ class SummaryRow extends StatelessWidget {
           child: _Card(
             label: 'INCOME',
             value: income,
-            fg: AppColors.success,
+            fg: AppColors.successInk,
             bg: AppColors.successLight,
             sign: '+',
           ),
@@ -39,7 +39,7 @@ class SummaryRow extends StatelessWidget {
           child: _Card(
             label: 'EXPENSES',
             value: expenses,
-            fg: AppColors.danger,
+            fg: AppColors.dangerInk,
             bg: AppColors.dangerLight,
             sign: '-',
           ),

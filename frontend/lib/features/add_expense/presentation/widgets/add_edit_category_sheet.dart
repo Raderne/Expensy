@@ -274,11 +274,11 @@ class _AddEditCategorySheetState extends ConsumerState<AddEditCategorySheet> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border, width: 1.2),
+          borderSide: BorderSide(color: AppColors.border, width: 1.2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border, width: 1.2),
+          borderSide: BorderSide(color: AppColors.border, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),

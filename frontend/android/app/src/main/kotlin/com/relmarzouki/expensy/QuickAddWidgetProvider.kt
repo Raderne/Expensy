@@ -19,6 +19,12 @@ class QuickAddWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { id ->
             val views = RemoteViews(context.packageName, R.layout.widget_quick_add)
+
+            val isDark = WidgetStyle.applyBackground(
+                context, appWidgetManager, id, views, "quick", widgetData,
+            )
+            views.setTextColor(R.id.quick_add_title, WidgetStyle.mutedColor(context, isDark))
+
             val pendingIntent = HomeWidgetLaunchIntent.getActivity(
                 context,
                 MainActivity::class.java,

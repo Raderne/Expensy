@@ -37,7 +37,7 @@ Future<ConfirmationResult?> showConfirmationModal(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Confirm recurring item',
-    barrierColor: const Color(0x66000C22),
+    barrierColor: AppColors.scrim,
     transitionDuration: const Duration(milliseconds: 240),
     pageBuilder: (_, _, _) => _ConfirmationCard(occurrence: occurrence),
     transitionBuilder: (context, animation, _, child) {

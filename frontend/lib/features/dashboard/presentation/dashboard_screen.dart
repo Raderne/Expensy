@@ -96,7 +96,12 @@ class _DashboardContent extends StatelessWidget {
           collapsed: _HeroCollapsed(name: name, topInset: topInset),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+          padding: EdgeInsets.fromLTRB(
+            18,
+            16,
+            18,
+            24 + MediaQuery.paddingOf(context).bottom,
+          ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               if (isFirstRun) ...[
@@ -345,11 +350,7 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              size: 40,
-              color: AppColors.inkLight,
-            ),
+            Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
             const SizedBox(height: 12),
             Text('Could not load dashboard', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),

@@ -60,8 +60,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               validator: (v) {
                 final s = v?.trim() ?? '';
                 if (s.isEmpty) return 'Email is required';
-                if (!s.contains('@') || !s.contains('.'))
+                if (!s.contains('@') || !s.contains('.')) {
                   return 'Enter a valid email';
+                }
                 return null;
               },
             ),
@@ -72,6 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               obscure: true,
               textInputAction: TextInputAction.done,
               icon: Icons.lock_outline_rounded,
+              hint: 'Your password',
               onSubmitted: (_) => _submit(),
               validator: (v) {
                 if ((v ?? '').isEmpty) return 'Password is required';

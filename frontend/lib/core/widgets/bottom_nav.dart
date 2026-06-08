@@ -47,7 +47,7 @@ class BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
@@ -170,7 +170,7 @@ class _AddButton extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.add, color: AppColors.surface, size: 26),
+          child: const Icon(Icons.add, color: Colors.white, size: 26),
         ),
       ),
     );

@@ -4,9 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_palette.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets_home/home_widget_service.dart';
+import '../core/widgets_home/widget_appearance_service.dart';
 import '../features/dashboard/application/dashboard_controller.dart';
+import '../features/settings/application/theme_controller.dart';
+import '../features/settings/application/widget_appearance_controller.dart';
+import '../features/settings/domain/app_theme_mode.dart';
 import 'router.dart';
 
 class ExpensyApp extends ConsumerStatefulWidget {
@@ -16,14 +22,28 @@ class ExpensyApp extends ConsumerStatefulWidget {
   ConsumerState<ExpensyApp> createState() => _ExpensyAppState();
 }
 
-class _ExpensyAppState extends ConsumerState<ExpensyApp> {
+class _ExpensyAppState extends ConsumerState<ExpensyApp>
+    with WidgetsBindingObserver {
   StreamSubscription<Uri?>? _widgetClickSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initHomeWidgetDeepLinks();
+    // Push saved widget appearance to the home screen once mounted, so the
+    // widgets reflect persisted settings even after an app reinstall.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        WidgetAppearanceService.applyAll(ref.read(widgetAppearanceProvider)),
+      );
+    });
   }
+
+  /// Rebuild when the phone toggles light/dark so System mode re-resolves the
+  /// active palette (see [build]).
+  @override
+  void didChangePlatformBrightness() => setState(() {});
 
   /// Handle taps on the home-screen widgets: the warm-start stream while the app
   /// is running, plus the cold-start URI captured when the app was launched from
@@ -53,6 +73,7 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _widgetClickSub?.cancel();
     super.dispose();
   }
@@ -72,10 +93,35 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp> {
     });
 
     final router = ref.watch(routerProvider);
+    final mode = ref.watch(themeModeProvider);
+
+    // Keep the globally-active palette in sync with the brightness MaterialApp
+    // will actually resolve, BEFORE descendants build and read `AppColors.x`.
+    // System mode follows the phone; Dark/AMOLED are explicit dark choices.
+    final systemBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    AppColors.active = switch (mode) {
+      AppThemeMode.light => AppPalette.light,
+      AppThemeMode.dark => AppPalette.dark,
+      AppThemeMode.amoled => AppPalette.amoled,
+      AppThemeMode.system => systemBrightness == Brightness.dark
+          ? AppPalette.dark
+          : AppPalette.light,
+    };
+
     return MaterialApp.router(
       title: 'Expensy',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: mode == AppThemeMode.amoled
+          ? AppTheme.amoled()
+          : AppTheme.dark(),
+      themeMode: switch (mode) {
+        AppThemeMode.system => ThemeMode.system,
+        AppThemeMode.light => ThemeMode.light,
+        AppThemeMode.dark => ThemeMode.dark,
+        AppThemeMode.amoled => ThemeMode.dark,
+      },
       routerConfig: router,
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+
 /// Drives a single [AnimationController] that all [ShimmerBox] descendants
 /// share — so every box animates in perfect sync with zero extra overhead.
 class Shimmer extends StatefulWidget {
@@ -55,18 +57,21 @@ class ShimmerBox extends StatelessWidget {
     required this.height,
     this.width,
     this.radius = 12,
-    this.baseColor = const Color(0xFFD5DDF0),
-    this.shineColor = const Color(0xFFECF1FA),
+    this.baseColor,
+    this.shineColor,
   });
 
   final double height;
   final double? width;
   final double radius;
-  final Color baseColor;
-  final Color shineColor;
+  /// Defaults to the theme's shimmer tones when null.
+  final Color? baseColor;
+  final Color? shineColor;
 
   @override
   Widget build(BuildContext context) {
+    final baseColor = this.baseColor ?? AppColors.shimmerBase;
+    final shineColor = this.shineColor ?? AppColors.shimmerHighlight;
     final animation = Shimmer.of(context);
     if (animation == null) {
       return Container(
