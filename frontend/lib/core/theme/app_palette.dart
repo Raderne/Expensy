@@ -22,6 +22,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.accentLight,
     required this.successLight,
     required this.dangerLight,
+    required this.primaryInk,
+    required this.accentInk,
+    required this.successInk,
+    required this.dangerInk,
     required this.shadow,
     required this.scrim,
     required this.shimmerBase,
@@ -46,6 +50,13 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color successLight;
   final Color dangerLight;
 
+  // Brand ink (legible brand-colored text/icons sitting on the tints above;
+  // brightened in dark themes where the saturated brand hues read poorly).
+  final Color primaryInk;
+  final Color accentInk;
+  final Color successInk;
+  final Color dangerInk;
+
   // Effects
   final Color shadow;
   final Color scrim;
@@ -66,6 +77,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accentLight: Color(0xFFFEF0E8),
     successLight: Color(0xFFDCFCE7),
     dangerLight: Color(0xFFFEE2E2),
+    primaryInk: Color(0xFF1B45D0),
+    accentInk: Color(0xFFF56B1E),
+    successInk: Color(0xFF16A34A),
+    dangerInk: Color(0xFFDC2626),
     shadow: Color(0x10000C22),
     scrim: Color(0x66000C22),
     shimmerBase: Color(0xFFD5DDF0),
@@ -83,10 +98,14 @@ class AppPalette extends ThemeExtension<AppPalette> {
     inkMid: Color(0xFFB9C2D9),
     inkLight: Color(0xFF8A93AD),
     inkFaint: Color(0xFF39425C),
-    primaryLight: Color(0xFF1C2C5A),
-    accentLight: Color(0xFF3A2418),
-    successLight: Color(0xFF10301F),
-    dangerLight: Color(0xFF3A1B1B),
+    primaryLight: Color(0xFF1B2540),
+    accentLight: Color(0xFF2E1F14),
+    successLight: Color(0xFF13291E),
+    dangerLight: Color(0xFF2E1A1C),
+    primaryInk: Color(0xFF8AAAFF),
+    accentInk: Color(0xFFFB923C),
+    successInk: Color(0xFF4ADE80),
+    dangerInk: Color(0xFFF87171),
     shadow: Color(0x40000000),
     scrim: Color(0x99000000),
     shimmerBase: Color(0xFF1E2538),
@@ -104,10 +123,14 @@ class AppPalette extends ThemeExtension<AppPalette> {
     inkMid: Color(0xFFC2CADE),
     inkLight: Color(0xFF8A93AD),
     inkFaint: Color(0xFF2A3144),
-    primaryLight: Color(0xFF16213F),
-    accentLight: Color(0xFF2A1A11),
-    successLight: Color(0xFF0B2417),
-    dangerLight: Color(0xFF2A1313),
+    primaryLight: Color(0xFF121A30),
+    accentLight: Color(0xFF221710),
+    successLight: Color(0xFF0C2016),
+    dangerLight: Color(0xFF241315),
+    primaryInk: Color(0xFF93B1FF),
+    accentInk: Color(0xFFFFA04D),
+    successInk: Color(0xFF5CE48E),
+    dangerInk: Color(0xFFFF8787),
     shadow: Color(0x66000000),
     scrim: Color(0xB3000000),
     shimmerBase: Color(0xFF13161F),
@@ -128,6 +151,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? accentLight,
     Color? successLight,
     Color? dangerLight,
+    Color? primaryInk,
+    Color? accentInk,
+    Color? successInk,
+    Color? dangerInk,
     Color? shadow,
     Color? scrim,
     Color? shimmerBase,
@@ -146,6 +173,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       accentLight: accentLight ?? this.accentLight,
       successLight: successLight ?? this.successLight,
       dangerLight: dangerLight ?? this.dangerLight,
+      primaryInk: primaryInk ?? this.primaryInk,
+      accentInk: accentInk ?? this.accentInk,
+      successInk: successInk ?? this.successInk,
+      dangerInk: dangerInk ?? this.dangerInk,
       shadow: shadow ?? this.shadow,
       scrim: scrim ?? this.scrim,
       shimmerBase: shimmerBase ?? this.shimmerBase,
@@ -169,6 +200,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       accentLight: Color.lerp(accentLight, other.accentLight, t)!,
       successLight: Color.lerp(successLight, other.successLight, t)!,
       dangerLight: Color.lerp(dangerLight, other.dangerLight, t)!,
+      primaryInk: Color.lerp(primaryInk, other.primaryInk, t)!,
+      accentInk: Color.lerp(accentInk, other.accentInk, t)!,
+      successInk: Color.lerp(successInk, other.successInk, t)!,
+      dangerInk: Color.lerp(dangerInk, other.dangerInk, t)!,
       shadow: Color.lerp(shadow, other.shadow, t)!,
       scrim: Color.lerp(scrim, other.scrim, t)!,
       shimmerBase: Color.lerp(shimmerBase, other.shimmerBase, t)!,

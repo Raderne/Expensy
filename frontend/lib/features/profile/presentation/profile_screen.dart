@@ -8,7 +8,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/collapsing_hero.dart';
-import '../../../core/widgets/header_back_button.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../auth/domain/auth_user.dart';
@@ -314,23 +313,11 @@ class _ProfileHeroExpanded extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              HeaderBackButton.onHero(
-                onTap: () {
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-              const Spacer(),
-              Text(
-                'Profile',
-                style: AppTextStyles.titleM.copyWith(color: Colors.white),
-              ),
-              const Spacer(),
-              const SizedBox(width: 44),
-            ],
+          Center(
+            child: Text(
+              'Profile',
+              style: AppTextStyles.titleM.copyWith(color: Colors.white),
+            ),
           ),
           const SizedBox(height: 18),
           _Avatar(name: user.name),
@@ -370,27 +357,13 @@ class _ProfileHeroCollapsed extends StatelessWidget {
       padding: EdgeInsets.only(top: topInset, left: 22, right: 22),
       child: SizedBox(
         height: 56,
-        child: Row(
-          children: [
-            HeaderBackButton.onHero(
-              onTap: () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.titleM.copyWith(color: Colors.white),
-                ),
-              ),
-            ),
-            const SizedBox(width: 44),
-          ],
+        child: Center(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.titleM.copyWith(color: Colors.white),
+          ),
         ),
       ),
     );

@@ -45,13 +45,13 @@ class AmountDisplay extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: AppColors.primaryInk.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(7),
               ),
               child: Text(
                 'AMOUNT',
                 style: AppTextStyles.muted.copyWith(
-                  color: AppColors.primary,
+                  color: AppColors.primaryInk,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,

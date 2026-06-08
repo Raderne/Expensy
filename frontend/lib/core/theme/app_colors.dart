@@ -35,6 +35,10 @@ class AppColors {
   static Color get accentLight => active.accentLight;
   static Color get successLight => active.successLight;
   static Color get dangerLight => active.dangerLight;
+  static Color get primaryInk => active.primaryInk;
+  static Color get accentInk => active.accentInk;
+  static Color get successInk => active.successInk;
+  static Color get dangerInk => active.dangerInk;
   static Color get shadow => active.shadow;
   static Color get scrim => active.scrim;
   static Color get shimmerBase => active.shimmerBase;
