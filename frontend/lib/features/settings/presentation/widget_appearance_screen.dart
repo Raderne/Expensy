@@ -134,7 +134,7 @@ class _WidgetCard extends StatelessWidget {
           _WidgetPreview(appearance: appearance, type: type),
           const SizedBox(height: 16),
 
-          _FieldLabel('Background'),
+          const _FieldLabel('Background'),
           const SizedBox(height: 8),
           _Segmented<WidgetBgStyle>(
             value: appearance.bg,
@@ -146,7 +146,7 @@ class _WidgetCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          _FieldLabel('Opacity'),
+          const _FieldLabel('Opacity'),
           Opacity(
             opacity: transparent ? 0.4 : 1,
             child: Row(
@@ -188,7 +188,7 @@ class _WidgetCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          _FieldLabel('Color'),
+          const _FieldLabel('Color'),
           const SizedBox(height: 8),
           _Segmented<WidgetColorMode>(
             value: appearance.color,
@@ -229,9 +229,9 @@ class _WidgetPreview extends StatelessWidget {
       child: Stack(
         children: [
           // Faux wallpaper so transparency is visible.
-          Positioned.fill(
+          const Positioned.fill(
             child: DecoratedBox(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

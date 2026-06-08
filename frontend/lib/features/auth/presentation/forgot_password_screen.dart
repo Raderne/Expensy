@@ -104,8 +104,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               validator: (v) {
                 final s = v?.trim() ?? '';
                 if (s.isEmpty) return 'Email is required';
-                if (!s.contains('@') || !s.contains('.'))
+                if (!s.contains('@') || !s.contains('.')) {
                   return 'Enter a valid email';
+                }
                 return null;
               },
             ),
@@ -150,8 +151,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               validator: (v) {
                 final s = v?.trim() ?? '';
                 if (s.isEmpty) return 'Enter the 6-digit code';
-                if (!RegExp(r'^\d{6}$').hasMatch(s))
+                if (!RegExp(r'^\d{6}$').hasMatch(s)) {
                   return 'Code must be 6 digits';
+                }
                 return null;
               },
             ),
