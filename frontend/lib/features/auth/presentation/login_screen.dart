@@ -60,8 +60,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               validator: (v) {
                 final s = v?.trim() ?? '';
                 if (s.isEmpty) return 'Email is required';
-                if (!s.contains('@') || !s.contains('.'))
+                if (!s.contains('@') || !s.contains('.')) {
                   return 'Enter a valid email';
+                }
                 return null;
               },
             ),

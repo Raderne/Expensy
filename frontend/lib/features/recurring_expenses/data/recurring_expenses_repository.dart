@@ -34,8 +34,9 @@ class RecurringExpensesRepository {
       'anchorDate': _isoDate(anchorDate),
     };
     if (categoryId != null) body['categoryId'] = categoryId;
-    if (frequency == RecurrenceFrequency.custom)
+    if (frequency == RecurrenceFrequency.custom) {
       body['intervalDays'] = intervalDays;
+    }
 
     final res = await _dio.post<Map<String, dynamic>>(
       '/me/expenses/recurring',
