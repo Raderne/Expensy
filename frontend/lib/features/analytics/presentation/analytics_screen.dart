@@ -125,7 +125,7 @@ class _MonthChip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              const Icon(
+              Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: AppColors.inkMid,
                 size: 18,
@@ -360,7 +360,7 @@ class _ErrorScaffold extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.wifi_off_rounded,
               size: 40,
               color: AppColors.inkLight,

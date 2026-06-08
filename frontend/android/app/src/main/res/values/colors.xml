@@ -11,4 +11,14 @@
     <color name="widget_success">#16A34A</color>
     <color name="widget_track">#DDE6FF</color>
     <color name="widget_chip_bg">#EEF3FF</color>
+
+    <!-- Explicit light/dark pairs resolved in WidgetStyle.kt by the user's
+         per-widget color mode (Dark / Light / Match-phone). Not driven by
+         values-night, since Dark/Light are explicit overrides of the system. -->
+    <color name="widget_bg_light">#FFFFFF</color>
+    <color name="widget_bg_dark">#0B0E16</color>
+    <color name="widget_ink_light">#0C1530</color>
+    <color name="widget_ink_dark">#F2F5FC</color>
+    <color name="widget_muted_light">#7A8AAA</color>
+    <color name="widget_muted_dark">#8A93AD</color>
 </resources>

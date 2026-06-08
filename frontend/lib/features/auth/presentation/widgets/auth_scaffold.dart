@@ -121,7 +121,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.border),
+      borderSide: BorderSide(color: AppColors.border),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,7 +219,7 @@ class AuthPrimaryButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  valueColor: AlwaysStoppedAnimation(AppColors.surface),
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
                 ),
               )
             : Text(label),

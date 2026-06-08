@@ -260,7 +260,7 @@ class _PostponedCard extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(
+          Divider(
             height: 1,
             thickness: 1,
             color: AppColors.border,
@@ -287,7 +287,7 @@ class _PostponedCard extends StatelessWidget {
               Expanded(
                 child: TextButton.icon(
                   onPressed: onReschedule,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.event_repeat_rounded,
                     size: 18,
                     color: AppColors.inkMid,

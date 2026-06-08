@@ -16,6 +16,7 @@ import '../../dashboard/application/dashboard_controller.dart';
 import '../../income/application/income_controller.dart';
 import '../../income/presentation/widgets/add_side_income_sheet.dart';
 import '../../recurring_expenses/application/recurring_expenses_controller.dart';
+import '../../settings/application/theme_controller.dart';
 import 'widgets/change_password_sheet.dart';
 import 'widgets/edit_budget_sheet.dart';
 import 'widgets/edit_name_sheet.dart';
@@ -108,6 +109,18 @@ class ProfileScreen extends ConsumerWidget {
                     label: 'Password',
                     value: '••••••••',
                     onTap: () => _openChangePassword(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Appearance',
+                children: [
+                  _Row(
+                    icon: Icons.palette_outlined,
+                    label: 'Theme & widgets',
+                    value: ref.watch(themeModeProvider).label,
+                    onTap: () => context.push('/profile/appearance'),
                   ),
                 ],
               ),
@@ -528,7 +541,7 @@ class _Row extends StatelessWidget {
               ),
               ?trailing,
               if (trailing == null && tap != null)
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
                   color: AppColors.inkLight,
                   size: 22,
@@ -546,8 +559,8 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(left: 64),
+    return Padding(
+      padding: const EdgeInsets.only(left: 64),
       child: Divider(height: 1, thickness: 1, color: AppColors.border),
     );
   }

@@ -57,7 +57,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: AppSystemOverlays.lightBackground,
+      value: AppSystemOverlays.background(context),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
@@ -207,11 +207,11 @@ class _NoteField extends StatelessWidget {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border, width: 1.5),
+          borderSide: BorderSide(color: AppColors.border, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border, width: 1.5),
+          borderSide: BorderSide(color: AppColors.border, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

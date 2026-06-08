@@ -305,7 +305,7 @@ class _SourceCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
                     color: AppColors.inkLight,
                   ),
@@ -313,7 +313,7 @@ class _SourceCard extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(
+          Divider(
             height: 1,
             thickness: 1,
             color: AppColors.border,

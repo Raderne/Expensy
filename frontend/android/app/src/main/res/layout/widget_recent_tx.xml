@@ -1,242 +1,254 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/recent_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/widget_background"
-    android:padding="14dp">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/widget_recent_title"
-        android:textColor="@color/widget_ink"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="6dp" />
-
-    <TextView
-        android:id="@+id/tx_empty"
+    <ImageView
+        android:id="@+id/widget_bg"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/widget_recent_empty"
-        android:textColor="@color/widget_muted"
-        android:textSize="12sp"
-        android:paddingTop="10dp"
-        android:visibility="gone" />
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:contentDescription="@null" />
 
-    <!-- Row 0 -->
     <LinearLayout
-        android:id="@+id/tx_row_0"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingTop="7dp"
-        android:paddingBottom="7dp"
-        android:baselineAligned="false">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="14dp">
 
         <TextView
-            android:id="@+id/tx0_chip"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="@drawable/widget_chip_bg"
-            android:gravity="center"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="10dp">
-
-            <TextView
-                android:id="@+id/tx0_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tx0_note"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <LinearLayout
+            android:id="@+id/recent_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end"
-            android:layout_marginStart="8dp">
-
-            <TextView
-                android:id="@+id/tx0_amount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tx0_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- Row 1 -->
-    <LinearLayout
-        android:id="@+id/tx_row_1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingTop="7dp"
-        android:paddingBottom="7dp"
-        android:baselineAligned="false">
+            android:text="@string/widget_recent_title"
+            android:textColor="@color/widget_ink"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
 
         <TextView
-            android:id="@+id/tx1_chip"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="@drawable/widget_chip_bg"
-            android:gravity="center"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/tx_empty"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="10dp">
+            android:text="@string/widget_recent_empty"
+            android:textColor="@color/widget_muted"
+            android:textSize="12sp"
+            android:paddingTop="10dp"
+            android:visibility="gone" />
+
+        <!-- Row 0 -->
+        <LinearLayout
+            android:id="@+id/tx_row_0"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:baselineAligned="false">
 
             <TextView
-                android:id="@+id/tx1_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_ink"
-                android:textSize="13sp"
+                android:id="@+id/tx0_chip"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/widget_chip_bg"
+                android:gravity="center"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tx1_note"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="10dp">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end"
-            android:layout_marginStart="8dp">
+                <TextView
+                    android:id="@+id/tx0_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tx1_amount"
+                <TextView
+                    android:id="@+id/tx0_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/widget_ink"
-                android:textSize="13sp"
+                android:orientation="vertical"
+                android:gravity="end"
+                android:layout_marginStart="8dp">
+
+                <TextView
+                    android:id="@+id/tx0_amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tx0_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Row 1 -->
+        <LinearLayout
+            android:id="@+id/tx_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/tx1_chip"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/widget_chip_bg"
+                android:gravity="center"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tx1_date"
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="10dp">
+
+                <TextView
+                    android:id="@+id/tx1_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tx1_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
+                android:orientation="vertical"
+                android:gravity="end"
+                android:layout_marginStart="8dp">
+
+                <TextView
+                    android:id="@+id/tx1_amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tx1_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
         </LinearLayout>
+
+        <!-- Row 2 -->
+        <LinearLayout
+            android:id="@+id/tx_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/tx2_chip"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/widget_chip_bg"
+                android:gravity="center"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="10dp">
+
+                <TextView
+                    android:id="@+id/tx2_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tx2_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end"
+                android:layout_marginStart="8dp">
+
+                <TextView
+                    android:id="@+id/tx2_amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tx2_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
     </LinearLayout>
-
-    <!-- Row 2 -->
-    <LinearLayout
-        android:id="@+id/tx_row_2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingTop="7dp"
-        android:paddingBottom="7dp"
-        android:baselineAligned="false">
-
-        <TextView
-            android:id="@+id/tx2_chip"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="@drawable/widget_chip_bg"
-            android:gravity="center"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="10dp">
-
-            <TextView
-                android:id="@+id/tx2_label"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tx2_note"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end"
-            android:layout_marginStart="8dp">
-
-            <TextView
-                android:id="@+id/tx2_amount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_ink"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tx2_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-        </LinearLayout>
-    </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>

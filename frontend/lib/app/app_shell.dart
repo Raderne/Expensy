@@ -23,7 +23,7 @@ class AppShell extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: hasHero
           ? AppSystemOverlays.hero
-          : AppSystemOverlays.lightBackground,
+          : AppSystemOverlays.background(context),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(top: !hasHero, bottom: false, child: child),

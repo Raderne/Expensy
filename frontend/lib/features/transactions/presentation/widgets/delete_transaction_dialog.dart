@@ -20,7 +20,7 @@ Future<bool> showDeleteTransactionDialog(
 
   final result = await showDialog<bool>(
     context: context,
-    barrierColor: const Color(0x66000C22),
+    barrierColor: AppColors.scrim,
     builder: (ctx) => Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 28),
