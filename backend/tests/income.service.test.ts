@@ -128,6 +128,8 @@ vi.mock('../src/repositories/recurringOccurrenceRepository.js', () => ({
       if (!occurrenceStore.has(key)) occurrenceStore.set(key, input);
     }),
     updateSnapshotForRule: vi.fn(async () => ({ count: 0 })),
+    findActivePostponed: vi.fn(async () => []),
+    cancelForRule: vi.fn(async () => ({ count: 0 })),
   },
 }));
 

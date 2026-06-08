@@ -208,7 +208,10 @@ export const recurringExpenseService = {
         message: 'Recurring expense not found',
       });
     }
-    await recurringExpenseRepository.softDelete(id, userId);
+    await Promise.all([
+      recurringExpenseRepository.softDelete(id, userId),
+      recurringOccurrenceRepository.cancelForRule({ recurringExpenseId: id }, userId),
+    ]);
   },
 
   // Generate a PENDING occurrence for every due charge up to `untilDate`. No

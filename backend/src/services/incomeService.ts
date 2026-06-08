@@ -160,7 +160,10 @@ export const incomeService = {
         message: 'Recurring income source not found',
       });
     }
-    await recurringIncomeRepository.softDelete(id, userId);
+    await Promise.all([
+      recurringIncomeRepository.softDelete(id, userId),
+      recurringOccurrenceRepository.cancelForRule({ recurringIncomeId: id }, userId),
+    ]);
   },
 
   async createSideIncome(
