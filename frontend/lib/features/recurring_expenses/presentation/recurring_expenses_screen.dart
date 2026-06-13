@@ -6,8 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/header_back_button.dart';
-import '../../../core/widgets/hero_gradient.dart';
 import '../../analytics/application/analytics_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../profile/presentation/widgets/edit_sheet_shell.dart';
@@ -33,28 +33,28 @@ class RecurringExpensesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: HeroGradient(
+          SliverCollapsingHero(
+            minHeight: topInset + 56,
+            // Sized to the expanded content (header + total card) plus a little
+            // headroom so the title clears the status bar; minHeight is the
+            // collapsed bar and isn't affected.
+            maxHeight: topInset + 178,
+            expanded: Padding(
               padding: EdgeInsets.fromLTRB(18, topInset + 8, 18, 22),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      HeaderBackButton.onHero(onTap: () => context.pop()),
-                      const Spacer(),
-                      Text(
-                        'Recurring expenses',
-                        style: AppTextStyles.titleM.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 44),
-                    ],
-                  ),
+                  _heroHeader(context, 'Recurring expenses'),
                   const SizedBox(height: 14),
                   _TotalCard(asyncValue: async),
                 ],
+              ),
+            ),
+            collapsed: Padding(
+              padding: EdgeInsets.only(top: topInset, left: 18, right: 18),
+              child: SizedBox(
+                height: 56,
+                child: _heroHeader(context, 'Recurring expenses'),
               ),
             ),
           ),
@@ -101,6 +101,18 @@ class RecurringExpensesScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Back button + centered title, shared by the expanded hero and the
+  /// collapsed bar so the title holds its position through the shrink.
+  Widget _heroHeader(BuildContext context, String title) => Row(
+    children: [
+      HeaderBackButton.onHero(onTap: () => context.pop()),
+      const Spacer(),
+      Text(title, style: AppTextStyles.titleM.copyWith(color: Colors.white)),
+      const Spacer(),
+      const SizedBox(width: 44),
+    ],
+  );
 
   Future<void> _openAdd(BuildContext context, WidgetRef ref) async {
     final ok = await showEditSheet<bool>(
@@ -375,20 +387,12 @@ class _RuleCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.inkLight,
-                  ),
+                  Icon(Icons.chevron_right_rounded, color: AppColors.inkLight),
                 ],
               ),
             ),
           ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.border,
-            indent: 70,
-          ),
+          Divider(height: 1, thickness: 1, color: AppColors.border, indent: 70),
           Row(
             children: [
               Expanded(
