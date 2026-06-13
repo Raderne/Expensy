@@ -1,7 +1,7 @@
 name: expensy
 description: Expensy — personal expense tracking (Flutter client).
 publish_to: 'none'
-version: 1.4.0+5001
+version: 1.4.1+5002
 
 environment:
   sdk: ^3.12.0
@@ -35,6 +35,9 @@ dependencies:
   # Device / app metadata
   package_info_plus: ^10.1.0
   open_file: ^3.3.2
+
+  # Integrity check for downloaded APK updates
+  crypto: ^3.0.6
 
   # Home-screen widgets (Android AppWidgets)
   home_widget: ^0.7.0

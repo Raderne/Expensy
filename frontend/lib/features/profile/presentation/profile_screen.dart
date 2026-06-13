@@ -43,13 +43,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     ref.listen<UpdateState>(updateControllerProvider, (_, next) {
       if (!mounted) return;
+      // While the sheet is open it already surfaces progress/errors inline;
+      // skip the snackbar to avoid a redundant one behind it.
+      final sheetVisible = ref.read(updateSheetVisibleProvider);
       if (next is UpdateAvailable) {
-        showUpdateSheet(context, next.info);
-      } else if (next is UpdateUpToDate) {
+        showUpdateSheet(context, ref, next.info);
+      } else if (next is UpdateUpToDate && !sheetVisible) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("You're on the latest version")),
         );
-      } else if (next is UpdateError) {
+      } else if (next is UpdateError && !sheetVisible) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.message),
@@ -612,17 +615,22 @@ class _UpdateRow extends ConsumerWidget {
       UpdateAvailable(:final info) => (
           'v${info.version} available',
           AppColors.primary,
-          () => showUpdateSheet(context, info),
+          () => showUpdateSheet(context, ref, info),
         ),
       UpdateDownloading(:final info, :final progress) => (
           'Downloading ${(progress * 100).toInt()}%',
           AppColors.primary,
-          () => showUpdateSheet(context, info),
+          () => showUpdateSheet(context, ref, info),
+        ),
+      UpdateVerifying(:final info) => (
+          'Verifying…',
+          AppColors.primary,
+          () => showUpdateSheet(context, ref, info),
         ),
       UpdateReadyToInstall(:final info, :final apkPath) => (
           'v${info.version} — tap to install',
           AppColors.success,
-          () => showUpdateSheet(context, info),
+          () => showUpdateSheet(context, ref, info),
         ),
       UpdateError() => (
           'Tap to retry',

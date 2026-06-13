@@ -110,6 +110,8 @@ class UpdateSheet extends ConsumerWidget {
                   onTap: () =>
                       ref.read(updateControllerProvider.notifier).cancelDownload(),
                 ),
+              ] else if (state is UpdateVerifying) ...[
+                const _VerifyingSection(),
               ] else if (state is UpdateReadyToInstall) ...[
                 _PrimaryButton(
                   label: 'Install now',
@@ -152,6 +154,31 @@ class UpdateSheet extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _VerifyingSection extends StatelessWidget {
+  const _VerifyingSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          'Verifying download…',
+          style: AppTextStyles.label.copyWith(color: AppColors.inkMid),
+        ),
+      ],
     );
   }
 }
@@ -271,12 +298,23 @@ class _OutlineButton extends StatelessWidget {
   }
 }
 
-Future<void> showUpdateSheet(BuildContext context, UpdateInfo info) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.scrim,
-    builder: (_) => UpdateSheet(info: info),
-  );
+/// Shows the update sheet and flags it visible for the duration, so callers
+/// (the profile screen) can suppress snackbars the sheet already surfaces.
+Future<void> showUpdateSheet(
+  BuildContext context,
+  WidgetRef ref,
+  UpdateInfo info,
+) async {
+  ref.read(updateSheetVisibleProvider.notifier).set(true);
+  try {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: AppColors.scrim,
+      builder: (_) => UpdateSheet(info: info),
+    );
+  } finally {
+    ref.read(updateSheetVisibleProvider.notifier).set(false);
+  }
 }

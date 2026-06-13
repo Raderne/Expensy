@@ -3,8 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_file/open_file.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../features/settings/data/settings_store.dart';
 import 'update_info.dart';
 import 'update_service.dart';
+
+/// Settings-store keys for the "What's New" hand-off: written when the user
+/// taps Install, read once after the new version launches (see whats_new.dart).
+const pendingUpdateVersionKey = 'pending_update_version';
+const pendingUpdateNotesKey = 'pending_update_notes';
+
+/// Simple boolean flag notifier (Riverpod 3 dropped `StateProvider` from the
+/// core API; the codebase standardizes on `NotifierProvider`).
+class BoolFlagNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+/// True while the update bottom sheet is on screen, so the profile screen can
+/// suppress redundant error/up-to-date snackbars that the sheet already shows.
+final updateSheetVisibleProvider =
+    NotifierProvider<BoolFlagNotifier, bool>(BoolFlagNotifier.new);
 
 sealed class UpdateState {
   const UpdateState();
@@ -31,6 +51,11 @@ class UpdateDownloading extends UpdateState {
   final UpdateInfo info;
   final double progress;
   const UpdateDownloading(this.info, this.progress);
+}
+
+class UpdateVerifying extends UpdateState {
+  final UpdateInfo info;
+  const UpdateVerifying(this.info);
 }
 
 class UpdateReadyToInstall extends UpdateState {
@@ -86,26 +111,45 @@ class UpdateController extends Notifier<UpdateState> {
     };
     if (info == null) return;
 
+    final service = ref.read(updateServiceProvider);
+    // Clear any leftover from a prior cancelled/failed run before downloading.
+    await service.deleteDownloadedApk();
+
     _cancelToken = CancelToken();
     state = UpdateDownloading(info, 0);
 
     try {
-      final path = await ref.read(updateServiceProvider).downloadApk(
+      final path = await service.downloadApk(
         info.downloadUrl,
         onProgress: (p) => state = UpdateDownloading(info, p),
         cancelToken: _cancelToken,
       );
+
+      state = UpdateVerifying(info);
+      final verified = await service.verifyApk(path, info);
+      if (verified == false) {
+        await service.deleteDownloadedApk();
+        state = UpdateError(
+          'Downloaded file failed its integrity check. Please retry.',
+          info: info,
+        );
+        return;
+      }
+      // true (matched) or null (no checksum published) → proceed.
       state = UpdateReadyToInstall(info, path);
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) {
+        await service.deleteDownloadedApk();
         state = UpdateAvailable(info);
       } else {
+        await service.deleteDownloadedApk();
         state = UpdateError(
           'Download failed: ${e.message ?? e.type.name}',
           info: info,
         );
       }
     } catch (e) {
+      await service.deleteDownloadedApk();
       state = UpdateError(_friendlyError(e), info: info);
     }
   }
@@ -118,6 +162,14 @@ class UpdateController extends Notifier<UpdateState> {
       _ => (null, null),
     };
     if (info == null || apkPath == null) return;
+
+    // Hand the release notes off to the next launch: once the app restarts as
+    // the new version, the dashboard shows them once (see whats_new.dart).
+    if (info.releaseNotes.isNotEmpty) {
+      final store = ref.read(settingsStoreProvider);
+      await store.setString(pendingUpdateVersionKey, info.version);
+      await store.setString(pendingUpdateNotesKey, info.releaseNotes);
+    }
 
     final result = await OpenFile.open(apkPath);
     if (result.type != ResultType.done) {
