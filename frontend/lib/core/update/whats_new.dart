@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/settings/data/settings_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/simple_markdown.dart';
 import 'update_controller.dart';
 
 /// One-shot guard: ensures the "What's New" sheet is attempted at most once per
 /// app session, so returning to the dashboard doesn't re-trigger it.
-final whatsNewCheckedProvider =
-    NotifierProvider<BoolFlagNotifier, bool>(BoolFlagNotifier.new);
+final whatsNewCheckedProvider = NotifierProvider<BoolFlagNotifier, bool>(
+  BoolFlagNotifier.new,
+);
 
 /// Shows the release notes once, the first time the app runs as the version the
 /// in-app updater installed. Notes are written at install time (see
@@ -125,10 +127,7 @@ class _WhatsNewSheet extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: maxNotesHeight),
                 child: SingleChildScrollView(
-                  child: Text(
-                    notes,
-                    style: AppTextStyles.body.copyWith(fontSize: 13.5),
-                  ),
+                  child: SimpleMarkdown(data: notes),
                 ),
               ),
               const SizedBox(height: 20),

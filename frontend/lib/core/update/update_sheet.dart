@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/simple_markdown.dart';
 import 'update_controller.dart';
 import 'update_info.dart';
 
@@ -94,10 +95,7 @@ class UpdateSheet extends ConsumerWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 120),
                   child: SingleChildScrollView(
-                    child: Text(
-                      info.releaseNotes,
-                      style: AppTextStyles.body.copyWith(fontSize: 13.5),
-                    ),
+                    child: SimpleMarkdown(data: info.releaseNotes),
                   ),
                 ),
               ],
@@ -107,8 +105,9 @@ class UpdateSheet extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _OutlineButton(
                   label: 'Cancel',
-                  onTap: () =>
-                      ref.read(updateControllerProvider.notifier).cancelDownload(),
+                  onTap: () => ref
+                      .read(updateControllerProvider.notifier)
+                      .cancelDownload(),
                 ),
               ] else if (state is UpdateVerifying) ...[
                 const _VerifyingSection(),
@@ -202,7 +201,9 @@ class _ProgressSection extends StatelessWidget {
             ),
             Text(
               '$pct%',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.primary,
+              ),
             ),
           ],
         ),

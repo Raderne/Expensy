@@ -95,7 +95,12 @@ class _DashboardContent extends StatelessWidget {
       slivers: [
         SliverCollapsingHero(
           minHeight: topInset + 56,
-          maxHeight: topInset + 272,
+          // The expanded content (greeting row + balance card) is bottom-
+          // anchored, so if it's taller than maxHeight the overflow eats the
+          // top padding and the greeting slides up behind the status bar. Give
+          // it enough room to clear the inset. minHeight is unchanged, so the
+          // collapsed bar doesn't gain any extra space.
+          maxHeight: topInset + 290,
           expanded: _HeroExpanded(
             name: name,
             topInset: topInset,
