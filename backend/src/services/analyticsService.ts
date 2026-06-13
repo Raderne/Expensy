@@ -27,10 +27,12 @@ export const analyticsService = {
   async getBreakdown(userId: string, month: string): Promise<AnalyticsResponse> {
     const { from, to } = parseMonth(month);
 
-    // Fetch grouped sums and the category metadata in parallel.
+    // Fetch grouped sums and the category metadata in parallel. Pass userId so
+    // the user's own custom categories are included — without it findAll returns
+    // only system categories and every custom-category expense gets dropped.
     const [groups, categories] = await Promise.all([
       transactionRepository.groupExpensesByCategory(userId, from, to),
-      categoryRepository.findAll(),
+      categoryRepository.findAll(userId),
     ]);
 
     const byId = new Map(categories.map((c) => [c.id, c]));

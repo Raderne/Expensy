@@ -7,6 +7,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/update/update_controller.dart';
+import '../../../core/update/update_sheet.dart';
 import '../../../core/widgets/collapsing_hero.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
@@ -29,11 +31,37 @@ final _appVersionProvider = FutureProvider<String>((ref) async {
   return info.version;
 });
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<UpdateState>(updateControllerProvider, (_, next) {
+      if (!mounted) return;
+      // While the sheet is open it already surfaces progress/errors inline;
+      // skip the snackbar to avoid a redundant one behind it.
+      final sheetVisible = ref.read(updateSheetVisibleProvider);
+      if (next is UpdateAvailable) {
+        showUpdateSheet(context, ref, next.info);
+      } else if (next is UpdateUpToDate && !sheetVisible) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("You're on the latest version")),
+        );
+      } else if (next is UpdateError && !sheetVisible) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    });
+
     final auth = ref.watch(authControllerProvider);
     final dash = ref.watch(dashboardControllerProvider);
     final incomeAsync = ref.watch(incomeControllerProvider);
@@ -42,6 +70,7 @@ class ProfileScreen extends ConsumerWidget {
       AsyncData(:final value) => value,
       _ => null,
     };
+    final updateState = ref.watch(updateControllerProvider);
 
     final user = switch (auth.value) {
       AuthAuthenticated(:final user) => user,
@@ -184,6 +213,8 @@ class ProfileScreen extends ConsumerWidget {
                     label: 'App version',
                     value: appVersion != null ? 'v$appVersion' : '—',
                   ),
+                  const _Divider(),
+                  _UpdateRow(state: updateState),
                 ],
               ),
               const SizedBox(height: 18),
@@ -556,6 +587,124 @@ class _MutedTag extends StatelessWidget {
         style: AppTextStyles.mutedSmall.copyWith(
           color: AppColors.inkMid,
           fontSize: 10.5,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Update row ──────────────────────────────────────────────────────────────
+
+class _UpdateRow extends ConsumerWidget {
+  final UpdateState state;
+  const _UpdateRow({required this.state});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final (label, color, onTap) = switch (state) {
+      UpdateChecking() => (
+          'Checking…',
+          AppColors.inkMid,
+          null as VoidCallback?,
+        ),
+      UpdateUpToDate() => (
+          'Up to date',
+          AppColors.success,
+          () => ref.read(updateControllerProvider.notifier).checkForUpdate(),
+        ),
+      UpdateAvailable(:final info) => (
+          'v${info.version} available',
+          AppColors.primary,
+          () => showUpdateSheet(context, ref, info),
+        ),
+      UpdateDownloading(:final info, :final progress) => (
+          'Downloading ${(progress * 100).toInt()}%',
+          AppColors.primary,
+          () => showUpdateSheet(context, ref, info),
+        ),
+      UpdateVerifying(:final info) => (
+          'Verifying…',
+          AppColors.primary,
+          () => showUpdateSheet(context, ref, info),
+        ),
+      UpdateReadyToInstall(:final info, :final apkPath) => (
+          'v${info.version} — tap to install',
+          AppColors.success,
+          () => showUpdateSheet(context, ref, info),
+        ),
+      UpdateError() => (
+          'Tap to retry',
+          AppColors.danger,
+          () => ref.read(updateControllerProvider.notifier).checkForUpdate(),
+        ),
+      UpdateIdle() => (
+          'Tap to check',
+          AppColors.inkMid,
+          () => ref.read(updateControllerProvider.notifier).checkForUpdate(),
+        ),
+    };
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: state is UpdateChecking
+                    ? const Padding(
+                        padding: EdgeInsets.all(9),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.system_update_alt_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Check for updates',
+                      style: AppTextStyles.muted.copyWith(
+                        fontSize: 11.5,
+                        color: AppColors.inkMid,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyStrong.copyWith(color: color),
+                    ),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.inkLight,
+                  size: 22,
+                ),
+            ],
+          ),
         ),
       ),
     );

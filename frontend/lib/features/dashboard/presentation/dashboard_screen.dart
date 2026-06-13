@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/update/whats_new.dart';
 import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/hero_gradient.dart';
@@ -32,6 +33,13 @@ class DashboardScreen extends ConsumerWidget {
       _ => '',
     };
     final dashState = ref.watch(dashboardControllerProvider);
+
+    // Show the "What's new" notes once after an in-app update lands. Runs before
+    // the confirmation queue so the two modals don't collide; its own one-shot
+    // guard prevents repeats.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) maybeShowWhatsNew(context, ref);
+    });
 
     // Auto-prompt the user to confirm/postpone any due recurring items once the
     // dashboard is up. The queue runner guards against double-presentation.
@@ -87,7 +95,12 @@ class _DashboardContent extends StatelessWidget {
       slivers: [
         SliverCollapsingHero(
           minHeight: topInset + 56,
-          maxHeight: topInset + 272,
+          // The expanded content (greeting row + balance card) is bottom-
+          // anchored, so if it's taller than maxHeight the overflow eats the
+          // top padding and the greeting slides up behind the status bar. Give
+          // it enough room to clear the inset. minHeight is unchanged, so the
+          // collapsed bar doesn't gain any extra space.
+          maxHeight: topInset + 290,
           expanded: _HeroExpanded(
             name: name,
             topInset: topInset,

@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/header_back_button.dart';
-import '../../../core/widgets/hero_gradient.dart';
 import '../application/income_controller.dart';
 import '../data/income_repository.dart';
 import '../domain/recurring_income.dart';
@@ -29,25 +29,18 @@ class IncomeSourcesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: HeroGradient(
+          SliverCollapsingHero(
+            minHeight: topInset + 56,
+            // Sized to the expanded content (header + subtitle) plus headroom so
+            // the title clears the status bar; the collapsed bar (minHeight) is
+            // unaffected.
+            maxHeight: topInset + 132,
+            expanded: Padding(
               padding: EdgeInsets.fromLTRB(18, topInset + 8, 18, 20),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      HeaderBackButton.onHero(onTap: () => context.pop()),
-                      const Spacer(),
-                      Text(
-                        'Income sources',
-                        style: AppTextStyles.titleM.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 44),
-                    ],
-                  ),
+                  _heroHeader(context, 'Income sources'),
                   const SizedBox(height: 8),
                   Text(
                     'On payday we’ll ask you to confirm the income or postpone it.',
@@ -58,6 +51,13 @@ class IncomeSourcesScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            collapsed: Padding(
+              padding: EdgeInsets.only(top: topInset, left: 18, right: 18),
+              child: SizedBox(
+                height: 56,
+                child: _heroHeader(context, 'Income sources'),
               ),
             ),
           ),
@@ -115,6 +115,18 @@ class IncomeSourcesScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Back button + centered title, shared by the expanded hero and the
+  /// collapsed bar so the title holds its position through the shrink.
+  Widget _heroHeader(BuildContext context, String title) => Row(
+    children: [
+      HeaderBackButton.onHero(onTap: () => context.pop()),
+      const Spacer(),
+      Text(title, style: AppTextStyles.titleM.copyWith(color: Colors.white)),
+      const Spacer(),
+      const SizedBox(width: 44),
+    ],
+  );
 
   Future<void> _openAdd(BuildContext context, WidgetRef ref) async {
     final ok = await showEditSheet<bool>(
@@ -305,20 +317,12 @@ class _SourceCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.inkLight,
-                  ),
+                  Icon(Icons.chevron_right_rounded, color: AppColors.inkLight),
                 ],
               ),
             ),
           ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.border,
-            indent: 68,
-          ),
+          Divider(height: 1, thickness: 1, color: AppColors.border, indent: 68),
           Row(
             children: [
               Expanded(
