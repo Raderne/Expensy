@@ -115,66 +115,83 @@ class _RecentTile extends StatelessWidget {
     final formatted = '${isIncome ? '+' : '-'}${money.format(t.amount.abs())}';
     final hasNote = t.note != null && t.note!.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: t.category.bgTintValue,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              t.category.abbr,
-              style: AppTextStyles.labelStrong.copyWith(
-                color: t.category.colorValue,
+    return Opacity(
+      opacity: t.pending ? 0.6 : 1,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: t.category.bgTintValue,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                t.category.abbr,
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: t.category.colorValue,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          t.category.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodyStrong,
+                        ),
+                      ),
+                      if (t.pending) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 13,
+                          color: AppColors.inkLight,
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (hasNote) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      t.note!,
+                      style: AppTextStyles.muted,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  t.category.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.bodyStrong,
-                ),
-                if (hasNote) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    t.note!,
-                    style: AppTextStyles.muted,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  formatted,
+                  style: AppTextStyles.bodyStrong.copyWith(
+                    color: isIncome ? AppColors.success : AppColors.ink,
                   ),
-                ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _relativeDate(t.occurredAt),
+                  style: AppTextStyles.mutedSmall,
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatted,
-                style: AppTextStyles.bodyStrong.copyWith(
-                  color: isIncome ? AppColors.success : AppColors.ink,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _relativeDate(t.occurredAt),
-                style: AppTextStyles.mutedSmall,
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

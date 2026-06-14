@@ -19,8 +19,10 @@ void main() {
 
   group('AmountInput.dot', () {
     test('appends a dot', () => expect(AmountInput.dot('12'), '12.'));
-    test('does not add a second dot', () =>
-        expect(AmountInput.dot('12.3'), '12.3'));
+    test(
+      'does not add a second dot',
+      () => expect(AmountInput.dot('12.3'), '12.3'),
+    );
     test('appends to "0"', () => expect(AmountInput.dot('0'), '0.'));
   });
 
@@ -45,7 +47,9 @@ void main() {
   group('AmountInput.isValid', () {
     test('zero is invalid', () => expect(AmountInput.isValid('0'), false));
     test('positive is valid', () => expect(AmountInput.isValid('1.99'), true));
-    test('trailing dot still parses', () =>
-        expect(AmountInput.isValid('5.'), true));
+    test(
+      'trailing dot still parses',
+      () => expect(AmountInput.isValid('5.'), true),
+    );
   });
 }

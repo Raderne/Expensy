@@ -31,10 +31,12 @@ class SwipeableTransactionRow extends StatelessWidget {
         categoryAbbr: transaction.category.abbr,
         categoryColor: transaction.category.colorValue,
         categoryBg: transaction.category.bgTintValue,
+        pending: transaction.pending,
       ),
     );
 
-    if (transaction.isRecurringIncome) return row;
+    // A pending (not-yet-synced) row can't be deleted until it lands server-side.
+    if (transaction.isRecurringIncome || transaction.pending) return row;
 
     return Dismissible(
       key: ValueKey(transaction.id),

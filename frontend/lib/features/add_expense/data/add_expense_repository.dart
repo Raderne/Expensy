@@ -1,63 +1,60 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/dio_client.dart';
+import '../../../core/models/category.dart';
+import '../../../core/sync/outbox_writer.dart';
 import '../../dashboard/domain/recent_transaction.dart';
 
 class AddExpenseRepository {
-  final Dio _dio;
-  const AddExpenseRepository(this._dio);
+  final OutboxWriter _outbox;
+  const AddExpenseRepository(this._outbox);
 
+  /// Queues an expense create and returns the optimistic row to render right
+  /// away. The actual `POST /transactions` is performed later by the SyncEngine;
+  /// [idempotencyKey] keeps a replayed write from double-posting.
+  ///
+  /// The server stores expenses as a negative amount (client sends positive and
+  /// the API negates), so the optimistic row mirrors that sign to match what a
+  /// later refetch will return.
   Future<RecentTransaction> createExpense({
-    required String categoryId,
+    required Category category,
     required double amount,
     String? note,
     DateTime? occurredAt,
-    String? idempotencyKey,
+    required String idempotencyKey,
   }) async {
-    final res = await _dio.post<Map<String, dynamic>>(
-      '/transactions',
-      data: {
-        'categoryId': categoryId,
+    final tempId = _outbox.newTempId();
+    final when = occurredAt ?? DateTime.now();
+    final trimmedNote = (note != null && note.trim().isNotEmpty)
+        ? note.trim()
+        : null;
+
+    await _outbox.enqueue(
+      kind: 'txCreate',
+      method: 'POST',
+      path: '/transactions',
+      idempotencyKey: idempotencyKey,
+      tempId: tempId,
+      body: {
+        // May be a temp category id if the category was also created offline;
+        // the SyncEngine rewrites it to the real id before this write replays.
+        'categoryId': category.id,
         'amount': amount,
-        if (note != null && note.isNotEmpty) 'note': note,
-        if (occurredAt != null)
-          'occurredAt': occurredAt.toUtc().toIso8601String(),
+        'note': ?trimmedNote,
+        'occurredAt': when.toUtc().toIso8601String(),
       },
-      options: idempotencyKey == null
-          ? null
-          : Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
 
-    final status = res.statusCode ?? 0;
-    final data = res.data;
-    if (status < 200 || status >= 300 || data == null) {
-      throw AddExpenseApiException(
-        status: status,
-        code: data?['code']?.toString(),
-        message: data?['title']?.toString() ?? 'Could not save expense',
-      );
-    }
-
-    final tx = data['transaction'] as Map<String, dynamic>;
-    return RecentTransaction.fromJson(tx);
+    return RecentTransaction(
+      id: tempId,
+      amount: -amount,
+      note: trimmedNote,
+      occurredAt: when,
+      category: category,
+      pending: true,
+    );
   }
 }
 
-class AddExpenseApiException implements Exception {
-  final int status;
-  final String? code;
-  final String message;
-  const AddExpenseApiException({
-    required this.status,
-    required this.message,
-    this.code,
-  });
-
-  @override
-  String toString() => 'AddExpenseApiException($status, $code): $message';
-}
-
 final addExpenseRepositoryProvider = Provider<AddExpenseRepository>(
-  (ref) => AddExpenseRepository(ref.watch(dioProvider)),
+  (ref) => AddExpenseRepository(ref.watch(outboxWriterProvider)),
 );

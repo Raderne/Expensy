@@ -48,7 +48,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(addExpenseControllerProvider);
     final controller = ref.read(addExpenseControllerProvider.notifier);
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(categoriesViewProvider);
 
     ref.listen<AddExpenseState>(addExpenseControllerProvider, (prev, next) {
       if (prev?.saved == null && next.saved != null) {

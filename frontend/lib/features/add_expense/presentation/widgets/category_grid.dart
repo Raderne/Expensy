@@ -230,7 +230,7 @@ class _AllCategoriesSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(categoriesViewProvider);
     final categories = categoriesAsync.value ?? const [];
     final displayCats = categories
         .where((c) => c.key != 'income' && c.key != 'subscriptions')

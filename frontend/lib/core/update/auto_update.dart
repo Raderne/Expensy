@@ -7,8 +7,9 @@ const _kIntervalDays = 7;
 
 /// Session guard: prevents repeated dashboard rebuilds from queuing multiple
 /// checks within the same app session.
-final autoUpdateCheckedProvider =
-    NotifierProvider<BoolFlagNotifier, bool>(BoolFlagNotifier.new);
+final autoUpdateCheckedProvider = NotifierProvider<BoolFlagNotifier, bool>(
+  BoolFlagNotifier.new,
+);
 
 /// Cold-start path: session-gated + 7-day interval-gated.
 /// Call once from the dashboard's post-frame callback.

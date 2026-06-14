@@ -123,7 +123,9 @@ class _ThemeRow extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.primaryLight : AppColors.surfaceAlt,
+                  color: selected
+                      ? AppColors.primaryLight
+                      : AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(

@@ -64,6 +64,7 @@ class ShimmerBox extends StatelessWidget {
   final double height;
   final double? width;
   final double radius;
+
   /// Defaults to the theme's shimmer tones when null.
   final Color? baseColor;
   final Color? shineColor;

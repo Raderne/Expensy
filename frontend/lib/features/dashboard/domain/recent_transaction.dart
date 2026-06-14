@@ -10,12 +10,17 @@ class RecentTransaction {
   final DateTime occurredAt;
   final Category category;
 
+  /// `true` for an optimistic row still waiting in the outbox to reach the
+  /// server. Defaults to `false` and is never serialized from the API.
+  final bool pending;
+
   const RecentTransaction({
     required this.id,
     required this.amount,
     required this.note,
     required this.occurredAt,
     required this.category,
+    this.pending = false,
   });
 
   factory RecentTransaction.fromJson(Map<String, dynamic> json) =>

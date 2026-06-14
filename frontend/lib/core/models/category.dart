@@ -12,6 +12,10 @@ class Category {
   final String bgTint;
   final bool isSystem;
 
+  /// `true` for an optimistic category still waiting in the outbox to reach the
+  /// server. Defaults to `false` and is never serialized from the API.
+  final bool pending;
+
   const Category({
     required this.id,
     required this.key,
@@ -20,6 +24,7 @@ class Category {
     required this.color,
     required this.bgTint,
     this.isSystem = true,
+    this.pending = false,
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(

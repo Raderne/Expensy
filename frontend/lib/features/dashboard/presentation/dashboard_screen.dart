@@ -35,7 +35,7 @@ class DashboardScreen extends ConsumerWidget {
       AuthAuthenticated(:final user) => user.name,
       _ => '',
     };
-    final dashState = ref.watch(dashboardControllerProvider);
+    final dashState = ref.watch(dashboardViewProvider);
 
     // Show the "What's new" notes once after an in-app update lands. Runs before
     // the confirmation queue so the two modals don't collide; its own one-shot

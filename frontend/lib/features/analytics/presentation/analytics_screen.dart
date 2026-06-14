@@ -360,11 +360,7 @@ class _ErrorScaffold extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.wifi_off_rounded,
-              size: 40,
-              color: AppColors.inkLight,
-            ),
+            Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
             const SizedBox(height: 12),
             Text('Could not load analytics', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
