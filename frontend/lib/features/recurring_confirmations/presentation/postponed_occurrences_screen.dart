@@ -141,7 +141,9 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
     try {
       switch (result) {
         case ConfirmResult():
-          await ref.read(recurringConfirmationsRepositoryProvider).confirm(o.id);
+          await ref
+              .read(recurringConfirmationsRepositoryProvider)
+              .confirm(o.id);
           messenger.showSnackBar(
             SnackBar(
               content: Text(
@@ -260,12 +262,7 @@ class _PostponedCard extends StatelessWidget {
               ],
             ),
           ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.border,
-            indent: 70,
-          ),
+          Divider(height: 1, thickness: 1, color: AppColors.border, indent: 70),
           Row(
             children: [
               Expanded(

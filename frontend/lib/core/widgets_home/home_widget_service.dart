@@ -41,7 +41,10 @@ class HomeWidgetService {
   }
 
   static Future<void> _writeBudget(BudgetInfo b) async {
-    final money = NumberFormat.simpleCurrency(locale: 'en_US', decimalDigits: 0);
+    final money = NumberFormat.simpleCurrency(
+      locale: 'en_US',
+      decimalDigits: 0,
+    );
     await HomeWidget.saveWidgetData<bool>('budget_is_set', b.isSet);
     await HomeWidget.saveWidgetData<String>(
       'budget_pct',
@@ -66,14 +69,19 @@ class HomeWidgetService {
       if (i < count) {
         final t = txs[i];
         final isIncome = t.amount >= 0;
-        final amount =
-            '${isIncome ? '+' : '-'}${money.format(t.amount.abs())}';
-        await HomeWidget.saveWidgetData<String>('tx${i}_label', t.category.label);
+        final amount = '${isIncome ? '+' : '-'}${money.format(t.amount.abs())}';
+        await HomeWidget.saveWidgetData<String>(
+          'tx${i}_label',
+          t.category.label,
+        );
         await HomeWidget.saveWidgetData<String>('tx${i}_note', t.note ?? '');
         await HomeWidget.saveWidgetData<String>('tx${i}_amount', amount);
         await HomeWidget.saveWidgetData<bool>('tx${i}_income', isIncome);
         await HomeWidget.saveWidgetData<String>('tx${i}_abbr', t.category.abbr);
-        await HomeWidget.saveWidgetData<String>('tx${i}_color', t.category.color);
+        await HomeWidget.saveWidgetData<String>(
+          'tx${i}_color',
+          t.category.color,
+        );
         await HomeWidget.saveWidgetData<String>(
           'tx${i}_date',
           _relativeDate(t.occurredAt),

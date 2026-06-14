@@ -5,7 +5,10 @@ import '../../config/env.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/data/auth_interceptor.dart';
 import '../../features/auth/data/auth_storage.dart';
+import 'connectivity_service.dart';
 import 'idempotency_interceptor.dart';
+import 'server_health.dart';
+import 'server_wake_interceptor.dart';
 
 const _kBaseHeaders = {
   'Accept': 'application/json',
@@ -44,5 +47,16 @@ final dioProvider = Provider<Dio>((ref) {
   // Stamp a write request with an Idempotency-Key so duplicates are rejected
   // server-side. Runs after AuthInterceptor; both only touch onRequest.
   dio.interceptors.add(IdempotencyInterceptor());
+  // Outermost error handler: warm a suspended backend and replay once. Added
+  // last so it wraps the others — by the time a connection error surfaces here
+  // the request already carries its auth + idempotency headers, which the
+  // replay reuses.
+  dio.interceptors.add(
+    ServerWakeRetryInterceptor(
+      dio: dio,
+      wake: () => ref.read(serverWakerProvider.notifier).wake(),
+      hasNetwork: () => ref.read(connectivityServiceProvider).check(),
+    ),
+  );
   return dio;
 });

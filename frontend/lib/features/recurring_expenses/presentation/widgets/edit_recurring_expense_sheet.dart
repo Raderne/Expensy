@@ -212,7 +212,7 @@ class _EditRecurringExpenseSheetState
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(categoriesViewProvider);
 
     return EditSheetShell(
       title: isEdit ? 'Edit subscription' : 'Add recurring expense',
@@ -525,11 +525,7 @@ class _ActiveToggle extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.autorenew_rounded,
-            size: 18,
-            color: AppColors.inkMid,
-          ),
+          Icon(Icons.autorenew_rounded, size: 18, color: AppColors.inkMid),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

@@ -52,9 +52,9 @@ Future<void> runConfirmationQueue(BuildContext context) async {
         }
       } on RecurringConfirmationsApiException catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.message)));
         }
       }
     }

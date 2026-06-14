@@ -14,12 +14,12 @@ void main() {
   );
 
   Transaction tx(String id, DateTime when) => Transaction(
-        id: id,
-        amount: -12.5,
-        note: null,
-        occurredAt: when,
-        category: cat,
-      );
+    id: id,
+    amount: -12.5,
+    note: null,
+    occurredAt: when,
+    category: cat,
+  );
 
   test('empty input → empty list', () {
     expect(groupByDay([]), isEmpty);
@@ -27,13 +27,10 @@ void main() {
 
   test('labels today and yesterday', () {
     final now = DateTime(2026, 5, 28, 14, 0);
-    final groups = groupByDay(
-      [
-        tx('a', DateTime(2026, 5, 28, 10)),
-        tx('b', DateTime(2026, 5, 27, 9)),
-      ],
-      now: now,
-    );
+    final groups = groupByDay([
+      tx('a', DateTime(2026, 5, 28, 10)),
+      tx('b', DateTime(2026, 5, 27, 9)),
+    ], now: now);
     expect(groups.length, 2);
     expect(groups[0].label, 'TODAY');
     expect(groups[1].label, 'YESTERDAY');
@@ -41,23 +38,17 @@ void main() {
 
   test('uses MMM d for older days, uppercased', () {
     final now = DateTime(2026, 5, 28);
-    final groups = groupByDay(
-      [tx('a', DateTime(2026, 5, 21, 9))],
-      now: now,
-    );
+    final groups = groupByDay([tx('a', DateTime(2026, 5, 21, 9))], now: now);
     expect(groups.single.label, 'MAY 21');
   });
 
   test('multiple rows on same day land in one group', () {
     final now = DateTime(2026, 5, 28, 14);
-    final groups = groupByDay(
-      [
-        tx('a', DateTime(2026, 5, 28, 13)),
-        tx('b', DateTime(2026, 5, 28, 9)),
-        tx('c', DateTime(2026, 5, 27, 22)),
-      ],
-      now: now,
-    );
+    final groups = groupByDay([
+      tx('a', DateTime(2026, 5, 28, 13)),
+      tx('b', DateTime(2026, 5, 28, 9)),
+      tx('c', DateTime(2026, 5, 27, 22)),
+    ], now: now);
     expect(groups.length, 2);
     expect(groups[0].label, 'TODAY');
     expect(groups[0].transactions.length, 2);

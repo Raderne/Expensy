@@ -44,7 +44,13 @@ class RecurringConfirmationsRepository {
   }) async {
     final res = await _dio.post(
       '/me/recurring/occurrences/$id/postpone',
-      data: {'postponeTo': DateTime(date.year, date.month, date.day).toIso8601String()},
+      data: {
+        'postponeTo': DateTime(
+          date.year,
+          date.month,
+          date.day,
+        ).toIso8601String(),
+      },
       options: _idempotent(idempotencyKey),
     );
     _ensureOk(res);

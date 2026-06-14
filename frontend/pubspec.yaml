@@ -1,7 +1,7 @@
 name: expensy
 description: Expensy — personal expense tracking (Flutter client).
 publish_to: 'none'
-version: 1.4.2+5003
+version: 1.5.0+5004
 
 environment:
   sdk: ^3.12.0
@@ -16,6 +16,7 @@ dependencies:
   go_router: ^17.2.3
   dio: ^5.9.2
   uuid: ^4.5.1
+  connectivity_plus: ^6.1.0
 
   # Storage
   flutter_secure_storage: ^10.3.1

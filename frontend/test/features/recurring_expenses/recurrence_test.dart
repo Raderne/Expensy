@@ -6,20 +6,19 @@ RecurringExpense _rule({
   required RecurrenceFrequency frequency,
   required DateTime anchorDate,
   int? intervalDays,
-}) =>
-    RecurringExpense(
-      id: 'r',
-      label: 'Test',
-      amount: 10,
-      categoryId: 'c',
-      categoryKey: 'subscriptions',
-      categoryLabel: 'Subs',
-      categoryColor: '#8B5CF6',
-      frequency: frequency,
-      intervalDays: intervalDays,
-      anchorDate: anchorDate,
-      isActive: true,
-    );
+}) => RecurringExpense(
+  id: 'r',
+  label: 'Test',
+  amount: 10,
+  categoryId: 'c',
+  categoryKey: 'subscriptions',
+  categoryLabel: 'Subs',
+  categoryColor: '#8B5CF6',
+  frequency: frequency,
+  intervalDays: intervalDays,
+  anchorDate: anchorDate,
+  isActive: true,
+);
 
 void main() {
   group('weekly', () {

@@ -23,8 +23,9 @@ class BoolFlagNotifier extends Notifier<bool> {
 
 /// True while the update bottom sheet is on screen, so the profile screen can
 /// suppress redundant error/up-to-date snackbars that the sheet already shows.
-final updateSheetVisibleProvider =
-    NotifierProvider<BoolFlagNotifier, bool>(BoolFlagNotifier.new);
+final updateSheetVisibleProvider = NotifierProvider<BoolFlagNotifier, bool>(
+  BoolFlagNotifier.new,
+);
 
 sealed class UpdateState {
   const UpdateState();
