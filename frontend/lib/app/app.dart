@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../core/theme/app_colors.dart';
+import '../core/update/auto_update.dart';
 import '../core/theme/app_palette.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets_home/home_widget_service.dart';
@@ -44,6 +45,16 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
   /// active palette (see [build]).
   @override
   void didChangePlatformBrightness() => setState(() {});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Fire-and-forget: result handled by screen-level listeners (dashboard,
+      // profile). Interval-gated to at most once every 7 days.
+      maybeAutoCheckOnResume(ref);
+    }
+  }
 
   /// Handle taps on the home-screen widgets: the warm-start stream while the app
   /// is running, plus the cold-start URI captured when the app was launched from
