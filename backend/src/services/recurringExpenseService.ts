@@ -1,7 +1,12 @@
 import { Prisma } from '../lib/prismaTypes.js';
 import { AppError } from '../lib/errors.js';
+import { totalOwedForShares } from '../lib/shares.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
-import { recurringExpenseRepository } from '../repositories/recurringExpenseRepository.js';
+import { contactRepository } from '../repositories/contactRepository.js';
+import {
+  recurringExpenseRepository,
+  type ShareInput,
+} from '../repositories/recurringExpenseRepository.js';
 import { recurringOccurrenceRepository } from '../repositories/recurringOccurrenceRepository.js';
 import type { PostponedOccurrenceDto } from './incomeService.js';
 import {
@@ -21,6 +26,14 @@ const addDays = (d: Date, days: number): Date => {
 
 const SUBSCRIPTIONS_KEY = 'subscriptions';
 
+export interface RecurringShareDto {
+  contactId: string;
+  contactName: string;
+  contactColor: string | null;
+  shareType: 'AMOUNT' | 'PERCENT';
+  shareValue: number;
+}
+
 export interface RecurringExpenseDto {
   id: string;
   label: string;
@@ -33,6 +46,7 @@ export interface RecurringExpenseDto {
   intervalDays: number | null;
   anchorDate: string;
   isActive: boolean;
+  shares: RecurringShareDto[];
   postponed: PostponedOccurrenceDto | null;
 }
 
@@ -63,8 +77,55 @@ const toDto = (
   intervalDays: row.intervalDays,
   anchorDate: row.anchorDate.toISOString(),
   isActive: row.isActive,
+  shares: row.shares.map((s) => ({
+    contactId: s.contactId,
+    contactName: s.contact.name,
+    contactColor: s.contact.color,
+    shareType: s.shareType as 'AMOUNT' | 'PERCENT',
+    shareValue: s.shareValue.toNumber(),
+  })),
   postponed,
 });
+
+// Validate that every share's contact belongs to the user and the resolved owed
+// total stays below the bill amount (the user must keep a positive share).
+// Returns the ShareInput[] ready for persistence.
+const validateShares = async (
+  userId: string,
+  amount: Prisma.Decimal,
+  shares: { contactId: string; shareType: 'AMOUNT' | 'PERCENT'; shareValue: number }[],
+): Promise<ShareInput[]> => {
+  if (shares.length === 0) return [];
+
+  const contacts = await contactRepository.findByUser(userId);
+  const validIds = new Set(contacts.map((c) => c.id));
+  for (const s of shares) {
+    if (!validIds.has(s.contactId)) {
+      throw new AppError({
+        status: 404,
+        code: 'CONTACT_NOT_FOUND',
+        message: `Contact ${s.contactId} not found`,
+      });
+    }
+  }
+
+  const shareInputs: ShareInput[] = shares.map((s) => ({
+    contactId: s.contactId,
+    shareType: s.shareType,
+    shareValue: new Prisma.Decimal(s.shareValue),
+  }));
+
+  const owed = totalOwedForShares(shareInputs, amount);
+  if (owed.greaterThanOrEqualTo(amount)) {
+    throw new AppError({
+      status: 400,
+      code: 'SHARES_EXCEED_AMOUNT',
+      message: 'split shares must total less than the recurring amount',
+    });
+  }
+
+  return shareInputs;
+};
 
 // Map each recurring-expense rule id → its soonest active postpone (if any).
 const loadPostponedExpense = async (
@@ -125,18 +186,25 @@ export const recurringExpenseService = {
       frequency: RecurrenceFrequency;
       intervalDays?: number;
       anchorDate: string;
+      shares?: { contactId: string; shareType: 'AMOUNT' | 'PERCENT'; shareValue: number }[];
     },
   ): Promise<RecurringExpenseDto> {
     const categoryId = await resolveCategoryId(input.categoryId, userId);
+    const amount = new Prisma.Decimal(input.amount);
+    const shareInputs = await validateShares(userId, amount, input.shares ?? []);
+
     const created = await recurringExpenseRepository.create({
       userId,
       categoryId,
       label: input.label,
-      amount: new Prisma.Decimal(input.amount),
+      amount,
       frequency: input.frequency,
       intervalDays: input.frequency === 'CUSTOM' ? (input.intervalDays ?? null) : null,
       anchorDate: startOfDay(new Date(input.anchorDate)),
     });
+    if (shareInputs.length > 0) {
+      await recurringExpenseRepository.replaceShares(created.id, userId, shareInputs);
+    }
     await recurringExpenseService.ensureMaterialized(userId);
     const reloaded = await recurringExpenseRepository.findById(created.id, userId);
     return toDto(reloaded!);
@@ -153,6 +221,7 @@ export const recurringExpenseService = {
       intervalDays?: number | null;
       anchorDate?: string;
       isActive?: boolean;
+      shares?: { contactId: string; shareType: 'AMOUNT' | 'PERCENT'; shareValue: number }[];
     },
   ): Promise<RecurringExpenseDto> {
     const existing = await recurringExpenseRepository.findById(id, userId);
@@ -180,6 +249,15 @@ export const recurringExpenseService = {
     if (newFrequency !== 'CUSTOM') data.intervalDays = null;
 
     await recurringExpenseRepository.update(id, userId, data);
+
+    // Replace the split template when provided. Validate against the new amount
+    // if it changed, otherwise the existing one.
+    if (input.shares !== undefined) {
+      const effectiveAmount =
+        input.amount !== undefined ? new Prisma.Decimal(input.amount) : existing.amount;
+      const shareInputs = await validateShares(userId, effectiveAmount, input.shares);
+      await recurringExpenseRepository.replaceShares(id, userId, shareInputs);
+    }
 
     // Keep still-actionable occurrences' snapshot in step with the edit.
     const snapshot: Partial<{ amount: Prisma.Decimal; label: string }> = {};

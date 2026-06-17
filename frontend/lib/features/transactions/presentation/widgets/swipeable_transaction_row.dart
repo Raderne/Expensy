@@ -32,6 +32,8 @@ class SwipeableTransactionRow extends StatelessWidget {
         categoryColor: transaction.category.colorValue,
         categoryBg: transaction.category.bgTintValue,
         pending: transaction.pending,
+        sharedOwedTotal: transaction.sharedOwedTotal,
+        isReimbursement: transaction.isReimbursement,
       ),
     );
 

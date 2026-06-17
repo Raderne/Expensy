@@ -12,6 +12,8 @@ import '../../../analytics/application/analytics_controller.dart';
 import '../../../dashboard/application/dashboard_controller.dart';
 import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
 import '../../../recurring_confirmations/presentation/postponed_cycle_section.dart';
+import '../../../shared/domain/recurring_share_draft.dart';
+import '../../../shared/presentation/widgets/recurring_share_editor.dart';
 import '../../../transactions/application/transactions_controller.dart';
 import '../../application/recurring_expenses_controller.dart';
 import '../../application/upcoming_bills_controller.dart';
@@ -53,6 +55,7 @@ class _EditRecurringExpenseSheetState
       widget.existing?.frequency ?? RecurrenceFrequency.monthly;
   late DateTime _anchorDate = widget.existing?.anchorDate ?? _today();
   late bool _isActive = widget.existing?.isActive ?? true;
+  late List<RecurringShareDraft> _shares = widget.existing?.shares ?? const [];
 
   // Stable per-sheet key so a double-tap reuses it and the backend dedupes.
   final String _idempotencyKey = const Uuid().v4();
@@ -96,6 +99,12 @@ class _EditRecurringExpenseSheetState
     return v;
   }
 
+  bool _sharesTouched = false;
+
+  /// Others' percentages must stay under 100 so the user keeps a share.
+  bool get _sharesValid =>
+      _shares.fold(0.0, (sum, s) => sum + s.shareValue) < 100;
+
   bool get _valid {
     if (_parsedAmount == null) return false;
     if (_trimmedLabel.isEmpty || _trimmedLabel.length > 40) return false;
@@ -103,6 +112,7 @@ class _EditRecurringExpenseSheetState
     if (_frequency == RecurrenceFrequency.custom && _parsedInterval == null) {
       return false;
     }
+    if (!_sharesValid) return false;
 
     final existing = widget.existing;
     if (existing == null) return true;
@@ -114,7 +124,8 @@ class _EditRecurringExpenseSheetState
         (_frequency == RecurrenceFrequency.custom &&
             _parsedInterval != existing.intervalDays) ||
         !_isSameDay(_anchorDate, existing.anchorDate) ||
-        _isActive != existing.isActive;
+        _isActive != existing.isActive ||
+        _sharesTouched;
   }
 
   bool _isSameDay(DateTime a, DateTime b) =>
@@ -171,6 +182,7 @@ class _EditRecurringExpenseSheetState
               ? _parsedInterval
               : null,
           anchorDate: _anchorDate,
+          shares: _shares,
           idempotencyKey: _idempotencyKey,
         );
       } else {
@@ -186,6 +198,7 @@ class _EditRecurringExpenseSheetState
           clearIntervalDays: _frequency != RecurrenceFrequency.custom,
           anchorDate: _anchorDate,
           isActive: _isActive,
+          shares: _sharesTouched ? _shares : null,
         );
       }
       _invalidateDownstream();
@@ -322,6 +335,16 @@ class _EditRecurringExpenseSheetState
           const _SectionLabel('Starts on'),
           const SizedBox(height: 6),
           _AnchorRow(date: _anchorDate, onTap: _pickAnchorDate),
+          const SizedBox(height: 16),
+          const _SectionLabel('Shared with'),
+          const SizedBox(height: 6),
+          RecurringShareEditor(
+            initial: _shares,
+            onChanged: (s) => setState(() {
+              _shares = s;
+              _sharesTouched = true;
+            }),
+          ),
           if (isEdit) ...[
             const SizedBox(height: 16),
             _ActiveToggle(

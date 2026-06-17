@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/data/categories_repository.dart';
 import '../../../core/models/category.dart';
 import '../../dashboard/domain/recent_transaction.dart';
+import '../../shared/domain/expense_split_draft.dart';
 import '../data/add_expense_repository.dart';
 import '../domain/amount_input.dart';
 
@@ -13,6 +14,7 @@ class AddExpenseState {
   final String amount;
   final String? categoryId;
   final String note;
+  final List<ExpenseSplitDraft> splits;
   final bool saving;
   final RecentTransaction? saved;
   final String? error;
@@ -21,18 +23,29 @@ class AddExpenseState {
     this.amount = '0',
     this.categoryId,
     this.note = '',
+    this.splits = const [],
     this.saving = false,
     this.saved,
     this.error,
   });
 
+  /// Part of the bill owed by other people.
+  double get owedTotal => totalOwed(splits);
+
+  /// True when others' shares meet/exceed the bill — the user must keep some.
+  bool get overSplit {
+    final amt = AmountInput.parse(amount);
+    return owedTotal > 0 && amt > 0 && owedTotal >= amt;
+  }
+
   bool get canSave =>
-      !saving && categoryId != null && AmountInput.isValid(amount);
+      !saving && categoryId != null && AmountInput.isValid(amount) && !overSplit;
 
   AddExpenseState copyWith({
     String? amount,
     String? categoryId,
     String? note,
+    List<ExpenseSplitDraft>? splits,
     bool? saving,
     RecentTransaction? saved,
     String? error,
@@ -42,6 +55,7 @@ class AddExpenseState {
     amount: amount ?? this.amount,
     categoryId: categoryId ?? this.categoryId,
     note: note ?? this.note,
+    splits: splits ?? this.splits,
     saving: saving ?? this.saving,
     saved: clearSaved ? null : (saved ?? this.saved),
     error: clearError ? null : (error ?? this.error),
@@ -77,6 +91,9 @@ class AddExpenseController extends Notifier<AddExpenseState> {
 
   void setNote(String value) => state = state.copyWith(note: value);
 
+  void setSplits(List<ExpenseSplitDraft> splits) =>
+      state = state.copyWith(splits: splits, clearError: true);
+
   /// Resets to a clean slate. Used after "Add Another".
   void reset() {
     _idempotencyKey = const Uuid().v4();
@@ -109,6 +126,7 @@ class AddExpenseController extends Notifier<AddExpenseState> {
             category: category,
             amount: AmountInput.parse(state.amount),
             note: state.note,
+            splits: state.splits,
             idempotencyKey: _idempotencyKey,
           );
       _idempotencyKey = const Uuid().v4();

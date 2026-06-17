@@ -37,15 +37,17 @@ export const analyticsService = {
 
     const byId = new Map(categories.map((c) => [c.id, c]));
 
-    // Convert amounts to positive numbers, drop unknown categories defensively.
+    // Amounts arrive as positive magnitudes (already net of shared-owed); drop
+    // unknown categories and any non-positive residuals defensively.
     const rows = groups
       .map((g) => {
         const cat = byId.get(g.categoryId);
         if (!cat) return null;
-        const amount = Math.abs(g._sum.amount?.toNumber() ?? 0);
+        const amount = Math.max(0, g.amount ?? 0);
         return { cat, amount };
       })
-      .filter((r): r is { cat: (typeof categories)[number]; amount: number } => r !== null);
+      .filter((r): r is { cat: (typeof categories)[number]; amount: number } => r !== null)
+      .filter((r) => r.amount > 0);
 
     const total = rows.reduce((acc, r) => acc + r.amount, 0);
 

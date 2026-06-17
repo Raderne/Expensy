@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/dio_client.dart';
+import '../../shared/domain/recurring_share_draft.dart';
 import '../domain/recurring_expense.dart';
 import '../domain/upcoming_bill.dart';
 
@@ -25,6 +26,7 @@ class RecurringExpensesRepository {
     required RecurrenceFrequency frequency,
     int? intervalDays,
     required DateTime anchorDate,
+    List<RecurringShareDraft> shares = const [],
     String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{
@@ -36,6 +38,9 @@ class RecurringExpensesRepository {
     if (categoryId != null) body['categoryId'] = categoryId;
     if (frequency == RecurrenceFrequency.custom) {
       body['intervalDays'] = intervalDays;
+    }
+    if (shares.isNotEmpty) {
+      body['shares'] = shares.map((s) => s.toJson()).toList();
     }
 
     final res = await _dio.post<Map<String, dynamic>>(
@@ -61,6 +66,7 @@ class RecurringExpensesRepository {
     bool clearIntervalDays = false,
     DateTime? anchorDate,
     bool? isActive,
+    List<RecurringShareDraft>? shares,
   }) async {
     final body = <String, dynamic>{};
     if (label != null) body['label'] = label;
@@ -74,6 +80,10 @@ class RecurringExpensesRepository {
     }
     if (anchorDate != null) body['anchorDate'] = _isoDate(anchorDate);
     if (isActive != null) body['isActive'] = isActive;
+    // Non-null replaces the whole template ([] clears it).
+    if (shares != null) {
+      body['shares'] = shares.map((s) => s.toJson()).toList();
+    }
 
     final res = await _dio.put<Map<String, dynamic>>(
       '/me/expenses/recurring/$id',

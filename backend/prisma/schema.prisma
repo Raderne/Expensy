@@ -41,7 +41,7 @@ datasource db {
 // =============================================================================
 
 model User {
-  email        String  @unique
+  email        String @unique
   passwordHash String
   name         String
 
@@ -60,13 +60,17 @@ model User {
   categories           Category[]
   passwordResetTokens  PasswordResetToken[]
   recurringOccurrences RecurringOccurrence[]
+  contacts             Contact[]
+  splits               TransactionSplit[]
+  recurringShares      RecurringExpenseShare[]
+  reimbursements       Reimbursement[]
 
   @@index([deletedAt])
 }
 
 model PasswordResetToken {
-  id     String @id @default(cuid())
-  userId String
+  id         String    @id @default(cuid())
+  userId     String
   // sha256 of the 6-digit code — the raw code is never stored.
   codeHash   String
   expiresAt  DateTime
@@ -104,7 +108,7 @@ model Category {
   updatedById String?
   deletedAt   DateTime?
 
-  user              User?             @relation(fields: [userId], references: [id])
+  user              User?              @relation(fields: [userId], references: [id])
   transactions      Transaction[]
   recurringExpenses RecurringExpense[]
 
@@ -122,6 +126,14 @@ model Transaction {
   occurredAt         DateTime
   recurringIncomeId  String?
   recurringExpenseId String?
+  // Portion of this expense owed by other people (sum of TransactionSplit.owedAmount).
+  // Spending aggregations use SUM(amount + sharedOwedTotal) so only the user's own
+  // share counts; balance keeps using the raw amount (full cash outflow). 0 for
+  // unshared transactions and income.
+  sharedOwedTotal    Decimal  @default(0) @db.Decimal(12, 2)
+  // True when this is a positive inflow recording a contact's repayment. Excluded
+  // from income totals/analytics, but still counted in balance (real cash received).
+  isReimbursement    Boolean  @default(false)
 
   // Base audit fields
   createdAt   DateTime  @default(now())
@@ -131,14 +143,17 @@ model Transaction {
   deletedAt   DateTime?
 
   user                User                 @relation(fields: [userId], references: [id])
-  category            Category              @relation(fields: [categoryId], references: [id])
-  recurringIncome     RecurringIncome?      @relation(fields: [recurringIncomeId], references: [id])
-  recurringExpense    RecurringExpense?     @relation(fields: [recurringExpenseId], references: [id])
+  category            Category             @relation(fields: [categoryId], references: [id])
+  recurringIncome     RecurringIncome?     @relation(fields: [recurringIncomeId], references: [id])
+  recurringExpense    RecurringExpense?    @relation(fields: [recurringExpenseId], references: [id])
   recurringOccurrence RecurringOccurrence?
+  splits              TransactionSplit[]
+  reimbursement       Reimbursement?
 
   @@index([userId, occurredAt])
   @@index([recurringIncomeId, occurredAt])
   @@index([recurringExpenseId, occurredAt])
+  @@index([userId, isReimbursement])
   @@index([deletedAt])
 }
 
@@ -157,7 +172,7 @@ model RecurringIncome {
   updatedById String?
   deletedAt   DateTime?
 
-  user         User          @relation(fields: [userId], references: [id])
+  user         User                  @relation(fields: [userId], references: [id])
   transactions Transaction[]
   occurrences  RecurringOccurrence[]
 
@@ -193,10 +208,11 @@ model RecurringExpense {
   updatedById String?
   deletedAt   DateTime?
 
-  user         User          @relation(fields: [userId], references: [id])
-  category     Category      @relation(fields: [categoryId], references: [id])
+  user         User                    @relation(fields: [userId], references: [id])
+  category     Category                @relation(fields: [categoryId], references: [id])
   transactions Transaction[]
   occurrences  RecurringOccurrence[]
+  shares       RecurringExpenseShare[]
 
   @@index([userId, isActive])
   @@index([deletedAt])
@@ -213,7 +229,7 @@ enum OccurrenceStatus {
 // Transaction is created only when the user CONFIRMS. Unconfirmed occurrences
 // therefore never affect balances/totals/budget.
 model RecurringOccurrence {
-  id                 String  @id @default(cuid())
+  id                 String           @id @default(cuid())
   userId             String
   recurringIncomeId  String?
   recurringExpenseId String?
@@ -223,10 +239,10 @@ model RecurringOccurrence {
   dueAt              DateTime
   status             OccurrenceStatus @default(PENDING)
   // Snapshot so the modal stays stable even if the rule changes later.
-  amount             Decimal  @db.Decimal(12, 2)
+  amount             Decimal          @db.Decimal(12, 2)
   label              String
   // Set when CONFIRMED.
-  transactionId      String?  @unique
+  transactionId      String?          @unique
 
   // Base audit fields
   createdAt   DateTime  @default(now())
@@ -260,5 +276,129 @@ model Budget {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([deletedAt])
+}
+
+// A lightweight person the user splits expenses with (e.g. a sibling, flatmate).
+// Not an Expensy account — just a name/avatar the user manages locally. The user's
+// own share in any split is always implicit (never a Contact row).
+model Contact {
+  id     String  @id @default(cuid())
+  userId String
+  name   String
+  // Optional avatar tint (hex), chosen client-side from the design palette.
+  color  String?
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user            User                    @relation(fields: [userId], references: [id])
+  splits          TransactionSplit[]
+  recurringShares RecurringExpenseShare[]
+  reimbursements  Reimbursement[]
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+enum SplitStatus {
+  OWED
+  PARTIAL
+  SETTLED
+}
+
+// One contact's share of a single expense Transaction. The user's own share is
+// implicit: abs(transaction.amount) - sum(owedAmount across splits).
+model TransactionSplit {
+  id            String      @id @default(cuid())
+  userId        String
+  transactionId String
+  contactId     String
+  // How much this contact owes for this expense (positive).
+  owedAmount    Decimal     @db.Decimal(12, 2)
+  // How much they've repaid so far (partial payments accumulate here).
+  settledAmount Decimal     @default(0) @db.Decimal(12, 2)
+  status        SplitStatus @default(OWED)
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user           User            @relation(fields: [userId], references: [id])
+  transaction    Transaction     @relation(fields: [transactionId], references: [id])
+  contact        Contact         @relation(fields: [contactId], references: [id])
+  reimbursements Reimbursement[]
+
+  @@index([userId, contactId, status])
+  @@index([transactionId])
+  @@index([deletedAt])
+}
+
+enum ShareType {
+  AMOUNT
+  PERCENT
+}
+
+// Split template on a recurring rule. Applied to each occurrence at confirm time
+// to generate that occurrence's TransactionSplit rows.
+model RecurringExpenseShare {
+  id                 String    @id @default(cuid())
+  userId             String
+  recurringExpenseId String
+  contactId          String
+  shareType          ShareType
+  // PERCENT: 0..100 of the occurrence amount. AMOUNT: a fixed value.
+  shareValue         Decimal   @db.Decimal(12, 2)
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user             User             @relation(fields: [userId], references: [id])
+  recurringExpense RecurringExpense @relation(fields: [recurringExpenseId], references: [id])
+  contact          Contact          @relation(fields: [contactId], references: [id])
+
+  @@index([recurringExpenseId])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+// A single (possibly partial) repayment from a contact toward a split. Each one
+// creates a positive inflow Transaction (isReimbursement = true) so the balance
+// reflects the cash received.
+model Reimbursement {
+  id            String   @id @default(cuid())
+  userId        String
+  splitId       String
+  contactId     String
+  amount        Decimal  @db.Decimal(12, 2)
+  occurredAt    DateTime
+  // The inflow transaction this repayment created.
+  transactionId String?  @unique
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user        User             @relation(fields: [userId], references: [id])
+  split       TransactionSplit @relation(fields: [splitId], references: [id])
+  contact     Contact          @relation(fields: [contactId], references: [id])
+  transaction Transaction?     @relation(fields: [transactionId], references: [id])
+
+  @@index([userId])
+  @@index([splitId])
   @@index([deletedAt])
 }

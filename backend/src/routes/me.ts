@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authController } from '../controllers/authController.js';
+import { contactController } from '../controllers/contactController.js';
 import { dashboardController } from '../controllers/dashboardController.js';
+import { sharedController } from '../controllers/sharedController.js';
 import { transactionController } from '../controllers/transactionController.js';
 import { userController } from '../controllers/userController.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
@@ -27,4 +29,40 @@ meRouter.get(
   '/me/transaction-months',
   requireAuth,
   asyncHandler(transactionController.months),
+);
+
+// --- Contacts (people the user splits shared expenses with) ---
+meRouter.get('/me/contacts', requireAuth, asyncHandler(contactController.list));
+meRouter.post(
+  '/me/contacts',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(contactController.create),
+);
+meRouter.put(
+  '/me/contacts/:id',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(contactController.update),
+);
+meRouter.delete(
+  '/me/contacts/:id',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(contactController.remove),
+);
+
+// --- Shared expenses: "who owes me" + settlement ---
+meRouter.get('/me/shared/owed', requireAuth, asyncHandler(sharedController.owed));
+meRouter.post(
+  '/me/shared/splits/:id/reimbursements',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(sharedController.createReimbursement),
+);
+meRouter.delete(
+  '/me/shared/reimbursements/:id',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(sharedController.deleteReimbursement),
 );
