@@ -14,15 +14,20 @@ class SwipeableTransactionRow extends StatelessWidget {
   final Transaction transaction;
   final Future<void> Function() onDelete;
 
+  /// Optional tap handler — used by shared rows to open "Who owes me".
+  final VoidCallback? onTap;
+
   const SwipeableTransactionRow({
     super.key,
     required this.transaction,
     required this.onDelete,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final row = Padding(
+    final tap = onTap;
+    Widget row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: TxRow(
         label: transaction.category.label,
@@ -36,6 +41,14 @@ class SwipeableTransactionRow extends StatelessWidget {
         isReimbursement: transaction.isReimbursement,
       ),
     );
+
+    if (tap != null) {
+      row = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: tap,
+        child: row,
+      );
+    }
 
     // A pending (not-yet-synced) row can't be deleted until it lands server-side.
     if (transaction.isRecurringIncome || transaction.pending) return row;
