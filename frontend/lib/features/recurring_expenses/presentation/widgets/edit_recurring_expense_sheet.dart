@@ -245,10 +245,7 @@ class _EditRecurringExpenseSheetState
             textCapitalization: TextCapitalization.words,
             maxLength: 40,
             style: AppTextStyles.body.copyWith(color: AppColors.ink),
-            decoration: _fieldDecoration(
-              hint: 'YouTube Premium',
-              counter: true,
-            ),
+            decoration: _fieldDecoration(hint: 'YouTube Premium'),
           ),
           const SizedBox(height: 12),
           TextField(
