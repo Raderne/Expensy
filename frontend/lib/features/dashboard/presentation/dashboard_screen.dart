@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/update/auto_update.dart';
+import '../../../core/update/update_controller.dart';
+import '../../../core/update/update_sheet.dart';
 import '../../../core/update/whats_new.dart';
 import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/haptic_refresh.dart';
@@ -32,13 +35,29 @@ class DashboardScreen extends ConsumerWidget {
       AuthAuthenticated(:final user) => user.name,
       _ => '',
     };
-    final dashState = ref.watch(dashboardControllerProvider);
+    final dashState = ref.watch(dashboardViewProvider);
 
     // Show the "What's new" notes once after an in-app update lands. Runs before
     // the confirmation queue so the two modals don't collide; its own one-shot
     // guard prevents repeats.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (context.mounted) maybeShowWhatsNew(context, ref);
+    });
+
+    // Weekly auto-check: fires on cold start if ≥7 days since the last check.
+    // Runs after What's New to avoid two sheets at once.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) maybeAutoCheckOnLaunch(ref);
+    });
+
+    // When the auto-check (or any check) finds an update while the dashboard is
+    // visible, show the update sheet immediately.
+    ref.listen(updateControllerProvider, (_, next) {
+      if (next is! UpdateAvailable) return;
+      if (ref.read(updateSheetVisibleProvider)) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) showUpdateSheet(context, ref, next.info);
+      });
     });
 
     // Auto-prompt the user to confirm/postpone any due recurring items once the

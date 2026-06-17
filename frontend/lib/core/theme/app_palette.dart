@@ -207,7 +207,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
       shadow: Color.lerp(shadow, other.shadow, t)!,
       scrim: Color.lerp(scrim, other.scrim, t)!,
       shimmerBase: Color.lerp(shimmerBase, other.shimmerBase, t)!,
-      shimmerHighlight: Color.lerp(shimmerHighlight, other.shimmerHighlight, t)!,
+      shimmerHighlight: Color.lerp(
+        shimmerHighlight,
+        other.shimmerHighlight,
+        t,
+      )!,
     );
   }
 }

@@ -1,11 +1,14 @@
 import { Prisma } from '../lib/prismaTypes.js';
 import { AppError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
+import { contactRepository } from '../repositories/contactRepository.js';
+import { splitRepository } from '../repositories/splitRepository.js';
 import {
   PAGE_SIZE,
   transactionRepository,
   type ListFilters,
 } from '../repositories/transactionRepository.js';
+import { toSplitDto, type SplitDto } from './splitMapper.js';
 import { incomeService } from './incomeService.js';
 
 const parseMonth = (month: string): { from: Date; to: Date } => {
@@ -31,6 +34,9 @@ export interface TransactionDto {
   note: string | null;
   occurredAt: string;
   recurringIncomeId: string | null;
+  sharedOwedTotal: number;
+  isReimbursement: boolean;
+  splits: SplitDto[];
   category: { id: string; key: string; label: string; abbr: string; color: string; bgTint: string };
 }
 
@@ -40,6 +46,9 @@ interface RawTx {
   note: string | null;
   occurredAt: Date;
   recurringIncomeId: string | null;
+  sharedOwedTotal: Prisma.Decimal;
+  isReimbursement: boolean;
+  splits?: Parameters<typeof toSplitDto>[0][];
   category: { id: string; key: string; label: string; abbr: string; color: string; bgTint: string };
 }
 
@@ -49,6 +58,9 @@ const toDto = (t: RawTx): TransactionDto => ({
   note: t.note,
   occurredAt: t.occurredAt.toISOString(),
   recurringIncomeId: t.recurringIncomeId,
+  sharedOwedTotal: t.sharedOwedTotal.toNumber(),
+  isReimbursement: t.isReimbursement,
+  splits: (t.splits ?? []).map(toSplitDto),
   category: {
     id: t.category.id,
     key: t.category.key,
@@ -61,9 +73,17 @@ const toDto = (t: RawTx): TransactionDto => ({
 
 export const transactionService = {
   // Phase 04 — creates an expense. Client sends positive `amount`; we negate.
+  // Optional `splits` record how much each contact owes the user for this
+  // expense; the user's own share is the remainder (amount − sum owed).
   async create(
     userId: string,
-    input: { categoryId: string; amount: number; note?: string; occurredAt?: string },
+    input: {
+      categoryId: string;
+      amount: number;
+      note?: string;
+      occurredAt?: string;
+      splits?: { contactId: string; owedAmount: number }[];
+    },
   ): Promise<TransactionDto> {
     // Verify the category exists (and is not soft-deleted) — gives a clean 404
     // rather than a P2003 foreign-key error.
@@ -76,12 +96,41 @@ export const transactionService = {
       });
     }
 
+    const splits = input.splits ?? [];
+    let sharedOwedTotal = new Prisma.Decimal(0);
+    let splitInput: { contactId: string; owedAmount: Prisma.Decimal }[] | undefined;
+
+    if (splits.length > 0) {
+      // Confirm every contact is the user's own (clean 404 vs FK error).
+      const contacts = await contactRepository.findByUser(userId);
+      const byId = new Map(contacts.map((c) => [c.id, c]));
+      for (const s of splits) {
+        if (!byId.has(s.contactId)) {
+          throw new AppError({
+            status: 404,
+            code: 'CONTACT_NOT_FOUND',
+            message: `Contact ${s.contactId} not found`,
+          });
+        }
+      }
+      splitInput = splits.map((s) => ({
+        contactId: s.contactId,
+        owedAmount: new Prisma.Decimal(s.owedAmount),
+      }));
+      sharedOwedTotal = splitInput.reduce(
+        (sum, s) => sum.plus(s.owedAmount),
+        new Prisma.Decimal(0),
+      );
+    }
+
     const created = await transactionRepository.create({
       userId,
       categoryId: input.categoryId,
       amount: new Prisma.Decimal(-input.amount),
       note: input.note,
       occurredAt: input.occurredAt ? new Date(input.occurredAt) : new Date(),
+      sharedOwedTotal,
+      splits: splitInput,
     });
 
     return toDto(created);
@@ -142,5 +191,9 @@ export const transactionService = {
       });
     }
     await transactionRepository.softDelete(id, userId);
+    // Drop any splits so the owed amount no longer appears on "who owes me".
+    if (tx.splits && tx.splits.length > 0) {
+      await splitRepository.cancelForTransaction(id, userId);
+    }
   },
 };

@@ -54,7 +54,7 @@ export const recurringOccurrenceRepository = {
     prisma.recurringOccurrence.findFirst({
       where: { id, userId },
       include: {
-        recurringExpense: { include: { category: true } },
+        recurringExpense: { include: { category: true, shares: true } },
         recurringIncome: true,
       },
     }),
@@ -75,7 +75,7 @@ export const recurringOccurrenceRepository = {
       where: { userId, status: 'POSTPONED', deletedAt: null },
       orderBy: [{ dueAt: 'asc' }],
       include: {
-        recurringExpense: { include: { category: true } },
+        recurringExpense: { include: { category: true, shares: true } },
         recurringIncome: true,
       },
     }),
@@ -92,7 +92,7 @@ export const recurringOccurrenceRepository = {
       },
       orderBy: [{ scheduledFor: 'asc' }],
       include: {
-        recurringExpense: { include: { category: true } },
+        recurringExpense: { include: { category: true, shares: true } },
         recurringIncome: true,
       },
     }),

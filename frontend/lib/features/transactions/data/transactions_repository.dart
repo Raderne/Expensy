@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/cache/http_cache.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/sync/outbox_writer.dart';
 import '../domain/transaction.dart';
 
 class TransactionsPage {
@@ -21,7 +22,8 @@ class TransactionsPage {
 class TransactionsRepository {
   final Dio _dio;
   final HttpCache _cache;
-  const TransactionsRepository(this._dio, this._cache);
+  final OutboxWriter _outbox;
+  const TransactionsRepository(this._dio, this._cache, this._outbox);
 
   Future<TransactionsPage> list({
     String? month,
@@ -80,9 +82,14 @@ class TransactionsRepository {
     }
   }
 
+  /// Queues a soft-delete. The row is hidden optimistically (see the
+  /// transactions overlay); the actual DELETE replays via the SyncEngine.
   Future<void> delete(String id) async {
-    final res = await _dio.delete('/transactions/$id');
-    _ensureOk(res);
+    await _outbox.enqueue(
+      kind: 'txDelete',
+      method: 'DELETE',
+      path: '/transactions/$id',
+    );
   }
 
   static TransactionsPage _decodePage(Map<String, dynamic> data) {
@@ -130,5 +137,6 @@ final transactionsRepositoryProvider = Provider<TransactionsRepository>(
   (ref) => TransactionsRepository(
     ref.watch(dioProvider),
     ref.watch(httpCacheProvider),
+    ref.watch(outboxWriterProvider),
   ),
 );

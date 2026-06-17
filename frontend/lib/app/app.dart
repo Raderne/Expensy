@@ -4,15 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 
+import '../core/data/categories_repository.dart';
+import '../core/network/connectivity_service.dart';
+import '../core/sync/sync_engine.dart';
 import '../core/theme/app_colors.dart';
+import '../core/update/auto_update.dart';
 import '../core/theme/app_palette.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/sync_banner.dart';
 import '../core/widgets_home/home_widget_service.dart';
 import '../core/widgets_home/widget_appearance_service.dart';
+import '../features/analytics/application/analytics_controller.dart';
+import '../features/contacts/data/contacts_repository.dart';
 import '../features/dashboard/application/dashboard_controller.dart';
+import '../features/shared/application/owed_controller.dart';
 import '../features/settings/application/theme_controller.dart';
 import '../features/settings/application/widget_appearance_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
+import '../features/transactions/application/transactions_controller.dart';
 import 'router.dart';
 
 class ExpensyApp extends ConsumerStatefulWidget {
@@ -37,13 +46,33 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
       unawaited(
         WidgetAppearanceService.applyAll(ref.read(widgetAppearanceProvider)),
       );
+      // Warm a possibly-suspended server and flush any queued writes on launch.
+      _kickSync();
     });
   }
+
+  /// Drains the outbox; [SyncEngine.process] internally checks connectivity and
+  /// wakes the server first, so this is safe to call opportunistically.
+  void _kickSync() =>
+      unawaited(ref.read(syncEngineProvider.notifier).process());
 
   /// Rebuild when the phone toggles light/dark so System mode re-resolves the
   /// active palette (see [build]).
   @override
   void didChangePlatformBrightness() => setState(() {});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Fire-and-forget: result handled by screen-level listeners (dashboard,
+      // profile). Interval-gated to at most once every 7 days.
+      maybeAutoCheckOnResume(ref);
+      // Resuming is a good moment to retry queued writes (the server may have
+      // suspended while we were backgrounded).
+      _kickSync();
+    }
+  }
 
   /// Handle taps on the home-screen widgets: the warm-start stream while the app
   /// is running, plus the cold-start URI captured when the app was launched from
@@ -92,6 +121,25 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
       if (data != null) unawaited(HomeWidgetService.sync(data));
     });
 
+    // When connectivity returns, try to flush the outbox.
+    ref.listen<AsyncValue<bool>>(hasNetworkProvider, (prev, next) {
+      if (next.value == true && prev?.value != true) _kickSync();
+    });
+
+    // After the SyncEngine drains queued writes, refetch canonical data so the
+    // optimistic overlays are replaced by the server's source of truth.
+    ref.listen<SyncEngineState>(syncEngineProvider, (prev, next) {
+      if (next.lastSyncedAt != null &&
+          next.lastSyncedAt != prev?.lastSyncedAt) {
+        ref.invalidate(categoriesProvider);
+        ref.invalidate(contactsProvider);
+        ref.invalidate(dashboardControllerProvider);
+        ref.invalidate(transactionsControllerProvider);
+        ref.invalidate(analyticsControllerProvider);
+        ref.invalidate(owedControllerProvider);
+      }
+    });
+
     final router = ref.watch(routerProvider);
     final mode = ref.watch(themeModeProvider);
 
@@ -104,9 +152,10 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
       AppThemeMode.light => AppPalette.light,
       AppThemeMode.dark => AppPalette.dark,
       AppThemeMode.amoled => AppPalette.amoled,
-      AppThemeMode.system => systemBrightness == Brightness.dark
-          ? AppPalette.dark
-          : AppPalette.light,
+      AppThemeMode.system =>
+        systemBrightness == Brightness.dark
+            ? AppPalette.dark
+            : AppPalette.light,
     };
 
     return MaterialApp.router(
@@ -122,6 +171,14 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
         AppThemeMode.dark => ThemeMode.dark,
         AppThemeMode.amoled => ThemeMode.dark,
       },
+      // App-wide offline/sync status bar above the navigator. Self-hides when
+      // there's nothing to report.
+      builder: (context, child) => Column(
+        children: [
+          const SyncBanner(),
+          Expanded(child: child ?? const SizedBox.shrink()),
+        ],
+      ),
       routerConfig: router,
     );
   }

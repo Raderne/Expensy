@@ -507,7 +507,7 @@ class _AddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: AppColors.primaryLight,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -516,18 +516,21 @@ class _AddButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primaryLight, width: 1.5),
+            border: Border.all(
+              color: AppColors.primaryInk.withValues(alpha: 0.35),
+              width: 1.5,
+            ),
           ),
           alignment: Alignment.center,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.add_rounded, size: 20, color: AppColors.primary),
+              Icon(Icons.add_rounded, size: 20, color: AppColors.primaryInk),
               const SizedBox(width: 6),
               Text(
                 'Add subscription',
                 style: AppTextStyles.labelStrong.copyWith(
-                  color: AppColors.primary,
+                  color: AppColors.primaryInk,
                 ),
               ),
             ],

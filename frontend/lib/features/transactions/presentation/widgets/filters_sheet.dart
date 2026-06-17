@@ -70,7 +70,7 @@ class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(categoriesViewProvider);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Padding(

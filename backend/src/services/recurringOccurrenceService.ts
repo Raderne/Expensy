@@ -1,5 +1,6 @@
 import { Prisma } from '../lib/prismaTypes.js';
 import { AppError } from '../lib/errors.js';
+import { owedForShare } from '../lib/shares.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
 import { recurringOccurrenceRepository } from '../repositories/recurringOccurrenceRepository.js';
 import { transactionRepository } from '../repositories/transactionRepository.js';
@@ -97,6 +98,25 @@ export const recurringOccurrenceService = {
     const due = startOfDay(occurrence.dueAt);
     const occurredAt = due > today ? today : due;
 
+    // Apply the rule's split template to this occurrence. Shares are relative to
+    // the positive snapshot amount; the user's own share is the remainder.
+    const shares = occurrence.recurringExpense?.shares ?? [];
+    let sharedOwedTotal = new Prisma.Decimal(0);
+    let splitInput:
+      | { contactId: string; owedAmount: Prisma.Decimal }[]
+      | undefined;
+    if (!isIncome && shares.length > 0) {
+      const billAmount = new Prisma.Decimal(occurrence.amount);
+      splitInput = shares.map((s) => ({
+        contactId: s.contactId,
+        owedAmount: owedForShare(s, billAmount),
+      }));
+      sharedOwedTotal = splitInput.reduce(
+        (sum, s) => sum.plus(s.owedAmount),
+        new Prisma.Decimal(0),
+      );
+    }
+
     const tx = await transactionRepository.create({
       userId,
       categoryId,
@@ -105,6 +125,8 @@ export const recurringOccurrenceService = {
       occurredAt,
       recurringIncomeId: occurrence.recurringIncomeId ?? undefined,
       recurringExpenseId: occurrence.recurringExpenseId ?? undefined,
+      sharedOwedTotal,
+      splits: splitInput,
     });
 
     await recurringOccurrenceRepository.markConfirmed(id, userId, tx.id);

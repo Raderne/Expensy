@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -48,7 +49,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(transactionsControllerProvider);
+    final async = ref.watch(transactionsViewProvider);
     final controller = ref.read(transactionsControllerProvider.notifier);
 
     return async.when(
@@ -404,11 +405,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.wifi_off_rounded,
-              size: 40,
-              color: AppColors.inkLight,
-            ),
+            Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
             const SizedBox(height: 12),
             Text(
               'Could not load transactions',
@@ -585,6 +582,9 @@ class _DayGroup extends StatelessWidget {
                   SwipeableTransactionRow(
                     transaction: group.transactions[i],
                     onDelete: () => onDelete(group.transactions[i].id),
+                    onTap: group.transactions[i].isShared
+                        ? () => context.push('/shared')
+                        : null,
                   ),
                 ],
               ],

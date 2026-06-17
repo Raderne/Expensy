@@ -53,6 +53,9 @@ class InMemorySettingsStore implements SettingsStore {
   }
 }
 
+/// ISO-8601 timestamp of the last automatic update check.
+const lastUpdateCheckKey = 'last_update_check_at';
+
 /// Provider for the singleton store. Override in [main] via `overrideWithValue`
 /// with the result of [HiveSettingsStore.open] (or [InMemorySettingsStore] on
 /// failure) so controllers can read it synchronously.

@@ -168,8 +168,10 @@ class _PostponedCycleSectionState extends ConsumerState<PostponedCycleSection> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Postponed to $dueLabel',
-                        style: AppTextStyles.bodyStrong),
+                    Text(
+                      'Postponed to $dueLabel',
+                      style: AppTextStyles.bodyStrong,
+                    ),
                     const SizedBox(height: 1),
                     Text(
                       'The recurring day is unchanged.',

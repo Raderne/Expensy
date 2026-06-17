@@ -94,8 +94,7 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
     final color = isIncome ? AppColors.success : AppColors.danger;
     final tint = isIncome ? AppColors.successLight : AppColors.dangerLight;
     final money = NumberFormat.simpleCurrency(decimalDigits: 2);
-    final amountText =
-        '${isIncome ? '+' : '-'}${money.format(_occ.amount)}';
+    final amountText = '${isIncome ? '+' : '-'}${money.format(_occ.amount)}';
     final title = isIncome ? 'Income received?' : 'Expense paid?';
     final subtitle = isIncome
         ? 'Did you receive this income?'
@@ -158,7 +157,10 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 22),
-                if (!_showPostponeOptions) ..._primaryButtons() else ..._postponeButtons(),
+                if (!_showPostponeOptions)
+                  ..._primaryButtons()
+                else
+                  ..._postponeButtons(),
               ],
             ),
           ),
@@ -168,11 +170,7 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
   }
 
   List<Widget> _primaryButtons() => [
-    _ModalButton(
-      label: 'Confirm',
-      filled: true,
-      onTap: _confirm,
-    ),
+    _ModalButton(label: 'Confirm', filled: true, onTap: _confirm),
     const SizedBox(height: 10),
     _ModalButton(
       label: 'Postpone',
@@ -205,11 +203,7 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
         onTap: () => _postponeTo(nextMonth),
       ),
       const SizedBox(height: 8),
-      _ModalButton(
-        label: 'Pick a date…',
-        filled: false,
-        onTap: _pickDate,
-      ),
+      _ModalButton(label: 'Pick a date…', filled: false, onTap: _pickDate),
       const SizedBox(height: 8),
       _ModalButton(
         label: 'Back',

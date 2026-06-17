@@ -164,17 +164,18 @@ vi.mock('../src/repositories/transactionRepository.js', () => ({
       let expenses = new Prisma.Decimal(0);
       for (const tx of txStore.values()) {
         if (tx.userId !== userId || tx.deletedAt) continue;
+        const owed = tx.sharedOwedTotal ?? new Prisma.Decimal(0);
         lifetime = lifetime.add(tx.amount);
         if (tx.occurredAt >= from && tx.occurredAt < to) {
-          if (tx.amount.gt(0)) income = income.add(tx.amount);
-          else expenses = expenses.add(tx.amount);
+          if (tx.amount.gt(0) && !tx.isReimbursement) income = income.add(tx.amount);
+          else if (tx.amount.lt(0)) expenses = expenses.add(tx.amount.add(owed));
         }
       }
-      return [
-        { _sum: { amount: lifetime } },
-        { _sum: { amount: income } },
-        { _sum: { amount: expenses } },
-      ];
+      return {
+        balance: lifetime.toNumber(),
+        income: income.toNumber(),
+        expenses: expenses.negated().toNumber(),
+      };
     }),
   },
 }));

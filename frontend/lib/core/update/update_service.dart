@@ -12,7 +12,9 @@ const _apiUrl = 'https://api.github.com/repos/$_repo/releases/latest';
 const _apkFileName = 'expensy-update.apk';
 
 final updateServiceProvider = Provider<UpdateService>(
-  (_) => UpdateService(Dio(BaseOptions(connectTimeout: const Duration(seconds: 10)))),
+  (_) => UpdateService(
+    Dio(BaseOptions(connectTimeout: const Duration(seconds: 10))),
+  ),
 );
 
 class UpdateService {

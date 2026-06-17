@@ -1,11 +1,14 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/categories_repository.dart';
+import '../../../core/models/category.dart';
+import '../../../core/sync/outbox.dart';
+import '../../../core/sync/outbox_writer.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
-import '../../dashboard/application/dashboard_controller.dart';
 import '../../dashboard/data/dashboard_repository.dart';
 import '../data/transactions_repository.dart';
 import '../domain/transaction.dart';
@@ -301,24 +304,106 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     });
   }
 
-  Future<void> deleteTransaction(String id) async {
-    final cur = state.value;
-    if (cur == null) return;
-
-    await _repo.delete(id);
-    ref.invalidate(dashboardControllerProvider);
-
-    final summary = await _dash.getSummary(month: cur.month);
-    state = AsyncData(
-      cur.copyWith(
-        transactions: cur.transactions.where((t) => t.id != id).toList(),
-        income: summary.income,
-        expenses: summary.expenses,
-        net: summary.net,
-      ),
-    );
-  }
+  /// Offline-first: just queue the delete. The row (and its contribution to the
+  /// month totals) is hidden by [transactionsViewProvider]'s overlay while the
+  /// entry sits in the outbox; the real DELETE replays via the SyncEngine.
+  Future<void> deleteTransaction(String id) => _repo.delete(id);
 }
+
+/// Builds a pending [Transaction] from a queued `txCreate` entry, resolving its
+/// category from [categories]. Returns null if the category can't be resolved.
+Transaction? _pendingTxFrom(OutboxEntry e, List<Category> categories) {
+  final body = e.body;
+  if (body == null) return null;
+  final categoryId = body['categoryId'] as String?;
+  final amount = (body['amount'] as num?)?.toDouble();
+  final occurredAtRaw = body['occurredAt'] as String?;
+  if (categoryId == null || amount == null) return null;
+  Category? category;
+  for (final c in categories) {
+    if (c.id == categoryId) {
+      category = c;
+      break;
+    }
+  }
+  if (category == null) return null;
+  final occurredAt = occurredAtRaw != null
+      ? DateTime.parse(occurredAtRaw).toLocal()
+      : DateTime.now();
+  return Transaction(
+    id: e.tempId ?? e.id,
+    amount: -amount, // expenses are stored negative server-side
+    note: body['note'] as String?,
+    occurredAt: occurredAt,
+    category: category,
+    pending: true,
+  );
+}
+
+String _monthOf(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}';
+
+/// Overlays the controller's fetched state with still-pending outbox writes:
+/// queued deletes are hidden (and removed from totals) and queued expense
+/// creates for the active month are prepended (and added to totals). Both
+/// reconcile to canonical data once the SyncEngine drains.
+TransactionsState overlayTransactions(
+  TransactionsState base,
+  List<OutboxEntry> pending,
+  List<Category> categories,
+) {
+  if (pending.isEmpty) return base;
+
+  final deletedIds = <String>{
+    for (final e in pending)
+      if (e.kind == 'txDelete') e.path.split('/').last,
+  };
+
+  var income = base.income;
+  var expenses = base.expenses;
+  final kept = <Transaction>[];
+  for (final t in base.transactions) {
+    if (deletedIds.contains(t.id)) {
+      if (t.amount > 0) {
+        income -= t.amount;
+      } else {
+        expenses += t.amount; // amount negative → lowers the expense magnitude
+      }
+      continue;
+    }
+    kept.add(t);
+  }
+
+  final creates = <Transaction>[];
+  for (final e in pending) {
+    if (e.kind != 'txCreate') continue;
+    final tx = _pendingTxFrom(e, categories);
+    if (tx == null) continue;
+    if (_monthOf(tx.occurredAt) != base.month) continue;
+    final f = base.filters;
+    if (f.type == 'income') continue; // creates here are always expenses
+    if (f.categoryId != null && f.categoryId != tx.category.id) continue;
+    creates.add(tx);
+    expenses += -tx.amount; // tx.amount negative → add its magnitude
+  }
+
+  return base.copyWith(
+    transactions: [...creates, ...kept],
+    income: income,
+    expenses: expenses,
+    net: income - expenses,
+  );
+}
+
+/// Display state for the transactions screen: the controller's data with the
+/// outbox overlay applied. Actions still go through [transactionsControllerProvider].
+final transactionsViewProvider = Provider<AsyncValue<TransactionsState>>((ref) {
+  final base = ref.watch(transactionsControllerProvider);
+  final pending = ref.watch(pendingWritesProvider).value ?? const [];
+  final categories =
+      ref.watch(categoriesViewProvider).value ?? const <Category>[];
+  return base.whenData((s) => overlayTransactions(s, pending, categories));
+});
 
 final transactionsControllerProvider =
     AsyncNotifierProvider<TransactionsController, TransactionsState>(

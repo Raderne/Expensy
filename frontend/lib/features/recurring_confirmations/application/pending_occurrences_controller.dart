@@ -27,6 +27,7 @@ class PendingOccurrencesController
 }
 
 final pendingOccurrencesControllerProvider =
-    AsyncNotifierProvider<PendingOccurrencesController, List<PendingOccurrence>>(
-      PendingOccurrencesController.new,
-    );
+    AsyncNotifierProvider<
+      PendingOccurrencesController,
+      List<PendingOccurrence>
+    >(PendingOccurrencesController.new);
