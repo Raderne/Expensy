@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/collapsing_hero.dart';
+import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/header_back_button.dart';
 import '../../contacts/domain/contact.dart';
 import '../../contacts/presentation/contacts_screen.dart';
@@ -26,9 +27,15 @@ class OwedOverviewScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverCollapsingHero(
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: withRefreshHaptic(
+          () => ref.read(owedControllerProvider.notifier).refresh(),
+        ),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverCollapsingHero(
             minHeight: topInset + 56,
             maxHeight: topInset + 150,
             expanded: Padding(
@@ -85,7 +92,8 @@ class OwedOverviewScreen extends ConsumerWidget {
                     ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -280,7 +288,7 @@ class _EmptyState extends StatelessWidget {
           Text('All settled up', style: AppTextStyles.bodyStrong),
           const SizedBox(height: 4),
           Text(
-            'When you split an expense, the part others owe you shows up here until they pay you back.',
+            'When you split an expense, the part others owe you shows up here until they pay you back. A split on a recurring bill appears once you confirm that charge.',
             textAlign: TextAlign.center,
             style: AppTextStyles.body,
           ),
