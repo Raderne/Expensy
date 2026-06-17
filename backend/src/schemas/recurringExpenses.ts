@@ -8,6 +8,37 @@ const anchorDateSchema = z
   .string()
   .refine((s) => !Number.isNaN(Date.parse(s)), { message: 'anchorDate must be ISO date or datetime' });
 
+// Split template applied to each generated occurrence. PERCENT values are 0..100
+// of the occurrence amount; AMOUNT values are fixed. The amount-relative ceiling
+// (shares must total less than the bill) is enforced in the service, where the
+// rule amount is known on both create and update.
+const shareSchema = z
+  .object({
+    contactId: z.string().cuid(),
+    shareType: z.enum(['AMOUNT', 'PERCENT']),
+    shareValue: z.number().positive(),
+  })
+  .superRefine((share, ctx) => {
+    if (share.shareType === 'PERCENT' && share.shareValue > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['shareValue'],
+        message: 'percentage share cannot exceed 100',
+      });
+    }
+  });
+
+const sharesSchema = z.array(shareSchema).max(20).superRefine((shares, ctx) => {
+  const ids = shares.map((s) => s.contactId);
+  if (new Set(ids).size !== ids.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [],
+      message: 'each contact can only appear once in shares',
+    });
+  }
+});
+
 export const createRecurringExpenseBodySchema = z
   .object({
     label: labelSchema,
@@ -16,6 +47,7 @@ export const createRecurringExpenseBodySchema = z
     frequency: frequencySchema,
     intervalDays: intervalDaysSchema.optional(),
     anchorDate: anchorDateSchema,
+    shares: sharesSchema.optional(),
   })
   .superRefine((body, ctx) => {
     if (body.frequency === 'CUSTOM' && body.intervalDays === undefined) {
@@ -43,6 +75,8 @@ export const updateRecurringExpenseBodySchema = z
     intervalDays: intervalDaysSchema.nullable().optional(),
     anchorDate: anchorDateSchema.optional(),
     isActive: z.boolean().optional(),
+    // Replaces the rule's full set of shares when provided ([] clears them).
+    shares: sharesSchema.optional(),
   })
   .refine((body) => Object.keys(body).length > 0, {
     message: 'At least one field is required',

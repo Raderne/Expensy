@@ -15,7 +15,9 @@ import '../core/widgets/sync_banner.dart';
 import '../core/widgets_home/home_widget_service.dart';
 import '../core/widgets_home/widget_appearance_service.dart';
 import '../features/analytics/application/analytics_controller.dart';
+import '../features/contacts/data/contacts_repository.dart';
 import '../features/dashboard/application/dashboard_controller.dart';
+import '../features/shared/application/owed_controller.dart';
 import '../features/settings/application/theme_controller.dart';
 import '../features/settings/application/widget_appearance_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
@@ -130,9 +132,11 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
       if (next.lastSyncedAt != null &&
           next.lastSyncedAt != prev?.lastSyncedAt) {
         ref.invalidate(categoriesProvider);
+        ref.invalidate(contactsProvider);
         ref.invalidate(dashboardControllerProvider);
         ref.invalidate(transactionsControllerProvider);
         ref.invalidate(analyticsControllerProvider);
+        ref.invalidate(owedControllerProvider);
       }
     });
 

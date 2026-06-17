@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/category.dart';
 import '../../../core/sync/outbox_writer.dart';
 import '../../dashboard/domain/recent_transaction.dart';
+import '../../shared/domain/expense_split_draft.dart';
 
 class AddExpenseRepository {
   final OutboxWriter _outbox;
@@ -20,6 +21,7 @@ class AddExpenseRepository {
     required double amount,
     String? note,
     DateTime? occurredAt,
+    List<ExpenseSplitDraft> splits = const [],
     required String idempotencyKey,
   }) async {
     final tempId = _outbox.newTempId();
@@ -27,6 +29,9 @@ class AddExpenseRepository {
     final trimmedNote = (note != null && note.trim().isNotEmpty)
         ? note.trim()
         : null;
+    // Only contacts with a positive owed share are sent; the user's own share is
+    // implicit on the server.
+    final activeSplits = splits.where((s) => s.owedAmount > 0).toList();
 
     await _outbox.enqueue(
       kind: 'txCreate',
@@ -41,6 +46,8 @@ class AddExpenseRepository {
         'amount': amount,
         'note': ?trimmedNote,
         'occurredAt': when.toUtc().toIso8601String(),
+        if (activeSplits.isNotEmpty)
+          'splits': activeSplits.map((s) => s.toJson()).toList(),
       },
     );
 

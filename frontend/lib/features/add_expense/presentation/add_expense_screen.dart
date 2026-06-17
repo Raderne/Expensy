@@ -9,6 +9,8 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/system_overlays.dart';
 import '../../../core/widgets/header_back_button.dart';
 import '../../dashboard/domain/recent_transaction.dart';
+import '../../shared/presentation/widgets/split_editor.dart';
+import '../domain/amount_input.dart';
 import '../application/add_expense_controller.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/category_grid.dart';
@@ -110,6 +112,18 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                   child: _NoteField(onChanged: controller.setNote),
                 ),
               ),
+              if (AmountInput.parse(state.amount) > 0)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+                  sliver: SliverToBoxAdapter(
+                    child: SplitEditor(
+                      key: const ValueKey('add-expense-split'),
+                      amount: AmountInput.parse(state.amount),
+                      initial: state.splits,
+                      onChanged: controller.setSplits,
+                    ),
+                  ),
+                ),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 sliver: SliverToBoxAdapter(

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../recurring_confirmations/domain/postponed_info.dart';
+import '../../shared/domain/recurring_share_draft.dart';
 
 enum RecurrenceFrequency { weekly, biweekly, monthly, custom }
 
@@ -42,6 +43,9 @@ class RecurringExpense {
   final DateTime anchorDate;
   final bool isActive;
 
+  /// Split template — who shares each generated charge.
+  final List<RecurringShareDraft> shares;
+
   /// Set when this rule has an actively-postponed occurrence for the cycle.
   final PostponedInfo? postponed;
 
@@ -57,6 +61,7 @@ class RecurringExpense {
     required this.intervalDays,
     required this.anchorDate,
     required this.isActive,
+    this.shares = const [],
     this.postponed,
   });
 
@@ -73,6 +78,9 @@ class RecurringExpense {
         intervalDays: (json['intervalDays'] as num?)?.toInt(),
         anchorDate: DateTime.parse(json['anchorDate'] as String).toLocal(),
         isActive: json['isActive'] as bool? ?? true,
+        shares: ((json['shares'] as List<dynamic>?) ?? const [])
+            .map((e) => RecurringShareDraft.fromJson(e as Map<String, dynamic>))
+            .toList(),
         postponed: json['postponed'] == null
             ? null
             : PostponedInfo.fromJson(json['postponed'] as Map<String, dynamic>),

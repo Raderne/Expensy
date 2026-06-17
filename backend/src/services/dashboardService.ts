@@ -46,14 +46,14 @@ export const dashboardService = {
     await recurringExpenseService.ensureMaterialized(userId);
     const { from, to } = parseMonth(month);
 
-    const [[lifetimeAgg, incomeAgg, expenseAgg], budget] = await Promise.all([
+    const [totals, budget] = await Promise.all([
       transactionRepository.summarize(userId, from, to),
       budgetRepository.findByUser(userId),
     ]);
 
-    const balance = toNum(lifetimeAgg._sum.amount);
-    const income = toNum(incomeAgg._sum.amount);
-    const expenses = Math.abs(toNum(expenseAgg._sum.amount));
+    const balance = totals.balance;
+    const income = totals.income;
+    const expenses = totals.expenses;
     const net = income - expenses;
     const budgetAmount = toNum(budget?.amount);
     const pct = budgetAmount > 0 ? Math.min(100, Math.round((expenses / budgetAmount) * 100)) : 0;

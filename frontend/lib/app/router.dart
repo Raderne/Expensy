@@ -10,12 +10,14 @@ import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
+import '../features/contacts/presentation/contacts_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/income/presentation/income_sources_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/recurring_confirmations/presentation/postponed_occurrences_screen.dart';
 import '../features/recurring_expenses/presentation/recurring_expenses_screen.dart';
 import '../features/settings/presentation/appearance_screen.dart';
+import '../features/shared/presentation/owed_overview_screen.dart';
 import '../features/settings/presentation/widget_appearance_screen.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
 import 'app_shell.dart';
@@ -126,6 +128,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const NoTransitionPage(child: AnalyticsScreen()),
           ),
           GoRoute(
+            path: '/shared',
+            name: 'shared',
+            pageBuilder: (_, _) =>
+                const NoTransitionPage(child: OwedOverviewScreen()),
+          ),
+          GoRoute(
             path: '/profile',
             name: 'profile',
             pageBuilder: (_, _) =>
@@ -142,6 +150,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'recurring-expenses',
                 pageBuilder: (_, _) =>
                     const NoTransitionPage(child: RecurringExpensesScreen()),
+              ),
+              GoRoute(
+                path: 'contacts',
+                name: 'contacts',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: ContactsScreen()),
               ),
               GoRoute(
                 path: 'appearance',

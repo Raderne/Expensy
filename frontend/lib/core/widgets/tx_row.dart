@@ -18,6 +18,12 @@ class TxRow extends StatelessWidget {
   /// the label) and the whole row is dimmed slightly.
   final bool pending;
 
+  /// Portion of this expense owed by others — shows a "you're owed X" badge.
+  final double sharedOwedTotal;
+
+  /// When true, renders a "Reimbursement" tag instead of the income styling.
+  final bool isReimbursement;
+
   const TxRow({
     super.key,
     required this.label,
@@ -27,6 +33,8 @@ class TxRow extends StatelessWidget {
     required this.categoryBg,
     this.note,
     this.pending = false,
+    this.sharedOwedTotal = 0,
+    this.isReimbursement = false,
   });
 
   @override
@@ -89,6 +97,21 @@ class TxRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
+                  if (sharedOwedTotal > 0) ...[
+                    const SizedBox(height: 4),
+                    _Badge(
+                      icon: Icons.call_split_rounded,
+                      label: "You're owed ${money.format(sharedOwedTotal)}",
+                      color: AppColors.accent,
+                    ),
+                  ] else if (isReimbursement) ...[
+                    const SizedBox(height: 4),
+                    const _Badge(
+                      icon: Icons.south_west_rounded,
+                      label: 'Reimbursement',
+                      color: AppColors.success,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -100,6 +123,40 @@ class TxRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _Badge({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTextStyles.mutedSmall.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 10.5,
+            ),
+          ),
+        ],
       ),
     );
   }

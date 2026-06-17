@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -581,6 +582,9 @@ class _DayGroup extends StatelessWidget {
                   SwipeableTransactionRow(
                     transaction: group.transactions[i],
                     onDelete: () => onDelete(group.transactions[i].id),
+                    onTap: group.transactions[i].isShared
+                        ? () => context.push('/shared')
+                        : null,
                   ),
                 ],
               ],

@@ -22,25 +22,36 @@ export type UpdateRecurringExpenseData = Partial<{
   isActive: boolean;
 }>;
 
+const withShares = {
+  category: true,
+  shares: { include: { contact: true } },
+} as const;
+
+export interface ShareInput {
+  contactId: string;
+  shareType: 'AMOUNT' | 'PERCENT';
+  shareValue: Prisma.Decimal;
+}
+
 export const recurringExpenseRepository = {
   findByUser: (userId: string) =>
     prisma.recurringExpense.findMany({
       where: { userId },
       orderBy: [{ createdAt: 'asc' }],
-      include: { category: true },
+      include: withShares,
     }),
 
   findActiveByUser: (userId: string) =>
     prisma.recurringExpense.findMany({
       where: { userId, isActive: true },
       orderBy: [{ createdAt: 'asc' }],
-      include: { category: true },
+      include: withShares,
     }),
 
   findById: (id: string, userId: string) =>
     prisma.recurringExpense.findFirst({
       where: { id, userId },
-      include: { category: true },
+      include: withShares,
     }),
 
   create: (input: CreateRecurringExpenseInput) =>
@@ -59,5 +70,27 @@ export const recurringExpenseRepository = {
     prisma.recurringExpense.updateMany({
       where: { id, userId },
       data: { deletedAt: new Date(), isActive: false },
+    }),
+
+  // Replace the rule's split template: soft-delete the current shares, then
+  // create the new set. Reads filter out soft-deleted rows, so old templates
+  // never resurface. Pass an empty array to simply clear all shares.
+  replaceShares: (recurringExpenseId: string, userId: string, shares: ShareInput[]) =>
+    prisma.$transaction(async (tx) => {
+      await tx.recurringExpenseShare.updateMany({
+        where: { recurringExpenseId, userId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+      if (shares.length > 0) {
+        await tx.recurringExpenseShare.createMany({
+          data: shares.map((s) => ({
+            userId,
+            recurringExpenseId,
+            contactId: s.contactId,
+            shareType: s.shareType,
+            shareValue: s.shareValue,
+          })),
+        });
+      }
     }),
 };

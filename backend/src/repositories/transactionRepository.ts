@@ -41,30 +41,44 @@ const buildListWhere = (f: ListFilters): Prisma.TransactionWhereInput => {
 };
 
 export const transactionRepository = {
-  summarize: (userId: string, from: Date, to: Date) =>
-    Promise.all([
-      prisma.transaction.aggregate({
-        where: { userId },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.aggregate({
-        where: { userId, occurredAt: { gte: from, lt: to }, amount: { gt: 0 } },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.aggregate({
-        where: { userId, occurredAt: { gte: from, lt: to }, amount: { lt: 0 } },
-        _sum: { amount: true },
-      }),
-    ]),
+  // Raw query (the soft-delete extension doesn't cover $queryRaw, so we add
+  // `deletedAt IS NULL` manually) computing three figures in one pass:
+  //   balance  — lifetime SUM(amount), real cash incl. reimbursements
+  //   income   — month inflows, EXCLUDING reimbursements (not real income)
+  //   expenses — month spending as a positive magnitude, counting only the
+  //              user's own share: SUM(amount + sharedOwedTotal) for amount < 0
+  summarize: async (
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<{ balance: number; income: number; expenses: number }> => {
+    const rows = await prisma.$queryRaw<{ balance: number; income: number; expenses: number }[]>`
+      SELECT
+        COALESCE(SUM("amount"), 0)::float8 AS balance,
+        COALESCE(SUM("amount") FILTER (
+          WHERE "occurredAt" >= ${from} AND "occurredAt" < ${to}
+            AND "amount" > 0 AND "isReimbursement" = false
+        ), 0)::float8 AS income,
+        COALESCE(-SUM("amount" + "sharedOwedTotal") FILTER (
+          WHERE "occurredAt" >= ${from} AND "occurredAt" < ${to} AND "amount" < 0
+        ), 0)::float8 AS expenses
+      FROM "Transaction"
+      WHERE "userId" = ${userId} AND "deletedAt" IS NULL
+    `;
+    return rows[0] ?? { balance: 0, income: 0, expenses: 0 };
+  },
 
   findRecent: (userId: string, limit: number) =>
     prisma.transaction.findMany({
       where: { userId },
       orderBy: [{ occurredAt: 'desc' }, { createdAt: 'desc' }],
       take: limit,
-      include: { category: true },
+      include: { category: true, splits: { include: { contact: true } } },
     }),
 
+  // Creates a transaction and, when `splits` are provided, its TransactionSplit
+  // rows atomically. `sharedOwedTotal` should equal the sum of split owedAmounts
+  // so spending aggregations can subtract the portion owed by others.
   create: (input: {
     userId: string;
     categoryId: string;
@@ -73,19 +87,45 @@ export const transactionRepository = {
     occurredAt: Date;
     recurringIncomeId?: string;
     recurringExpenseId?: string;
-  }) =>
-    prisma.transaction.create({
-      data: {
-        userId: input.userId,
-        categoryId: input.categoryId,
-        amount: input.amount,
-        note: input.note,
-        occurredAt: input.occurredAt,
-        recurringIncomeId: input.recurringIncomeId,
-        recurringExpenseId: input.recurringExpenseId,
-      },
-      include: { category: true },
-    }),
+    sharedOwedTotal?: Prisma.Decimal;
+    isReimbursement?: boolean;
+    splits?: { contactId: string; owedAmount: Prisma.Decimal }[];
+  }) => {
+    const data = {
+      userId: input.userId,
+      categoryId: input.categoryId,
+      amount: input.amount,
+      note: input.note,
+      occurredAt: input.occurredAt,
+      recurringIncomeId: input.recurringIncomeId,
+      recurringExpenseId: input.recurringExpenseId,
+      sharedOwedTotal: input.sharedOwedTotal,
+      isReimbursement: input.isReimbursement,
+    };
+
+    if (!input.splits || input.splits.length === 0) {
+      return prisma.transaction.create({
+        data,
+        include: { category: true, splits: { include: { contact: true } } },
+      });
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const created = await tx.transaction.create({ data, include: { category: true } });
+      await tx.transactionSplit.createMany({
+        data: input.splits!.map((s) => ({
+          userId: input.userId,
+          transactionId: created.id,
+          contactId: s.contactId,
+          owedAmount: s.owedAmount,
+        })),
+      });
+      return tx.transaction.findFirstOrThrow({
+        where: { id: created.id },
+        include: { category: true, splits: { include: { contact: true } } },
+      });
+    });
+  },
 
   findByRecurringExpenseOnDay: (
     recurringExpenseId: string,
@@ -129,7 +169,7 @@ export const transactionRepository = {
   findById: (id: string, userId: string) =>
     prisma.transaction.findFirst({
       where: { id, userId },
-      include: { category: true },
+      include: { category: true, splits: { include: { contact: true } } },
     }),
 
   softDelete: (id: string, userId: string) =>
@@ -143,7 +183,7 @@ export const transactionRepository = {
       where: buildListWhere(filters),
       orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
       take: PAGE_SIZE + 1,
-      include: { category: true },
+      include: { category: true, splits: { include: { contact: true } } },
     }),
 
   // Distinct YYYY-MM month buckets the user has transactions in, newest first.
@@ -162,16 +202,19 @@ export const transactionRepository = {
     prisma.transaction.count({ where: { categoryId, userId } }),
 
   // Phase 06 — group expense rows by category for the donut + breakdown bars.
-  // amount < 0 selects expenses only; the absolute sum is computed in the
-  // service so we can keep returning a Decimal here.
-  groupExpensesByCategory: (userId: string, from: Date, to: Date) =>
-    prisma.transaction.groupBy({
-      by: ['categoryId'],
-      where: {
-        userId,
-        amount: { lt: 0 },
-        occurredAt: { gte: from, lt: to },
-      },
-      _sum: { amount: true },
-    }),
+  // Counts only the user's own share: SUM(amount + sharedOwedTotal), negated to
+  // a positive magnitude. Raw query so the shared-owed offset is applied inside
+  // the aggregate (and `deletedAt IS NULL` added manually).
+  groupExpensesByCategory: (
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<{ categoryId: string; amount: number }[]> =>
+    prisma.$queryRaw`
+      SELECT "categoryId", (-SUM("amount" + "sharedOwedTotal"))::float8 AS amount
+      FROM "Transaction"
+      WHERE "userId" = ${userId} AND "deletedAt" IS NULL AND "amount" < 0
+        AND "occurredAt" >= ${from} AND "occurredAt" < ${to}
+      GROUP BY "categoryId"
+    `,
 };

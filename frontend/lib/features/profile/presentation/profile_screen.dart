@@ -13,6 +13,7 @@ import '../../../core/widgets/collapsing_hero.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../contacts/data/contacts_repository.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../income/application/income_controller.dart';
 import '../../income/presentation/widgets/add_side_income_sheet.dart';
@@ -101,6 +102,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         '${value.activeCount} active · ${NumberFormat.simpleCurrency(decimalDigits: 0).format(value.activeMonthlyTotal)}/mo',
       _ => 'None set',
     };
+    final contactCount = ref.watch(contactsViewProvider).value?.length ?? 0;
+    final peopleSummary = contactCount > 0
+        ? '$contactCount ${contactCount == 1 ? 'person' : 'people'}'
+        : 'Split bills with friends';
     final topInset = MediaQuery.paddingOf(context).top;
 
     return CustomScrollView(
@@ -137,18 +142,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Password',
                     value: '••••••••',
                     onTap: () => _openChangePassword(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _SectionCard(
-                title: 'Appearance',
-                children: [
-                  _Row(
-                    icon: Icons.palette_outlined,
-                    label: 'Theme & widgets',
-                    value: ref.watch(themeModeProvider).label,
-                    onTap: () => context.push('/profile/appearance'),
                   ),
                 ],
               ),
@@ -194,6 +187,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Add side income',
                     value: 'Freelance, gifts, one-offs',
                     onTap: () => _openAddSideIncome(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Shared',
+                children: [
+                  _Row(
+                    icon: Icons.group_outlined,
+                    label: 'People',
+                    value: peopleSummary,
+                    onTap: () => context.push('/profile/contacts'),
+                  ),
+                  const _Divider(),
+                  _Row(
+                    icon: Icons.handshake_outlined,
+                    label: 'Who owes me',
+                    value: 'Track split bills & repayments',
+                    onTap: () => context.push('/shared'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Appearance',
+                children: [
+                  _Row(
+                    icon: Icons.palette_outlined,
+                    label: 'Theme & widgets',
+                    value: ref.watch(themeModeProvider).label,
+                    onTap: () => context.push('/profile/appearance'),
                   ),
                 ],
               ),
