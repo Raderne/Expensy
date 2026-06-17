@@ -147,18 +147,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 14),
               _SectionCard(
-                title: 'Appearance',
-                children: [
-                  _Row(
-                    icon: Icons.palette_outlined,
-                    label: 'Theme & widgets',
-                    value: ref.watch(themeModeProvider).label,
-                    onTap: () => context.push('/profile/appearance'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _SectionCard(
                 title: 'Money',
                 children: [
                   _Row(
@@ -218,6 +206,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Who owes me',
                     value: 'Track split bills & repayments',
                     onTap: () => context.push('/shared'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Appearance',
+                children: [
+                  _Row(
+                    icon: Icons.palette_outlined,
+                    label: 'Theme & widgets',
+                    value: ref.watch(themeModeProvider).label,
+                    onTap: () => context.push('/profile/appearance'),
                   ),
                 ],
               ),
