@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../lib/errors.js';
 import {
+  confirmOccurrenceBodySchema,
   occurrenceIdParamsSchema,
   postponeOccurrenceBodySchema,
 } from '../schemas/recurringOccurrences.js';
@@ -31,7 +32,8 @@ export const recurringOccurrenceController = {
   async confirm(req: Request, res: Response): Promise<void> {
     const userId = requireUserId(req);
     const { id } = occurrenceIdParamsSchema.parse(req.params);
-    const transaction = await recurringOccurrenceService.confirm(userId, id);
+    const { amount } = confirmOccurrenceBodySchema.parse(req.body ?? {});
+    const transaction = await recurringOccurrenceService.confirm(userId, id, amount);
     res.status(201).json({ transaction });
   },
 

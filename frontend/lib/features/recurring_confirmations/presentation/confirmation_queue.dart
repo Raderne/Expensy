@@ -45,8 +45,8 @@ Future<void> runConfirmationQueue(BuildContext context) async {
 
       try {
         switch (result) {
-          case ConfirmResult():
-            await repo.confirm(occurrence.id);
+          case ConfirmResult(:final amount):
+            await repo.confirm(occurrence.id, amount: amount);
           case PostponeResult(:final date):
             await repo.postpone(occurrence.id, date);
         }

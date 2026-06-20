@@ -72,7 +72,15 @@ export const recurringOccurrenceService = {
     return toPendingDtos(rows);
   },
 
-  async confirm(userId: string, id: string): Promise<ConfirmedTransactionDto> {
+  // `amountOverride` lets the user correct the recorded amount at confirm time
+  // (subscriptions/foreign-currency bills drift month to month). It applies to
+  // this occurrence only — the rule and future occurrences are untouched. The
+  // split (stored as percentages) re-derives from the new amount automatically.
+  async confirm(
+    userId: string,
+    id: string,
+    amountOverride?: number,
+  ): Promise<ConfirmedTransactionDto> {
     const occurrence = await recurringOccurrenceRepository.findById(id, userId);
     if (!occurrence) {
       throw new AppError({
@@ -90,7 +98,16 @@ export const recurringOccurrenceService = {
     }
 
     const isIncome = Boolean(occurrence.recurringIncomeId);
-    const { categoryId, amount } = await resolveTransactionFields(occurrence, isIncome);
+    // Positive bill amount the transaction + splits are derived from.
+    const billAmount =
+      amountOverride != null
+        ? new Prisma.Decimal(amountOverride)
+        : new Prisma.Decimal(occurrence.amount);
+    const { categoryId, amount } = await resolveTransactionFields(
+      occurrence,
+      isIncome,
+      billAmount,
+    );
 
     // Record on the due day, but never in the future: an early-confirmed
     // postponed item (dueAt still ahead) lands on today instead.
@@ -99,14 +116,13 @@ export const recurringOccurrenceService = {
     const occurredAt = due > today ? today : due;
 
     // Apply the rule's split template to this occurrence. Shares are relative to
-    // the positive snapshot amount; the user's own share is the remainder.
+    // the positive bill amount; the user's own share is the remainder.
     const shares = occurrence.recurringExpense?.shares ?? [];
     let sharedOwedTotal = new Prisma.Decimal(0);
     let splitInput:
       | { contactId: string; owedAmount: Prisma.Decimal }[]
       | undefined;
     if (!isIncome && shares.length > 0) {
-      const billAmount = new Prisma.Decimal(occurrence.amount);
       splitInput = shares.map((s) => ({
         contactId: s.contactId,
         owedAmount: owedForShare(s, billAmount),
@@ -115,6 +131,16 @@ export const recurringOccurrenceService = {
         (sum, s) => sum.plus(s.owedAmount),
         new Prisma.Decimal(0),
       );
+      // The user must keep a positive share. Percentage splits (the only kind
+      // the editor produces) always satisfy this; the guard covers fixed-amount
+      // shares left stranded by a lowered amount.
+      if (sharedOwedTotal.greaterThanOrEqualTo(billAmount)) {
+        throw new AppError({
+          status: 400,
+          code: 'INVALID_CONFIRM_AMOUNT',
+          message: 'Amount is too low to cover the split shares',
+        });
+      }
     }
 
     const tx = await transactionRepository.create({
@@ -129,7 +155,8 @@ export const recurringOccurrenceService = {
       splits: splitInput,
     });
 
-    await recurringOccurrenceRepository.markConfirmed(id, userId, tx.id);
+    // Persist the confirmed amount so the occurrence row matches its transaction.
+    await recurringOccurrenceRepository.markConfirmed(id, userId, tx.id, billAmount);
 
     return {
       id: tx.id,
@@ -225,17 +252,18 @@ const toPendingDtos = async (rows: OccurrenceRow[]): Promise<PendingOccurrenceDt
 };
 
 // Income → positive amount + income category. Expense → negated amount + the
-// rule's own category.
+// rule's own category. `billAmount` is the positive amount to record.
 const resolveTransactionFields = async (
   occurrence: OccurrenceRow,
   isIncome: boolean,
+  billAmount: Prisma.Decimal,
 ): Promise<{ categoryId: string; amount: Prisma.Decimal }> => {
   if (isIncome) {
     const income = await getIncomeCategory();
-    return { categoryId: income.id, amount: new Prisma.Decimal(occurrence.amount) };
+    return { categoryId: income.id, amount: billAmount };
   }
   return {
     categoryId: occurrence.recurringExpense!.categoryId,
-    amount: new Prisma.Decimal(occurrence.amount).negated(),
+    amount: billAmount.negated(),
   };
 };

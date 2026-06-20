@@ -31,7 +31,11 @@ type OccRow = {
   dueAt: Date;
   amount: Prisma.Decimal;
   label: string;
-  recurringExpense?: { categoryId: string; category: typeof EXPENSE_CATEGORY } | null;
+  recurringExpense?: {
+    categoryId: string;
+    category: typeof EXPENSE_CATEGORY;
+    shares?: { contactId: string; shareType: 'AMOUNT' | 'PERCENT'; shareValue: Prisma.Decimal }[];
+  } | null;
   recurringIncome?: object | null;
 };
 
@@ -75,12 +79,17 @@ vi.mock('../src/repositories/recurringOccurrenceRepository.js', () => ({
         .filter((o) => o.userId === userId && o.status === 'POSTPONED')
         .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime()),
     ),
-    markConfirmed: vi.fn(async (id: string, _userId: string, transactionId: string) => {
-      confirmCalls.push({ id, transactionId });
-      const row = occStore.get(id);
-      if (row) row.status = 'CONFIRMED';
-      return { count: 1 };
-    }),
+    markConfirmed: vi.fn(
+      async (id: string, _userId: string, transactionId: string, amount?: Prisma.Decimal) => {
+        confirmCalls.push({ id, transactionId });
+        const row = occStore.get(id);
+        if (row) {
+          row.status = 'CONFIRMED';
+          if (amount != null) row.amount = amount;
+        }
+        return { count: 1 };
+      },
+    ),
     postpone: vi.fn(async (id: string, _userId: string, dueAt: Date) => {
       postponeCalls.push({ id, dueAt });
       const row = occStore.get(id);
@@ -184,6 +193,83 @@ describe('recurringOccurrenceService.confirm', () => {
     expect((createdTx[0]!.amount as Prisma.Decimal).toNumber()).toBe(-40);
     expect(createdTx[0]!.categoryId).toBe(EXPENSE_CATEGORY.id);
     expect(createdTx[0]!.recurringExpenseId).toBe('rex_1');
+  });
+
+  it('records an edited amount for an expense and persists it on the occurrence', async () => {
+    const occ = addOccurrence({
+      id: 'occ_edit',
+      recurringExpenseId: 'rex_1',
+      amount: new Prisma.Decimal(40),
+      label: 'YouTube',
+      recurringExpense: { categoryId: EXPENSE_CATEGORY.id, category: EXPENSE_CATEGORY },
+    });
+
+    const tx = await recurringOccurrenceService.confirm('u1', 'occ_edit', 65);
+
+    expect(tx.amount).toBe(-65);
+    expect((createdTx[0]!.amount as Prisma.Decimal).toNumber()).toBe(-65);
+    // Confirmed amount is written back to the occurrence row.
+    expect(occ.amount.toNumber()).toBe(65);
+  });
+
+  it('records an edited amount for income', async () => {
+    addOccurrence({
+      id: 'occ_inc_edit',
+      recurringIncomeId: 'rec_1',
+      amount: new Prisma.Decimal(5200),
+      label: 'Salary',
+    });
+
+    const tx = await recurringOccurrenceService.confirm('u1', 'occ_inc_edit', 5000);
+
+    expect(tx.amount).toBe(5000);
+    expect((createdTx[0]!.amount as Prisma.Decimal).toNumber()).toBe(5000);
+  });
+
+  it('scales a percentage split proportionally to the edited amount', async () => {
+    addOccurrence({
+      id: 'occ_split',
+      recurringExpenseId: 'rex_1',
+      amount: new Prisma.Decimal(350),
+      label: 'Shared bill',
+      recurringExpense: {
+        categoryId: EXPENSE_CATEGORY.id,
+        category: EXPENSE_CATEGORY,
+        shares: [
+          { contactId: 'c1', shareType: 'PERCENT', shareValue: new Prisma.Decimal(50) },
+        ],
+      },
+    });
+
+    // 350 → 300; a 50% share drops from 175 to 150.
+    await recurringOccurrenceService.confirm('u1', 'occ_split', 300);
+
+    expect((createdTx[0]!.amount as Prisma.Decimal).toNumber()).toBe(-300);
+    expect((createdTx[0]!.sharedOwedTotal as Prisma.Decimal).toNumber()).toBe(150);
+    const splits = createdTx[0]!.splits as { contactId: string; owedAmount: Prisma.Decimal }[];
+    expect(splits).toHaveLength(1);
+    expect(splits[0]!.owedAmount.toNumber()).toBe(150);
+  });
+
+  it('rejects an edited amount too low to cover fixed-amount shares', async () => {
+    addOccurrence({
+      id: 'occ_low',
+      recurringExpenseId: 'rex_1',
+      amount: new Prisma.Decimal(100),
+      label: 'Shared bill',
+      recurringExpense: {
+        categoryId: EXPENSE_CATEGORY.id,
+        category: EXPENSE_CATEGORY,
+        shares: [
+          { contactId: 'c1', shareType: 'AMOUNT', shareValue: new Prisma.Decimal(60) },
+        ],
+      },
+    });
+
+    await expect(
+      recurringOccurrenceService.confirm('u1', 'occ_low', 50),
+    ).rejects.toMatchObject({ status: 400, code: 'INVALID_CONFIRM_AMOUNT' });
+    expect(createdTx).toHaveLength(0);
   });
 
   it('rejects confirming an already-confirmed occurrence', async () => {

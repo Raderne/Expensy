@@ -140,10 +140,10 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
     if (result == null) return;
     try {
       switch (result) {
-        case ConfirmResult():
+        case ConfirmResult(:final amount):
           await ref
               .read(recurringConfirmationsRepositoryProvider)
-              .confirm(o.id);
+              .confirm(o.id, amount: amount);
           messenger.showSnackBar(
             SnackBar(
               content: Text(

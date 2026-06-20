@@ -28,9 +28,12 @@ class RecurringConfirmationsRepository {
   }
 
   /// Confirm the occurrence — the backend creates the real transaction.
-  Future<void> confirm(String id, {String? idempotencyKey}) async {
+  /// [amount] (positive) overrides the recorded amount for this occurrence only;
+  /// the backend re-derives the split from it.
+  Future<void> confirm(String id, {double? amount, String? idempotencyKey}) async {
     final res = await _dio.post(
       '/me/recurring/occurrences/$id/confirm',
+      data: amount == null ? null : {'amount': amount},
       options: _idempotent(idempotencyKey),
     );
     _ensureOk(res);
