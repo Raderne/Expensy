@@ -1,7 +1,7 @@
 name: expensy
 description: Expensy — personal expense tracking (Flutter client).
 publish_to: 'none'
-version: 1.5.1+5005
+version: 1.5.2+5006
 
 environment:
   sdk: ^3.12.0
