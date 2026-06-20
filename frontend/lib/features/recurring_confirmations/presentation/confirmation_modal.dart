@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -12,7 +13,11 @@ sealed class ConfirmationResult {
 }
 
 class ConfirmResult extends ConfirmationResult {
-  const ConfirmResult();
+  /// The amount to record — positive; the sign is implied by the occurrence
+  /// type. May differ from the snapshot when the user edited it before
+  /// confirming.
+  final double amount;
+  const ConfirmResult(this.amount);
 }
 
 class PostponeResult extends ConfirmationResult {
@@ -67,10 +72,23 @@ class _ConfirmationCard extends StatefulWidget {
 
 class _ConfirmationCardState extends State<_ConfirmationCard> {
   bool _showPostponeOptions = false;
+  late final TextEditingController _amountCtrl = TextEditingController(
+    text: _occ.amount.toStringAsFixed(2),
+  );
 
   PendingOccurrence get _occ => widget.occurrence;
 
-  void _confirm() => Navigator.of(context).pop(const ConfirmResult());
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final parsed = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
+    final amount = (parsed != null && parsed > 0) ? parsed : _occ.amount;
+    Navigator.of(context).pop(ConfirmResult(amount));
+  }
 
   void _postponeTo(DateTime date) =>
       Navigator.of(context).pop(PostponeResult(date));
@@ -94,7 +112,7 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
     final color = isIncome ? AppColors.success : AppColors.danger;
     final tint = isIncome ? AppColors.successLight : AppColors.dangerLight;
     final money = NumberFormat.simpleCurrency(decimalDigits: 2);
-    final amountText = '${isIncome ? '+' : '-'}${money.format(_occ.amount)}';
+    final sign = isIncome ? '+' : '-';
     final title = isIncome ? 'Income received?' : 'Expense paid?';
     final subtitle = isIncome
         ? 'Did you receive this income?'
@@ -146,9 +164,11 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  amountText,
-                  style: AppTextStyles.titleM.copyWith(color: color),
+                _AmountField(
+                  controller: _amountCtrl,
+                  sign: sign,
+                  currencySymbol: money.currencySymbol,
+                  color: color,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -212,6 +232,54 @@ class _ConfirmationCardState extends State<_ConfirmationCard> {
         onTap: () => setState(() => _showPostponeOptions = false),
       ),
     ];
+  }
+}
+
+/// Inline-editable amount shown at the heart of the confirm modal. Pre-filled
+/// with the snapshot amount; the user can correct it (e.g. a drifting
+/// foreign-currency subscription) before confirming.
+class _AmountField extends StatelessWidget {
+  final TextEditingController controller;
+  final String sign;
+  final String currencySymbol;
+  final Color color;
+
+  const _AmountField({
+    required this.controller,
+    required this.sign,
+    required this.currencySymbol,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppTextStyles.titleM.copyWith(color: color);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text('$sign$currencySymbol', style: style),
+        IntrinsicWidth(
+          child: TextField(
+            controller: controller,
+            textAlign: TextAlign.center,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+            ],
+            style: style,
+            decoration: const InputDecoration(
+              isDense: true,
+              isCollapsed: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 2),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Icon(Icons.edit_rounded, size: 15, color: color.withValues(alpha: 0.6)),
+      ],
+    );
   }
 }
 

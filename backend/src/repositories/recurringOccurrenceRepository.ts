@@ -114,10 +114,13 @@ export const recurringOccurrenceRepository = {
       data: { deletedAt: new Date() },
     }),
 
-  markConfirmed: (id: string, userId: string, transactionId: string) =>
+  // `amount` records what was actually confirmed (may differ from the snapshot
+  // when the user edited it at confirm time), keeping the row in step with its
+  // transaction.
+  markConfirmed: (id: string, userId: string, transactionId: string, amount?: Prisma.Decimal) =>
     prisma.recurringOccurrence.updateMany({
       where: { id, userId },
-      data: { status: 'CONFIRMED', transactionId },
+      data: { status: 'CONFIRMED', transactionId, ...(amount != null ? { amount } : {}) },
     }),
 
   postpone: (id: string, userId: string, dueAt: Date) =>

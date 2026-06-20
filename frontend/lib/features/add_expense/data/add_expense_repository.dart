@@ -25,7 +25,12 @@ class AddExpenseRepository {
     required String idempotencyKey,
   }) async {
     final tempId = _outbox.newTempId();
-    final when = occurredAt ?? DateTime.now();
+    // Store at local day granularity (the app only ever displays the day, never
+    // a time). This keeps all transactions ordered by creation within a day,
+    // instead of letting a fresh expense's time-of-day float it above earlier
+    // same-day rows that are stored at start-of-day (recurring, income).
+    final raw = occurredAt ?? DateTime.now();
+    final when = DateTime(raw.year, raw.month, raw.day);
     final trimmedNote = (note != null && note.trim().isNotEmpty)
         ? note.trim()
         : null;
