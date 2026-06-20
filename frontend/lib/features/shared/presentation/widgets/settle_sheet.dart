@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -24,6 +25,7 @@ class SettleSheet extends ConsumerStatefulWidget {
 
 class _SettleSheetState extends ConsumerState<SettleSheet> {
   late final TextEditingController _amount;
+  final String _idempotencyKey = const Uuid().v4();
   bool _saving = false;
   String? _error;
 
@@ -52,15 +54,16 @@ class _SettleSheetState extends ConsumerState<SettleSheet> {
       await ref.read(sharedRepositoryProvider).recordReimbursement(
             splitId: widget.split.splitId,
             amount: _value,
+            idempotencyKey: _idempotencyKey,
           );
-      // Refresh dependent surfaces (balance changes; the inflow appears in the
-      // ledger). Offline these reflect after the next successful sync.
+      // Refresh dependent surfaces: the split's remaining drops and the inflow
+      // appears in the ledger / balance.
       ref.invalidate(owedControllerProvider);
       ref.invalidate(dashboardControllerProvider);
       ref.invalidate(transactionsControllerProvider);
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
-      setState(() => _error = 'Could not record. It will sync when back online.');
+      setState(() => _error = "Couldn't record repayment. Check your connection and try again.");
     } finally {
       if (mounted) setState(() => _saving = false);
     }

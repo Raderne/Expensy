@@ -5,6 +5,7 @@ import '../../dashboard/application/dashboard_controller.dart';
 import '../../income/application/income_controller.dart';
 import '../../recurring_expenses/application/recurring_expenses_controller.dart';
 import '../../recurring_expenses/application/upcoming_bills_controller.dart';
+import '../../shared/application/owed_controller.dart';
 import '../../transactions/application/transactions_controller.dart';
 import '../application/pending_occurrences_controller.dart';
 import '../application/postponed_occurrences_controller.dart';
@@ -73,5 +74,7 @@ Future<void> runConfirmationQueue(BuildContext context) async {
     container.invalidate(transactionsControllerProvider);
     container.invalidate(incomeControllerProvider);
     container.invalidate(recurringExpensesControllerProvider);
+    // A confirmed shared charge creates owed records — refresh "who owes me".
+    container.invalidate(owedControllerProvider);
   }
 }
