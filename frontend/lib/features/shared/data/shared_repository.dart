@@ -25,7 +25,10 @@ class SharedRepository {
     DateTime? occurredAt,
     String? idempotencyKey,
   }) async {
-    final when = occurredAt ?? DateTime.now();
+    // Day granularity (matching expenses/income) so repayments order by
+    // creation within their day rather than floating to the top on time-of-day.
+    final raw = occurredAt ?? DateTime.now();
+    final when = DateTime(raw.year, raw.month, raw.day);
     final res = await _dio.post(
       '/me/shared/splits/$splitId/reimbursements',
       data: {'amount': amount, 'occurredAt': when.toUtc().toIso8601String()},
