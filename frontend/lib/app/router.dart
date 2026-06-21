@@ -12,6 +12,7 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
 import '../features/contacts/presentation/contacts_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/goals/presentation/goals_screen.dart';
 import '../features/income/presentation/income_sources_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/recurring_confirmations/presentation/postponed_occurrences_screen.dart';
@@ -139,6 +140,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (_, _) =>
                 const NoTransitionPage(child: ProfileScreen()),
             routes: [
+              GoRoute(
+                path: 'goals',
+                name: 'goals',
+                pageBuilder: (_, _) =>
+                    const NoTransitionPage(child: GoalsScreen()),
+              ),
               GoRoute(
                 path: 'income-sources',
                 name: 'income-sources',

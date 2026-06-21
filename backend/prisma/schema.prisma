@@ -64,6 +64,7 @@ model User {
   splits               TransactionSplit[]
   recurringShares      RecurringExpenseShare[]
   reimbursements       Reimbursement[]
+  goals                Goal[]
 
   @@index([deletedAt])
 }
@@ -259,6 +260,36 @@ model RecurringOccurrence {
   @@unique([recurringIncomeId, scheduledFor])
   @@unique([recurringExpenseId, scheduledFor])
   @@index([userId, status, dueAt])
+  @@index([deletedAt])
+}
+
+// A user-defined savings goal (e.g. "New Car"). Progress is tracked manually:
+// the user adds funds (increments savedAmount) or edits the figure directly.
+// Goals are independent of balance/transactions — purely aspirational tracking.
+model Goal {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  // Curated icon key, mapped to a Material IconData on the client.
+  icon         String
+  // Hex color from CATEGORY_PALETTE (src/schemas/categories.ts).
+  color        String
+  targetAmount Decimal   @db.Decimal(12, 2)
+  savedAmount  Decimal   @default(0) @db.Decimal(12, 2)
+  // Optional target date (date-only semantics); drives the "monthly savings"
+  // suggestion computed client-side.
+  targetDate   DateTime?
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
   @@index([deletedAt])
 }
 

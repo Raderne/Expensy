@@ -28,6 +28,11 @@ class GlassCard extends StatelessWidget {
   /// a shadowed parent, or rows inside a clipped list).
   final bool shadow;
 
+  /// Optional accent. When set, the body becomes a translucent wash of this
+  /// color (instead of the neutral white glass) with a matching hairline — a
+  /// more transparent, colored frosted-glass look. Used by goal cards.
+  final Color? tint;
+
   const GlassCard({
     super.key,
     required this.child,
@@ -37,14 +42,31 @@ class GlassCard extends StatelessWidget {
     this.strong = false,
     this.blur,
     this.shadow = true,
+    this.tint,
   });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final br = BorderRadius.circular(radius);
-    final fill = strong ? c.glassFillStrong : c.glassFill;
     final sigma = blur ?? c.glassBlur;
+    final t = tint;
+
+    // Tinted cards drop the neutral fill for a low-alpha colored wash, so the
+    // blur and ambient glow read through — a lighter, more "glass" surface.
+    final List<Color> gradientColors;
+    final Color borderColor;
+    if (t != null) {
+      gradientColors = [
+        t.withValues(alpha: 0.20),
+        t.withValues(alpha: 0.07),
+      ];
+      borderColor = t.withValues(alpha: 0.34);
+    } else {
+      final fill = strong ? c.glassFillStrong : c.glassFill;
+      gradientColors = [Color.alphaBlend(c.glassHighlight, fill), fill];
+      borderColor = c.glassBorder;
+    }
 
     Widget inner = child;
     if (padding != null) inner = Padding(padding: padding!, child: child);
@@ -62,9 +84,9 @@ class GlassCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color.alphaBlend(c.glassHighlight, fill), fill],
+          colors: gradientColors,
         ),
-        border: Border.all(color: c.glassBorder, width: 0.8),
+        border: Border.all(color: borderColor, width: 0.8),
       ),
       child: inner,
     );
