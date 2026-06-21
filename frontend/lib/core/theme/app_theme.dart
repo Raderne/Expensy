@@ -12,8 +12,6 @@ class AppTheme {
 
   static ThemeData dark() => _build(Brightness.dark, AppPalette.dark);
 
-  static ThemeData amoled() => _build(Brightness.dark, AppPalette.amoled);
-
   static ThemeData _build(Brightness brightness, AppPalette palette) {
     final base = ThemeData(brightness: brightness, useMaterial3: true);
     final colorScheme =

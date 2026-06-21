@@ -13,7 +13,7 @@ abstract final class AppSystemOverlays {
   );
 
   /// For plain backgrounds — status-bar icons follow the active theme so they
-  /// stay legible in Light, Dark, and AMOLED.
+  /// stay legible in Light and Dark.
   static SystemUiOverlayStyle background(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return SystemUiOverlayStyle(

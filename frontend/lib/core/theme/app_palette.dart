@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Theme-variant design tokens — every color that differs between Light, Dark,
-/// and AMOLED lives here and is resolved per [BuildContext] via `context.colors`.
+/// Theme-variant design tokens — every color that differs between Light and Dark
+/// lives here and is resolved per [BuildContext] via `context.colors`.
 ///
 /// Brand-invariant colors (primary, accent, success, danger, the category
 /// palette) stay as `static const` in [AppColors]. The rule for contributors:
-/// brand colors → `AppColors.*`; surfaces / text / tints / shadows →
+/// brand colors → `AppColors.*`; surfaces / text / tints / shadows / glass →
 /// `context.colors.*`.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -30,6 +30,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.scrim,
     required this.shimmerBase,
     required this.shimmerHighlight,
+    required this.glassFill,
+    required this.glassFillStrong,
+    required this.glassBorder,
+    required this.glassHighlight,
+    required this.glassBlur,
+    required this.ambientOpacity,
   });
 
   // Surfaces
@@ -63,9 +69,23 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color shimmerBase;
   final Color shimmerHighlight;
 
-  /// Light theme — the app's original palette.
+  // Glassmorphism — frosted-glass surface tokens consumed by `GlassCard`.
+  // [glassFill] is the translucent body wash; [glassFillStrong] is a denser
+  // variant for cards that need more legibility (e.g. transaction ledgers).
+  // [glassBorder] is the hairline inner border; [glassHighlight] is the soft
+  // top sheen. [glassBlur] is the BackdropFilter sigma. [ambientOpacity] scales
+  // the colored glow blobs painted by `AmbientBackground` (dimmed in Light so
+  // the wash doesn't muddy a bright background).
+  final Color glassFill;
+  final Color glassFillStrong;
+  final Color glassBorder;
+  final Color glassHighlight;
+  final double glassBlur;
+  final double ambientOpacity;
+
+  /// Light theme — frosted white glass over a soft blue-tinted background.
   static const light = AppPalette(
-    background: Color(0xFFEEF3FF),
+    background: Color(0xFFEAF0FF),
     surface: Color(0xFFFFFFFF),
     surfaceAlt: Color(0xFFF5F8FF),
     border: Color(0xFFDDE6FF),
@@ -81,14 +101,20 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accentInk: Color(0xFFF56B1E),
     successInk: Color(0xFF16A34A),
     dangerInk: Color(0xFFDC2626),
-    shadow: Color(0x10000C22),
+    shadow: Color(0x14000C22),
     scrim: Color(0x66000C22),
     shimmerBase: Color(0xFFD5DDF0),
     shimmerHighlight: Color(0xFFECF1FA),
+    glassFill: Color(0xCCFFFFFF),
+    glassFillStrong: Color(0xF2FFFFFF),
+    glassBorder: Color(0xCCFFFFFF),
+    glassHighlight: Color(0x66FFFFFF),
+    glassBlur: 18,
+    ambientOpacity: 0.35,
   );
 
-  /// Dark theme — soft charcoal, comfortable for low-light without the harsh
-  /// contrast of pure black.
+  /// Dark theme — frosted glass over deep charcoal with ambient blue/orange
+  /// glow. This is the signature glassmorphic look.
   static const dark = AppPalette(
     background: Color(0xFF0E1322),
     surface: Color(0xFF161B2B),
@@ -106,35 +132,16 @@ class AppPalette extends ThemeExtension<AppPalette> {
     accentInk: Color(0xFFFB923C),
     successInk: Color(0xFF4ADE80),
     dangerInk: Color(0xFFF87171),
-    shadow: Color(0x40000000),
+    shadow: Color(0x59000000),
     scrim: Color(0x99000000),
     shimmerBase: Color(0xFF1E2538),
     shimmerHighlight: Color(0xFF283047),
-  );
-
-  /// AMOLED theme — pure-black surfaces with hairline borders and a slightly
-  /// lifted [surfaceAlt] so cards read as distinct panels without shadows.
-  static const amoled = AppPalette(
-    background: Color(0xFF000000),
-    surface: Color(0xFF0A0D14),
-    surfaceAlt: Color(0xFF13161F),
-    border: Color(0xFF1C2334),
-    ink: Color(0xFFFFFFFF),
-    inkMid: Color(0xFFC2CADE),
-    inkLight: Color(0xFF8A93AD),
-    inkFaint: Color(0xFF2A3144),
-    primaryLight: Color(0xFF121A30),
-    accentLight: Color(0xFF221710),
-    successLight: Color(0xFF0C2016),
-    dangerLight: Color(0xFF241315),
-    primaryInk: Color(0xFF93B1FF),
-    accentInk: Color(0xFFFFA04D),
-    successInk: Color(0xFF5CE48E),
-    dangerInk: Color(0xFFFF8787),
-    shadow: Color(0x66000000),
-    scrim: Color(0xB3000000),
-    shimmerBase: Color(0xFF13161F),
-    shimmerHighlight: Color(0xFF1C2334),
+    glassFill: Color(0x14FFFFFF),
+    glassFillStrong: Color(0x1FFFFFFF),
+    glassBorder: Color(0x1FFFFFFF),
+    glassHighlight: Color(0x14FFFFFF),
+    glassBlur: 18,
+    ambientOpacity: 1.0,
   );
 
   @override
@@ -159,6 +166,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? scrim,
     Color? shimmerBase,
     Color? shimmerHighlight,
+    Color? glassFill,
+    Color? glassFillStrong,
+    Color? glassBorder,
+    Color? glassHighlight,
+    double? glassBlur,
+    double? ambientOpacity,
   }) {
     return AppPalette(
       background: background ?? this.background,
@@ -181,6 +194,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
       scrim: scrim ?? this.scrim,
       shimmerBase: shimmerBase ?? this.shimmerBase,
       shimmerHighlight: shimmerHighlight ?? this.shimmerHighlight,
+      glassFill: glassFill ?? this.glassFill,
+      glassFillStrong: glassFillStrong ?? this.glassFillStrong,
+      glassBorder: glassBorder ?? this.glassBorder,
+      glassHighlight: glassHighlight ?? this.glassHighlight,
+      glassBlur: glassBlur ?? this.glassBlur,
+      ambientOpacity: ambientOpacity ?? this.ambientOpacity,
     );
   }
 
@@ -212,8 +231,16 @@ class AppPalette extends ThemeExtension<AppPalette> {
         other.shimmerHighlight,
         t,
       )!,
+      glassFill: Color.lerp(glassFill, other.glassFill, t)!,
+      glassFillStrong: Color.lerp(glassFillStrong, other.glassFillStrong, t)!,
+      glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
+      glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
+      glassBlur: lerpDouble(glassBlur, other.glassBlur, t),
+      ambientOpacity: lerpDouble(ambientOpacity, other.ambientOpacity, t),
     );
   }
+
+  static double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 }
 
 /// Resolves the active [AppPalette] for the current theme.

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/glass_card.dart';
 import '../../application/upcoming_bills_controller.dart';
 import '../../domain/upcoming_bill.dart';
 
@@ -22,53 +23,37 @@ class UpcomingBillsCard extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => context.push('/profile/recurring-expenses'),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x10000C22),
-                  blurRadius: 14,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: GlassCard(
+        radius: 18,
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        onTap: () => context.push('/profile/recurring-expenses'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text('Upcoming bills', style: AppTextStyles.titleS),
-                    const Spacer(),
-                    Text(
-                      'Manage →',
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
+                Text('Upcoming bills', style: AppTextStyles.titleS),
+                const Spacer(),
+                Text(
+                  'Manage →',
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                ...List.generate(list.length, (i) {
-                  final b = list[i];
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: i == list.length - 1 ? 0 : 10,
-                    ),
-                    child: _BillRow(bill: b),
-                  );
-                }),
+                const SizedBox(width: 4),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            ...List.generate(list.length, (i) {
+              final b = list[i];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: i == list.length - 1 ? 0 : 10,
+                ),
+                child: _BillRow(bill: b),
+              );
+            }),
+          ],
         ),
       ),
     );

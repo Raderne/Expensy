@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/glass_card.dart';
 
 /// First-run onboarding banner. Shown on the Dashboard when the user hasn't
 /// recorded a single transaction yet — disappears the moment any data lands
@@ -20,20 +21,9 @@ class OnboardingCard extends StatelessWidget {
       container: true,
       label:
           'Welcome to Expensy. Tap the plus button at the bottom to add your first expense.',
-      child: Container(
+      child: GlassCard(
+        radius: 20,
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border, width: 1),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000C22),
-              blurRadius: 12,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

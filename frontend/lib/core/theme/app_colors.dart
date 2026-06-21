@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'app_palette.dart';
 
 /// Design tokens. Brand colors are compile-time `const`; theme-variant tokens
-/// (surfaces, text, tints, effects) resolve against the globally-active
+/// (surfaces, text, tints, effects, glass) resolve against the globally-active
 /// [AppPalette], which `ExpensyApp` keeps in sync with the resolved brightness
-/// (Light / Dark / AMOLED). Never hard-code hex in widgets.
+/// (Light / Dark). Never hard-code hex in widgets.
 @immutable
 class AppColors {
   const AppColors._();
@@ -43,6 +43,12 @@ class AppColors {
   static Color get scrim => active.scrim;
   static Color get shimmerBase => active.shimmerBase;
   static Color get shimmerHighlight => active.shimmerHighlight;
+  static Color get glassFill => active.glassFill;
+  static Color get glassFillStrong => active.glassFillStrong;
+  static Color get glassBorder => active.glassBorder;
+  static Color get glassHighlight => active.glassHighlight;
+  static double get glassBlur => active.glassBlur;
+  static double get ambientOpacity => active.ambientOpacity;
 
   // Curated picker palette — must match CATEGORY_PALETTE in backend/src/schemas/categories.ts
   static const List<Color> categoryPalette = [
