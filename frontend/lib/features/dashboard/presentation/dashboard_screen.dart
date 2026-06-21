@@ -14,6 +14,7 @@ import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../goals/presentation/widgets/goals_summary_card.dart';
 import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
 import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../recurring_confirmations/presentation/postponed_items_card.dart';
@@ -142,6 +143,7 @@ class _DashboardContent extends StatelessWidget {
               ],
               BudgetCard(budget: state.summary.budget),
               const SizedBox(height: 14),
+              const GoalsSummaryCard(),
               const UpcomingBillsCard(),
               const PostponedItemsCard(),
               // When the onboarding card is showing the dashboard already has a

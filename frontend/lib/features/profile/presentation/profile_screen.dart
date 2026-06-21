@@ -15,6 +15,8 @@ import '../../auth/domain/auth_state.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../contacts/data/contacts_repository.dart';
 import '../../dashboard/application/dashboard_controller.dart';
+import '../../goals/application/goals_controller.dart';
+import '../../goals/domain/goal.dart';
 import '../../income/application/income_controller.dart';
 import '../../income/presentation/widgets/add_side_income_sheet.dart';
 import '../../recurring_expenses/application/recurring_expenses_controller.dart';
@@ -102,6 +104,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         '${value.activeCount} active · ${NumberFormat.simpleCurrency(decimalDigits: 0).format(value.activeMonthlyTotal)}/mo',
       _ => 'None set',
     };
+    final goals = ref.watch(goalsControllerProvider).value ?? const <Goal>[];
+    final goalsSummary = goals.isEmpty
+        ? 'Set a savings goal'
+        : '${goals.length} ${goals.length == 1 ? 'goal' : 'goals'} · ${NumberFormat.simpleCurrency(decimalDigits: 0).format(goals.totalSaved)} saved';
     final contactCount = ref.watch(contactsViewProvider).value?.length ?? 0;
     final peopleSummary = contactCount > 0
         ? '$contactCount ${contactCount == 1 ? 'person' : 'people'}'
@@ -171,6 +177,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ).format(budgetAmount)
                         : 'Not set',
                     onTap: () => _openEditBudget(context, budgetAmount),
+                  ),
+                  const _Divider(),
+                  _Row(
+                    icon: Icons.flag_outlined,
+                    label: 'Goals',
+                    value: goalsSummary,
+                    onTap: () => context.push('/profile/goals'),
                   ),
                   const _Divider(),
                   _Row(

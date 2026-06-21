@@ -11,6 +11,7 @@ import { categoriesRouter } from './routes/categories.js';
 import { healthRouter } from './routes/health.js';
 import { meRouter } from './routes/me.js';
 import { incomeRouter } from './routes/income.js';
+import { goalsRouter } from './routes/goals.js';
 import { recurringExpensesRouter } from './routes/recurringExpenses.js';
 import { recurringOccurrencesRouter } from './routes/recurringOccurrences.js';
 import { transactionsRouter } from './routes/transactions.js';
@@ -38,6 +39,7 @@ export const createApp = (): Express => {
   app.use(authRouter);
   app.use(meRouter);
   app.use(incomeRouter);
+  app.use(goalsRouter);
   app.use(recurringExpensesRouter);
   app.use(recurringOccurrencesRouter);
   app.use(categoriesRouter);
