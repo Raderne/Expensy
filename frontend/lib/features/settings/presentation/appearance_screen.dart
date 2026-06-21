@@ -45,7 +45,7 @@ class AppearanceScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Pick a theme. AMOLED uses true black to save battery on OLED screens.',
+                    'Pick a theme. System follows your phone’s light or dark setting.',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.body.copyWith(
                       color: Colors.white.withValues(alpha: 0.75),

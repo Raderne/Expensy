@@ -145,13 +145,12 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
 
     // Keep the globally-active palette in sync with the brightness MaterialApp
     // will actually resolve, BEFORE descendants build and read `AppColors.x`.
-    // System mode follows the phone; Dark/AMOLED are explicit dark choices.
+    // System mode follows the phone; Dark is an explicit dark choice.
     final systemBrightness =
         WidgetsBinding.instance.platformDispatcher.platformBrightness;
     AppColors.active = switch (mode) {
       AppThemeMode.light => AppPalette.light,
       AppThemeMode.dark => AppPalette.dark,
-      AppThemeMode.amoled => AppPalette.amoled,
       AppThemeMode.system =>
         systemBrightness == Brightness.dark
             ? AppPalette.dark
@@ -162,14 +161,11 @@ class _ExpensyAppState extends ConsumerState<ExpensyApp>
       title: 'Expensy',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      darkTheme: mode == AppThemeMode.amoled
-          ? AppTheme.amoled()
-          : AppTheme.dark(),
+      darkTheme: AppTheme.dark(),
       themeMode: switch (mode) {
         AppThemeMode.system => ThemeMode.system,
         AppThemeMode.light => ThemeMode.light,
         AppThemeMode.dark => ThemeMode.dark,
-        AppThemeMode.amoled => ThemeMode.dark,
       },
       // App-wide offline/sync status bar above the navigator. Self-hides when
       // there's nothing to report.

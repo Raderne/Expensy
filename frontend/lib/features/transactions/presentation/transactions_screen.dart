@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/haptic_refresh.dart';
+import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../application/transactions_controller.dart';
 import '../data/transactions_repository.dart';
@@ -65,25 +67,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: _Header(
+                child: _TransactionsHero(
+                  month: state.month,
+                  canGoPrev: !state.isAtOldest,
+                  canGoNext: !state.isAtNewest,
+                  onPrev: controller.previousMonth,
+                  onNext: controller.nextMonth,
                   filtersActive: state.filters.isActive,
                   onOpenFilters: () => _openFilters(context, state.filters),
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-                sliver: SliverToBoxAdapter(
-                  child: MonthNav(
-                    month: state.month,
-                    canGoPrev: !state.isAtOldest,
-                    canGoNext: !state.isAtNewest,
-                    onPrev: controller.previousMonth,
-                    onNext: controller.nextMonth,
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
                 sliver: SliverToBoxAdapter(
                   child: SummaryRow(
                     income: state.income,
@@ -114,7 +109,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 if (state.hasMore)
                   const SliverToBoxAdapter(child: _PageSpinner()),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 24 + MediaQuery.paddingOf(context).bottom,
+                  ),
+                ),
               ],
             ],
           ),
@@ -148,24 +147,57 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
+// ─── Hero header ─────────────────────────────────────────────────────────────
 
-class _Header extends StatelessWidget {
+class _TransactionsHero extends StatelessWidget {
+  final String month;
+  final bool canGoPrev;
+  final bool canGoNext;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
   final bool filtersActive;
   final VoidCallback onOpenFilters;
 
-  const _Header({required this.filtersActive, required this.onOpenFilters});
+  const _TransactionsHero({
+    required this.month,
+    required this.canGoPrev,
+    required this.canGoNext,
+    required this.onPrev,
+    required this.onNext,
+    required this.filtersActive,
+    required this.onOpenFilters,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('Transactions', style: AppTextStyles.titleL),
-          _FilterButton(active: filtersActive, onTap: onOpenFilters),
-        ],
+    final topInset = MediaQuery.paddingOf(context).top;
+    return DecoratedBox(
+      decoration: HeroGradient.decoration,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(18, topInset + 10, 18, 18),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Transactions',
+                  style: AppTextStyles.titleL.copyWith(color: Colors.white),
+                ),
+                const Spacer(),
+                _FilterButton(active: filtersActive, onTap: onOpenFilters),
+              ],
+            ),
+            const SizedBox(height: 16),
+            MonthNav(
+              month: month,
+              canGoPrev: canGoPrev,
+              canGoNext: canGoNext,
+              onPrev: onPrev,
+              onNext: onNext,
+              onHero: true,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -183,24 +215,14 @@ class _FilterButton extends StatelessWidget {
       button: true,
       label: active ? 'Filters, active' : 'Filters',
       child: Material(
-        color: AppColors.surface,
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(11),
         child: InkWell(
           borderRadius: BorderRadius.circular(11),
           onTap: onTap,
-          child: Ink(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(11),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x17000C22),
-                  blurRadius: 6,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
+          child: SizedBox(
+            width: 38,
+            height: 38,
             child: Stack(
               children: [
                 Center(
@@ -211,18 +233,14 @@ class _FilterButton extends StatelessWidget {
                 ),
                 if (active)
                   Positioned(
-                    top: 7,
-                    right: 7,
+                    top: 8,
+                    right: 8,
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppColors.accent,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.surface,
-                          width: 1.5,
-                        ),
                       ),
                     ),
                   ),
@@ -238,7 +256,7 @@ class _FilterButton extends StatelessWidget {
 class _FilterIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.inkMid;
+    final paint = Paint()..color = Colors.white;
     void bar(double x, double y, double w) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -265,11 +283,13 @@ class _Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Shimmer(
+    final topInset = MediaQuery.paddingOf(context).top;
+    return Shimmer(
       child: CustomScrollView(
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(
+          SliverToBoxAdapter(child: SizedBox(height: topInset + 8)),
+          const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(18, 4, 18, 14),
               child: Row(
@@ -281,13 +301,13 @@ class _Loading extends StatelessWidget {
               ),
             ),
           ),
-          SliverPadding(
+          const SliverPadding(
             padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
             sliver: SliverToBoxAdapter(
               child: ShimmerBox(height: 44, radius: 14),
             ),
           ),
-          SliverPadding(
+          const SliverPadding(
             padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
             sliver: SliverToBoxAdapter(
               child: Row(
@@ -301,11 +321,11 @@ class _Loading extends StatelessWidget {
               ),
             ),
           ),
-          SliverPadding(
+          const SliverPadding(
             padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
             sliver: SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 3)),
           ),
-          SliverPadding(
+          const SliverPadding(
             padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
             sliver: SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 2)),
           ),
@@ -555,40 +575,29 @@ class _DayGroup extends StatelessWidget {
           padding: const EdgeInsets.only(left: 2, bottom: 8),
           child: Text(group.label, style: AppTextStyles.groupLabel),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000C22),
-                blurRadius: 10,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Column(
-              children: [
-                for (int i = 0; i < group.transactions.length; i++) ...[
-                  if (i > 0)
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      indent: 68,
-                      color: AppColors.border,
-                    ),
-                  SwipeableTransactionRow(
-                    transaction: group.transactions[i],
-                    onDelete: () => onDelete(group.transactions[i].id),
-                    onTap: group.transactions[i].isShared
-                        ? () => context.push('/shared')
-                        : null,
+        GlassCard(
+          radius: 16,
+          strong: true,
+          blur: 14,
+          child: Column(
+            children: [
+              for (int i = 0; i < group.transactions.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 68,
+                    color: AppColors.glassBorder,
                   ),
-                ],
+                SwipeableTransactionRow(
+                  transaction: group.transactions[i],
+                  onDelete: () => onDelete(group.transactions[i].id),
+                  onTap: group.transactions[i].isShared
+                      ? () => context.push('/shared')
+                      : null,
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ],

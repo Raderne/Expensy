@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/glass_card.dart';
 import '../../domain/recent_transaction.dart';
 
 /// Recent activity, presented as a first-class dashboard card so it reads as a
@@ -17,18 +18,8 @@ class RecentTransactionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x10000C22),
-            blurRadius: 14,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
+    return GlassCard(
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -7,7 +7,7 @@ import 'app_colors.dart';
 ///
 /// These are getters (not const fields) so theme-variant colors resolve against
 /// the active palette on every access — a `Text(style: AppTextStyles.body)`
-/// picks up the right ink color in Light, Dark, and AMOLED.
+/// picks up the right ink color in Light and Dark.
 @immutable
 class AppTextStyles {
   const AppTextStyles._();

@@ -53,7 +53,7 @@ void main() {
           _rule(
             amount: 100,
             shares: [
-              RecurringShareDraft(
+              const RecurringShareDraft(
                 contactId: 'x',
                 shareType: ShareType.amount,
                 shareValue: 40,

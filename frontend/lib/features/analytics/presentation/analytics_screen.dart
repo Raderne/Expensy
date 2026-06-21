@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../application/analytics_controller.dart';
@@ -43,7 +44,12 @@ class AnalyticsScreen extends ConsumerWidget {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+                padding: EdgeInsets.fromLTRB(
+                  18,
+                  8,
+                  18,
+                  24 + MediaQuery.paddingOf(context).bottom,
+                ),
                 sliver: SliverToBoxAdapter(
                   child: _Content(data: state.data!, loading: state.loading),
                 ),
@@ -102,37 +108,29 @@ class _MonthChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(11),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: AppColors.border, width: 1),
+    return GlassCard(
+      radius: 11,
+      shadow: false,
+      strong: true,
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.labelStrong.copyWith(
+              fontSize: 13,
+              color: AppColors.ink,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: AppTextStyles.labelStrong.copyWith(
-                  fontSize: 13,
-                  color: AppColors.ink,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: AppColors.inkMid,
-                size: 18,
-              ),
-            ],
+          const SizedBox(width: 6),
+          Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppColors.inkMid,
+            size: 18,
           ),
-        ),
+        ],
       ),
     );
   }
@@ -156,19 +154,9 @@ class _Content extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
+            GlassCard(
+              radius: 22,
               padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x12000C22),
-                    blurRadius: 18,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
               child: Row(
                 children: [
                   DonutChart(data: data),
@@ -180,19 +168,9 @@ class _Content extends StatelessWidget {
             const SizedBox(height: 18),
             Text('Spending Breakdown', style: AppTextStyles.titleS),
             const SizedBox(height: 14),
-            Container(
+            GlassCard(
+              radius: 18,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x10000C22),
-                    blurRadius: 14,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
               child: SpendingBars(items: data.items),
             ),
           ],

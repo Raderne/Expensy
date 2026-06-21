@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/glass_card.dart';
 import '../application/postponed_occurrences_controller.dart';
 import '../domain/pending_occurrence.dart';
 
@@ -27,70 +28,54 @@ class PostponedItemsCard extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => context.push('/postponed'),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x10000C22),
-                  blurRadius: 14,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: GlassCard(
+        radius: 18,
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        onTap: () => context.push('/postponed'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text('Postponed', style: AppTextStyles.titleS),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentLight,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '${list.length}',
-                        style: AppTextStyles.labelStrong.copyWith(
-                          color: AppColors.accent,
-                          fontSize: 11.5,
-                        ),
-                      ),
+                Text('Postponed', style: AppTextStyles.titleS),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentLight,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${list.length}',
+                    style: AppTextStyles.labelStrong.copyWith(
+                      color: AppColors.accent,
+                      fontSize: 11.5,
                     ),
-                    const Spacer(),
-                    Text(
-                      'Manage →',
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                ...List.generate(preview.length, (i) {
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: i == preview.length - 1 ? 0 : 10,
-                    ),
-                    child: _PostponedRow(item: preview[i]),
-                  );
-                }),
+                const Spacer(),
+                Text(
+                  'Manage →',
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 4),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            ...List.generate(preview.length, (i) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: i == preview.length - 1 ? 0 : 10,
+                ),
+                child: _PostponedRow(item: preview[i]),
+              );
+            }),
+          ],
         ),
       ),
     );

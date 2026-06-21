@@ -20,7 +20,6 @@ class SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final netFg = net >= 0 ? AppColors.primaryInk : AppColors.dangerInk;
-    final netBg = net >= 0 ? AppColors.primaryLight : AppColors.dangerLight;
     final netSign = net >= 0 ? '+' : '-';
 
     return Row(
@@ -30,7 +29,6 @@ class SummaryRow extends StatelessWidget {
             label: 'INCOME',
             value: income,
             fg: AppColors.successInk,
-            bg: AppColors.successLight,
             sign: '+',
           ),
         ),
@@ -40,7 +38,6 @@ class SummaryRow extends StatelessWidget {
             label: 'EXPENSES',
             value: expenses,
             fg: AppColors.dangerInk,
-            bg: AppColors.dangerLight,
             sign: '-',
           ),
         ),
@@ -50,7 +47,6 @@ class SummaryRow extends StatelessWidget {
             label: 'NET',
             value: net.abs(),
             fg: netFg,
-            bg: netBg,
             sign: netSign,
           ),
         ),
@@ -63,14 +59,12 @@ class _Card extends StatelessWidget {
   final String label;
   final double value;
   final Color fg;
-  final Color bg;
   final String sign;
 
   const _Card({
     required this.label,
     required this.value,
     required this.fg,
-    required this.bg,
     required this.sign,
   });
 
@@ -80,11 +74,14 @@ class _Card extends StatelessWidget {
       locale: 'en_US',
       decimalDigits: 0,
     );
+    // Translucent colored glass pill — the tint reads on both the deep dark and
+    // soft light ambient backgrounds.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
       decoration: BoxDecoration(
-        color: bg,
+        color: fg.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: fg.withValues(alpha: 0.32), width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

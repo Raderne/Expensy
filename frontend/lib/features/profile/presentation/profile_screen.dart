@@ -117,7 +117,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           collapsed: _ProfileHeroCollapsed(topInset: topInset, name: user.name),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
+          padding: EdgeInsets.fromLTRB(
+            18,
+            16,
+            18,
+            28 + MediaQuery.paddingOf(context).bottom,
+          ),
           sliver: SliverList.list(
             children: [
               _SectionCard(
