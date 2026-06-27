@@ -157,6 +157,8 @@ jobs:
       TAG: ${{ needs.changes.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags so we can diff against the previous release
 
       # Idempotency guard: skip everything if the release tag already exists.
       - id: guard
@@ -218,6 +220,27 @@ jobs:
           done
           ls -la dist
 
+      # Build release notes from commit messages since the previous tag,
+      # excluding merge commits.
+      - name: Generate release notes
+        if: steps.guard.outputs.exists == 'false'
+        run: |
+          prev_tag="$(git tag --list 'v*' --sort=-version:refname | head -n1)"
+          if [ -n "$prev_tag" ]; then
+            echo "Collecting commits since $prev_tag..."
+            range="${prev_tag}..HEAD"
+          else
+            echo "No previous tag found — using full history."
+            range="HEAD"
+          fi
+          {
+            echo "## What's Changed"
+            echo
+            git log --no-merges --pretty=format:'- %s' "$range"
+            echo
+          } > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
       - name: Create GitHub Release
         if: steps.guard.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
@@ -225,5 +248,5 @@ jobs:
           tag_name: ${{ env.TAG }}
           target_commitish: ${{ github.sha }}
           name: ${{ env.TAG }}
-          generate_release_notes: true
+          body_path: frontend/RELEASE_NOTES.md
           files: frontend/dist/expensy-*.apk
