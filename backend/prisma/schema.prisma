@@ -280,6 +280,12 @@ model Goal {
   // suggestion computed client-side.
   targetDate   DateTime?
 
+  // Cached AI time-to-reach estimate (shape mirrors GoalEstimateDto) and when it
+  // was last generated. Served within GOAL_ESTIMATE_TTL_HOURS to avoid re-calling
+  // Gemini on every request; null until the user first requests an estimate.
+  aiEstimate    Json?
+  aiEstimatedAt DateTime?
+
   // Base audit fields
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

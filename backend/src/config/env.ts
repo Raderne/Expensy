@@ -26,6 +26,14 @@ const EnvSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+
+  // Google Gemini — powers the goal time-to-reach estimate. Optional: when
+  // GEMINI_API_KEY is unset the estimate endpoint responds 503 AI_UNAVAILABLE
+  // and the rest of the app is unaffected. The free fast model is the default.
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
+  // How long a persisted goal estimate is served before a fresh Gemini call.
+  GOAL_ESTIMATE_TTL_HOURS: z.coerce.number().int().positive().default(24),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

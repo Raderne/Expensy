@@ -7,6 +7,11 @@ import { requireAuth } from '../middleware/requireAuth.js';
 export const goalsRouter = Router();
 
 goalsRouter.get('/me/goals', requireAuth, asyncHandler(goalController.list));
+goalsRouter.get(
+  '/me/goals/:id/estimate',
+  requireAuth,
+  asyncHandler(goalController.estimate),
+);
 goalsRouter.post(
   '/me/goals',
   requireAuth,

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Goal time-to-reach estimate",
+  "description": "Estimate of how long a user will take to reach a savings goal, based on their recent spending and income.",
+  "properties": {
+    "reachable": {
+      "type": "boolean",
+      "description": "Whether the goal is reachable at the user's current net-savings pace."
+    },
+    "estimatedMonths": {
+      "type": ["integer", "null"],
+      "description": "Whole months to reach the goal from now. Null when the goal is not reachable at the current pace."
+    },
+    "monthlyNetSavings": {
+      "type": "number",
+      "description": "The average monthly net savings used for the estimate (echo the input figure)."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Reliability of the estimate, derived from the months of history available and how stable income/expenses are."
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 280,
+      "description": "One or two plain-language sentences explaining the estimate."
+    },
+    "tips": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 3,
+      "description": "Up to three concrete, specific suggestions to reach the goal faster, ideally referencing the top spending categories. Empty array if none are useful."
+    }
+  },
+  "required": [
+    "reachable",
+    "estimatedMonths",
+    "monthlyNetSavings",
+    "confidence",
+    "summary",
+    "tips"
+  ],
+  "additionalProperties": false
+}

@@ -52,6 +52,13 @@ export const goalRepository = {
       data: { savedAmount: { increment: amount } },
     }),
 
+  // Persist the cached AI estimate payload + its freshness timestamp.
+  saveEstimate: (id: string, userId: string, estimate: Prisma.InputJsonValue) =>
+    prisma.goal.updateMany({
+      where: { id, userId },
+      data: { aiEstimate: estimate, aiEstimatedAt: new Date() },
+    }),
+
   softDelete: (id: string, userId: string) =>
     prisma.goal.updateMany({
       where: { id, userId },
