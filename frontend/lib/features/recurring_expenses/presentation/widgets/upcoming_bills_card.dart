@@ -37,7 +37,7 @@ class UpcomingBillsCard extends ConsumerWidget {
                 Text(
                   'Manage →',
                   style: AppTextStyles.label.copyWith(
-                    color: AppColors.primary,
+                    color: AppColors.accent,
                   ),
                 ),
                 const SizedBox(width: 4),

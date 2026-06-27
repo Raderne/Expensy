@@ -78,13 +78,13 @@ class _SeeAllButton extends StatelessWidget {
             children: [
               Text(
                 'See all',
-                style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                style: AppTextStyles.label.copyWith(color: AppColors.accent),
               ),
               const SizedBox(width: 2),
               const Icon(
                 Icons.arrow_forward_rounded,
                 size: 14,
-                color: AppColors.primary,
+                color: AppColors.accent,
               ),
             ],
           ),

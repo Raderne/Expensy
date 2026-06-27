@@ -37,6 +37,7 @@ DateTime _nextMonth(DateTime from) {
 Future<ConfirmationResult?> showConfirmationModal(
   BuildContext context, {
   required PendingOccurrence occurrence,
+  bool startOnPostpone = false,
 }) {
   return showGeneralDialog<ConfirmationResult>(
     context: context,
@@ -44,7 +45,10 @@ Future<ConfirmationResult?> showConfirmationModal(
     barrierLabel: 'Confirm recurring item',
     barrierColor: AppColors.scrim,
     transitionDuration: const Duration(milliseconds: 240),
-    pageBuilder: (_, _, _) => _ConfirmationCard(occurrence: occurrence),
+    pageBuilder: (_, _, _) => _ConfirmationCard(
+      occurrence: occurrence,
+      startOnPostpone: startOnPostpone,
+    ),
     transitionBuilder: (context, animation, _, child) {
       final scale = CurvedAnimation(
         parent: animation,
@@ -64,14 +68,18 @@ Future<ConfirmationResult?> showConfirmationModal(
 
 class _ConfirmationCard extends StatefulWidget {
   final PendingOccurrence occurrence;
-  const _ConfirmationCard({required this.occurrence});
+  final bool startOnPostpone;
+  const _ConfirmationCard({
+    required this.occurrence,
+    this.startOnPostpone = false,
+  });
 
   @override
   State<_ConfirmationCard> createState() => _ConfirmationCardState();
 }
 
 class _ConfirmationCardState extends State<_ConfirmationCard> {
-  bool _showPostponeOptions = false;
+  late bool _showPostponeOptions = widget.startOnPostpone;
   late final TextEditingController _amountCtrl = TextEditingController(
     text: _occ.amount.toStringAsFixed(2),
   );
