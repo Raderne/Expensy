@@ -92,9 +92,13 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
                               padding: const EdgeInsets.only(bottom: 10),
                               child: _PostponedCard(
                                 occurrence: o,
-                                onConfirm: () => _confirm(context, ref, o),
-                                onReschedule: () =>
-                                    _reschedule(context, ref, o),
+                                onConfirm: () => _decide(context, ref, o),
+                                onReschedule: () => _decide(
+                                  context,
+                                  ref,
+                                  o,
+                                  startOnPostpone: true,
+                                ),
                               ),
                             ),
                           )
@@ -107,36 +111,22 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirm(
+  /// Both card actions open the same confirm/postpone modal so the amount stays
+  /// editable when confirming — `startOnPostpone` just decides which view the
+  /// modal opens on. "Confirm" lands on the editable amount; "Reschedule" jumps
+  /// straight to the date options.
+  Future<void> _decide(
     BuildContext context,
     WidgetRef ref,
-    PendingOccurrence o,
-  ) async {
+    PendingOccurrence o, {
+    bool startOnPostpone = false,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
-    try {
-      await ref.read(recurringConfirmationsRepositoryProvider).confirm(o.id);
-      HapticFeedback.mediumImpact();
-      _invalidate(ref);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(o.isIncome ? 'Income confirmed' : 'Expense confirmed'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } on RecurringConfirmationsApiException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
-      );
-    }
-  }
-
-  Future<void> _reschedule(
-    BuildContext context,
-    WidgetRef ref,
-    PendingOccurrence o,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final result = await showConfirmationModal(context, occurrence: o);
+    final result = await showConfirmationModal(
+      context,
+      occurrence: o,
+      startOnPostpone: startOnPostpone,
+    );
     if (result == null) return;
     try {
       switch (result) {
@@ -144,6 +134,7 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
           await ref
               .read(recurringConfirmationsRepositoryProvider)
               .confirm(o.id, amount: amount);
+          HapticFeedback.mediumImpact();
           messenger.showSnackBar(
             SnackBar(
               content: Text(
@@ -156,6 +147,7 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
           await ref
               .read(recurringConfirmationsRepositoryProvider)
               .postpone(o.id, date);
+          HapticFeedback.selectionClick();
           messenger.showSnackBar(
             SnackBar(
               content: Text('Moved to ${DateFormat('MMM d').format(date)}'),
@@ -163,7 +155,6 @@ class PostponedOccurrencesScreen extends ConsumerWidget {
             ),
           );
       }
-      HapticFeedback.selectionClick();
       _invalidate(ref);
     } on RecurringConfirmationsApiException catch (e) {
       messenger.showSnackBar(

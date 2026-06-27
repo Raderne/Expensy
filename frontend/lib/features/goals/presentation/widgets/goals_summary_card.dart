@@ -38,7 +38,7 @@ class GoalsSummaryCard extends ConsumerWidget {
                 const Spacer(),
                 Text(
                   'View all →',
-                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.label.copyWith(color: AppColors.accent),
                 ),
                 const SizedBox(width: 4),
               ],
@@ -96,6 +96,7 @@ class _MiniRow extends StatelessWidget {
                   ),
                   FractionallySizedBox(
                     widthFactor: goal.progress.clamp(0.0, 1.0),
+                    heightFactor: 1,
                     child: DecoratedBox(decoration: BoxDecoration(color: color)),
                   ),
                 ],
