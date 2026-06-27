@@ -1,0 +1,229 @@
+name: Publish
+
+# Release pipeline. Triggered by pushing to PUBLISH_V.
+#  - Backend is deployed to Render (via Deploy Hook) only when backend/** changed,
+#    and only after Prisma migrations have been applied to the prod DB.
+#  - A signed release APK is built and attached to a GitHub Release only when
+#    frontend/** changed. The version/tag is read from frontend/pubspec.yaml and
+#    the release is skipped if that tag already exists (idempotent).
+on:
+  push:
+    branches: [PUBLISH_V]
+  workflow_dispatch: # manual re-run / force a publish
+
+# Never run two publishes for this branch at the same time.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # create releases + upload APK assets
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detect which top-level folder changed and compute the release version/tag.
+  # ---------------------------------------------------------------------------
+  changes:
+    name: detect changes + version
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          # On push events this compares against github.event.before automatically.
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      - id: version
+        name: Read version from pubspec.yaml
+        run: |
+          version="$(grep -m1 '^version:' frontend/pubspec.yaml | sed -E 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          if [ -z "$version" ]; then
+            echo "::error::Could not parse version from frontend/pubspec.yaml"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "Release version: $version (tag v$version)"
+
+  # ---------------------------------------------------------------------------
+  # Backend: validate, apply migrations to prod, then trigger the Render deploy.
+  # ---------------------------------------------------------------------------
+  deploy-backend:
+    name: deploy backend (Render)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    # Throwaway Postgres used only to validate that the full migration history
+    # applies cleanly from scratch (see the "Validate migrations" step below).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: expensy_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - run: npx prisma generate
+
+      # Code-correctness gate (matches the existing CI; tests do not need a DB).
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+      # Migration safety gate #1: full history must apply on an empty database.
+      - name: Validate migrations on a clean DB
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/expensy_ci?schema=public
+        run: npx prisma migrate deploy
+
+      # Migration check against PROD (informational — pending migrations are
+      # expected here and must NOT fail the job).
+      - name: Check prod migration status
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate status
+
+      # Migration safety gate #2 (the real one): apply to prod. If this fails,
+      # the Render Deploy Hook below is never reached.
+      - name: Apply migrations to prod
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+      # Trigger Render to rebuild/restart the service against the new commit.
+      - name: Trigger Render deploy
+        run: |
+          echo "Triggering Render Deploy Hook..."
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo
+
+      # Verify the rollout: /health returns 200 only when the DB is reachable.
+      - name: Wait for /health to be healthy
+        env:
+          BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        run: |
+          echo "Polling $BASE_URL/health ..."
+          deadline=$((SECONDS + 600))   # up to ~10 min for a cold Render rollout
+          until curl -fsS -o /dev/null "$BASE_URL/health"; do
+            if [ $SECONDS -ge $deadline ]; then
+              echo "::error::Backend did not become healthy in time"
+              exit 1
+            fi
+            echo "  not ready yet, retrying in 15s..."
+            sleep 15
+          done
+          echo "Backend is healthy."
+
+  # ---------------------------------------------------------------------------
+  # Frontend: build a signed release APK and publish it as a GitHub Release.
+  # ---------------------------------------------------------------------------
+  release-apk:
+    name: build + release APK
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      TAG: ${{ needs.changes.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Idempotency guard: skip everything if the release tag already exists.
+      - id: guard
+        name: Check whether release already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — skipping."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.guard.outputs.exists == 'false'
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        if: steps.guard.outputs.exists == 'false'
+        with:
+          channel: 'stable'
+          cache: true
+
+      # Materialize the release keystore + key.properties from secrets so the
+      # Gradle config signs with the real key (otherwise it falls back to debug).
+      - name: Decode signing keystore
+        if: steps.guard.outputs.exists == 'false'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$HOME/expensy-release.jks"
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=$HOME/expensy-release.jks
+          EOF
+
+      - name: flutter pub get
+        if: steps.guard.outputs.exists == 'false'
+        run: flutter pub get
+
+      - name: Build release APK
+        if: steps.guard.outputs.exists == 'false'
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=API_BASE_URL=${{ secrets.PROD_API_BASE_URL }} \
+            --dart-define=FLAVOR=prod
+
+      # Rename each per-ABI artifact to include the version for clean asset names.
+      - name: Rename APKs
+        if: steps.guard.outputs.exists == 'false'
+        run: |
+          mkdir -p dist
+          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+            abi="$(basename "$apk" | sed -E 's/^app-(.*)-release\.apk$/\1/')"
+            cp "$apk" "dist/expensy-${TAG}-${abi}.apk"
+          done
+          ls -la dist
+
+      - name: Create GitHub Release
+        if: steps.guard.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ env.TAG }}
+          generate_release_notes: true
+          files: frontend/dist/expensy-*.apk
