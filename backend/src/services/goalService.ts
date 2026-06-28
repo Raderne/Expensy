@@ -23,7 +23,15 @@ interface GoalEstimateAi {
   tips: string[];
 }
 
-const goalEstimateTask = defineAiTask<GoalEstimateAi>('goalEstimate');
+const goalEstimateTask = defineAiTask<GoalEstimateAi>('goalEstimate', {
+  // Compact task: a short prompt and a small fixed-shape response (summary +
+  // up to 3 tips). Keep the budget tight to bound cost/latency.
+  maxInputTokens: 2000,
+  maxOutputTokens: 512,
+  // Pure structured extraction — no reasoning needed. Disabling thinking keeps
+  // the 512 output cap meaningful (2.5 models otherwise spend it on thinking).
+  thinkingBudget: 0,
+});
 
 export interface GoalDto {
   id: string;

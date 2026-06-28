@@ -14,14 +14,30 @@ import { toGeminiSchema, type JsonSchema } from './schemaConverter.js';
  * [TOutput] is the TypeScript shape the output is asserted to, declared by the
  * caller via [defineAiTask]. The runtime guarantee comes from the JSON Schema.
  */
+/** Per-task token budget. Omitted fields fall back to the env-wide defaults. */
+export interface AiTaskLimits {
+  maxInputTokens?: number;
+  maxOutputTokens?: number;
+  /** Thinking-token budget; `0` disables reasoning on 2.5+ models. */
+  thinkingBudget?: number;
+}
+
 export interface AiTask<TOutput> {
   readonly key: string;
+  readonly limits: AiTaskLimits;
   /** Phantom marker so [runAiTask] can infer [TOutput]; never read at runtime. */
   readonly __output?: TOutput;
 }
 
-/** Declares an AI task and binds its output type. */
-export const defineAiTask = <TOutput>(key: string): AiTask<TOutput> => ({ key });
+/**
+ * Declares an AI task and binds its output type. [limits] caps the prompt and
+ * response token budget for this task; anything left unset uses the env default
+ * (`GEMINI_MAX_INPUT_TOKENS` / `GEMINI_MAX_OUTPUT_TOKENS`).
+ */
+export const defineAiTask = <TOutput>(
+  key: string,
+  limits: AiTaskLimits = {},
+): AiTask<TOutput> => ({ key, limits });
 
 interface CompiledTask {
   prompt: string;
@@ -78,6 +94,9 @@ export const runAiTask = async <TOutput>(
   const raw = await generateStructured<unknown>({
     prompt: fillTemplate(prompt, variables),
     responseSchema: geminiSchema,
+    maxInputTokens: task.limits.maxInputTokens,
+    maxOutputTokens: task.limits.maxOutputTokens,
+    thinkingBudget: task.limits.thinkingBudget,
   });
 
   if (!validate(raw)) {

@@ -71,6 +71,26 @@ describe('runAiTask (goalEstimate task)', () => {
     expect(prompt).not.toContain('{{goalName}}');
   });
 
+  it('passes the task token limits through to Gemini', async () => {
+    generateStructured.mockResolvedValue(valid);
+    const capped = defineAiTask('goalEstimate', {
+      maxInputTokens: 1500,
+      maxOutputTokens: 256,
+    });
+    await runAiTask(capped, {});
+    const arg = generateStructured.mock.calls[0]![0];
+    expect(arg.maxInputTokens).toBe(1500);
+    expect(arg.maxOutputTokens).toBe(256);
+  });
+
+  it('leaves limits undefined when a task sets none (env default applies)', async () => {
+    generateStructured.mockResolvedValue(valid);
+    await runAiTask(task, {});
+    const arg = generateStructured.mock.calls[0]![0];
+    expect(arg.maxInputTokens).toBeUndefined();
+    expect(arg.maxOutputTokens).toBeUndefined();
+  });
+
   it('throws AI_UNAVAILABLE when output violates the schema', async () => {
     generateStructured.mockResolvedValue({ reachable: 'yes' });
     await expect(runAiTask(task, {})).rejects.toMatchObject({
