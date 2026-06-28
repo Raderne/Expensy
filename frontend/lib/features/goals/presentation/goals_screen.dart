@@ -107,7 +107,7 @@ class GoalsScreen extends ConsumerWidget {
   }
 
   Future<void> _openEstimate(BuildContext context, Goal goal) async {
-    await showEditSheet<void>(context, (_) => GoalEstimateSheet(goal: goal));
+    await GoalEstimateSheet.show(context, goal);
   }
 
   Future<void> _confirmDelete(

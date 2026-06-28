@@ -12,82 +12,124 @@ import '../../domain/goal_estimate.dart';
 
 /// Bottom sheet showing the AI time-to-reach estimate for a single [Goal].
 /// Fetched lazily through `goalEstimateControllerProvider(goal.id)`.
-class GoalEstimateSheet extends ConsumerWidget {
+///
+/// Draggable: it rests at [_restSize], expands up to [_maxSize] (almost full
+/// screen) when swiped up, and dismisses when dragged below [_minSize].
+class GoalEstimateSheet extends ConsumerStatefulWidget {
   final Goal goal;
   const GoalEstimateSheet({super.key, required this.goal});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final estimateAsync = ref.watch(goalEstimateControllerProvider(goal.id));
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final screenHeight = MediaQuery.sizeOf(context).height;
+  /// Opens the estimate as a draggable, expandable modal sheet.
+  static Future<void> show(BuildContext context, Goal goal) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: AppColors.scrim,
+      // DraggableScrollableSheet owns the drag gesture (expand + dismiss), so
+      // the modal's own drag-to-dismiss must be off to avoid the two fighting.
+      enableDrag: false,
+      builder: (_) => GoalEstimateSheet(goal: goal),
+    );
+  }
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: screenHeight * 0.8),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.scrim,
-                blurRadius: 24,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.inkFaint,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _Header(
-                    goalName: goal.name,
-                    busy: estimateAsync.isLoading,
-                    onRefresh: () => ref
-                        .read(goalEstimateControllerProvider(goal.id).notifier)
-                        .refresh(),
-                  ),
-                  const SizedBox(height: 18),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      child: estimateAsync.when(
-                        loading: () => const _LoadingState(),
-                        error: (err, _) => _ErrorState(
-                          error: err,
-                          onRetry: () => ref
-                              .read(
-                                goalEstimateControllerProvider(goal.id).notifier,
-                              )
-                              .refresh(),
+  @override
+  ConsumerState<GoalEstimateSheet> createState() => _GoalEstimateSheetState();
+}
+
+class _GoalEstimateSheetState extends ConsumerState<GoalEstimateSheet> {
+  // Fractions of screen height: resting, dismiss threshold, and expanded.
+  static const double _restSize = 0.6;
+  static const double _minSize = 0.5;
+  static const double _maxSize = 0.92;
+
+  // Guards against firing pop more than once while the sheet hovers at min.
+  bool _dismissing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final goal = widget.goal;
+    final estimateAsync = ref.watch(goalEstimateControllerProvider(goal.id));
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: _restSize,
+      minChildSize: _minSize,
+      maxChildSize: _maxSize,
+      snap: true,
+      snapSizes: const [_restSize, _maxSize],
+      builder: (context, scrollController) {
+        return NotificationListener<DraggableScrollableNotification>(
+          onNotification: (n) {
+            // Dragged below the resting point — treat as swipe-to-dismiss.
+            if (!_dismissing && n.extent <= n.minExtent + 0.001) {
+              _dismissing = true;
+              Navigator.of(context).maybePop();
+            }
+            return false;
+          },
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.scrim,
+                  blurRadius: 24,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              // The whole surface scrolls through [scrollController], so a drag
+              // anywhere expands the sheet (and scrolls content once expanded).
+              child: SingleChildScrollView(
+                controller: scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.inkFaint,
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        data: (estimate) =>
-                            _EstimateContent(goal: goal, estimate: estimate),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    _Header(
+                      goalName: goal.name,
+                      busy: estimateAsync.isLoading,
+                      onRefresh: () => ref
+                          .read(goalEstimateControllerProvider(goal.id).notifier)
+                          .refresh(),
+                    ),
+                    const SizedBox(height: 18),
+                    estimateAsync.when(
+                      loading: () => const _LoadingState(),
+                      error: (err, _) => _ErrorState(
+                        error: err,
+                        onRetry: () => ref
+                            .read(
+                              goalEstimateControllerProvider(goal.id).notifier,
+                            )
+                            .refresh(),
+                      ),
+                      data: (estimate) =>
+                          _EstimateContent(goal: goal, estimate: estimate),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
