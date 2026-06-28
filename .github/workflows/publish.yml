@@ -4,12 +4,21 @@ name: Publish
 #  - Backend is deployed to Render (via Deploy Hook) only when backend/** changed,
 #    and only after Prisma migrations have been applied to the prod DB.
 #  - A signed release APK is built and attached to a GitHub Release only when
-#    frontend/** changed. The version/tag is read from frontend/pubspec.yaml and
-#    the release is skipped if that tag already exists (idempotent).
+#    the version in frontend/pubspec.yaml is bumped. The version/tag is read from
+#    that file and the release is skipped if the tag already exists (idempotent).
 on:
   push:
     branches: [PUBLISH_V]
   workflow_dispatch: # manual re-run / force a publish
+    inputs:
+      force_frontend:
+        description: 'Force the frontend (APK + release) job to run'
+        type: boolean
+        default: false
+      force_backend:
+        description: 'Force the backend (Render deploy) job to run'
+        type: boolean
+        default: false
 
 # Never run two publishes for this branch at the same time.
 concurrency:
@@ -27,34 +36,56 @@ jobs:
     name: detect changes + version
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
+      # A manual dispatch has no diff base, so detection returns nothing —
+      # fall back to the force_* inputs to make "force a publish" actually work.
+      backend: ${{ steps.filter.outputs.backend == 'true' || inputs.force_backend == true }}
+      # Frontend release is gated on a version bump in pubspec.yaml, not on any
+      # frontend file edit (and the tag-exists guard makes it idempotent).
+      frontend: ${{ steps.version.outputs.changed == 'true' || inputs.force_frontend == true }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so paths-filter can diff against github.event.before on push
 
       - id: filter
+        if: github.event_name == 'push' # dispatch has no diff base; force_* inputs drive it instead
         uses: dorny/paths-filter@v3
         with:
           # On push events this compares against github.event.before automatically.
           filters: |
             backend:
               - 'backend/**'
-            frontend:
-              - 'frontend/**'
 
       - id: version
-        name: Read version from pubspec.yaml
+        name: Read version + detect bump in pubspec.yaml
         run: |
-          version="$(grep -m1 '^version:' frontend/pubspec.yaml | sed -E 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          file=frontend/pubspec.yaml
+          parse() { grep -m1 '^version:' "$1" | sed -E 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/'; }
+
+          version="$(parse "$file")"
           if [ -z "$version" ]; then
-            echo "::error::Could not parse version from frontend/pubspec.yaml"
+            echo "::error::Could not parse version from $file"
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          echo "Release version: $version (tag v$version)"
+
+          # Compare the semver against the previous commit. A new/unknown base
+          # (e.g. first push) counts as a bump; dispatch is handled by force_*.
+          changed=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            before="${{ github.event.before }}"
+            prev=""
+            if git cat-file -e "$before:$file" 2>/dev/null; then
+              prev="$(git show "$before:$file" | parse /dev/stdin)"
+            fi
+            echo "Previous version: ${prev:-<none>} | current: $version"
+            [ "$prev" != "$version" ] && changed=true
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "Release version: $version (tag v$version), changed=$changed"
 
   # ---------------------------------------------------------------------------
   # Backend: validate, apply migrations to prod, then trigger the Render deploy.

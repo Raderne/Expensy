@@ -6,6 +6,7 @@ import {
   goalIdParamsSchema,
   updateGoalBodySchema,
 } from '../schemas/goals.js';
+import { estimateQuerySchema } from '../schemas/goalEstimate.js';
 import { goalService } from '../services/goalService.js';
 
 const requireUserId = (req: Request): string => {
@@ -51,5 +52,13 @@ export const goalController = {
     const { id } = goalIdParamsSchema.parse(req.params);
     await goalService.delete(userId, id);
     res.status(204).send();
+  },
+
+  async estimate(req: Request, res: Response): Promise<void> {
+    const userId = requireUserId(req);
+    const { id } = goalIdParamsSchema.parse(req.params);
+    const { refresh } = estimateQuerySchema.parse(req.query);
+    const estimate = await goalService.estimate(userId, id, { refresh });
+    res.json({ estimate });
   },
 };

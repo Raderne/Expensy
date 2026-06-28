@@ -15,6 +15,7 @@ import '../data/goals_repository.dart';
 import '../domain/goal.dart';
 import 'widgets/add_funds_sheet.dart';
 import 'widgets/edit_goal_sheet.dart';
+import 'widgets/goal_estimate_sheet.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
@@ -68,6 +69,7 @@ class GoalsScreen extends ConsumerWidget {
                             onEdit: () => _openEdit(context, g),
                             onDelete: () => _confirmDelete(context, ref, g),
                             onAddFunds: () => _openAddFunds(context, g),
+                            onEstimate: () => _openEstimate(context, g),
                           ),
                         ),
                       ),
@@ -102,6 +104,10 @@ class GoalsScreen extends ConsumerWidget {
       (_) => AddFundsSheet(goal: goal),
     );
     if (ok == true && context.mounted) _toast(context, 'Funds added');
+  }
+
+  Future<void> _openEstimate(BuildContext context, Goal goal) async {
+    await GoalEstimateSheet.show(context, goal);
   }
 
   Future<void> _confirmDelete(
@@ -233,12 +239,14 @@ class _GoalCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onAddFunds;
+  final VoidCallback onEstimate;
 
   const _GoalCard({
     required this.goal,
     required this.onEdit,
     required this.onDelete,
     required this.onAddFunds,
+    required this.onEstimate,
   });
 
   @override
@@ -325,19 +333,25 @@ class _GoalCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              if (goal.targetDate != null)
-                Text(
-                  'Target · ${DateFormat('MMM yyyy').format(goal.targetDate!)}',
-                  style: AppTextStyles.mutedSmall,
-                )
-              else if (goal.isComplete)
-                Text(
-                  'Goal reached 🎉',
-                  style: AppTextStyles.mutedSmall.copyWith(
-                    color: AppColors.success,
-                  ),
-                ),
-              const Spacer(),
+              Expanded(
+                child: goal.targetDate != null
+                    ? Text(
+                        'Target · ${DateFormat('MMM yyyy').format(goal.targetDate!)}',
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.mutedSmall,
+                      )
+                    : goal.isComplete
+                    ? Text(
+                        'Goal reached 🎉',
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.mutedSmall.copyWith(
+                          color: AppColors.success,
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              _EstimateButton(onTap: onEstimate),
+              const SizedBox(width: 8),
               _AddFundsButton(color: color, onTap: onAddFunds),
             ],
           ),
@@ -440,6 +454,45 @@ class _AddFundsButton extends StatelessWidget {
                 'Add funds',
                 style: AppTextStyles.labelStrong.copyWith(
                   color: color,
+                  fontSize: 12.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EstimateButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _EstimateButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Estimate',
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
                   fontSize: 12.5,
                 ),
               ),

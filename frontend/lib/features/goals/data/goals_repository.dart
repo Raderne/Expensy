@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/network/dio_client.dart';
 import '../domain/goal.dart';
+import '../domain/goal_estimate.dart';
 
 class GoalsRepository {
   final Dio _dio;
@@ -88,6 +89,19 @@ class GoalsRepository {
   Future<void> delete(String id) async {
     final res = await _dio.delete('/me/goals/$id');
     _ensureOk(res);
+  }
+
+  /// Fetches the AI time-to-reach estimate for a goal. The backend serves a
+  /// cached estimate within its TTL; pass [refresh] to force a recompute.
+  /// Surfaces `INSUFFICIENT_DATA` / `AI_UNAVAILABLE` as [GoalsApiException] so
+  /// callers can branch on `code`.
+  Future<GoalEstimate> getEstimate(String id, {bool refresh = false}) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/me/goals/$id/estimate',
+      queryParameters: refresh ? const {'refresh': 'true'} : null,
+    );
+    _ensureOk(res);
+    return GoalEstimate.fromJson(res.data!['estimate'] as Map<String, dynamic>);
   }
 
   /// Builds request options carrying an explicit `Idempotency-Key` so the

@@ -26,6 +26,24 @@ const EnvSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+
+  // Google Gemini — powers the goal time-to-reach estimate. Optional: when
+  // GEMINI_API_KEY is unset the estimate endpoint responds 503 AI_UNAVAILABLE
+  // and the rest of the app is unaffected. The free fast model is the default.
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
+  // Default token budgets. Bound cost/latency per call; a task may override
+  // either via its `defineAiTask` limits. Input is a guard on the prompt we
+  // build (oversized prompts fail fast instead of being sent); output caps the
+  // model's response length (`maxOutputTokens`).
+  GEMINI_MAX_INPUT_TOKENS: z.coerce.number().int().positive().default(8000),
+  GEMINI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(1024),
+  // Thinking-token budget for 2.5+ models. Unset = let the model decide; `0`
+  // disables reasoning (faster/cheaper, and keeps maxOutputTokens meaningful).
+  // Only sent to the API when set, so non-thinking models are unaffected.
+  GEMINI_THINKING_BUDGET: z.coerce.number().int().min(0).optional(),
+  // How long a persisted goal estimate is served before a fresh Gemini call.
+  GOAL_ESTIMATE_TTL_HOURS: z.coerce.number().int().positive().default(24),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
