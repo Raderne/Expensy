@@ -45,6 +45,10 @@ model User {
   passwordHash String
   name         String
 
+  // Starting bank balance the user holds outside their logged transactions.
+  // Displayed balance = openingBalance + SUM(transactions). Flat offset; may be negative.
+  openingBalance Decimal @default(0) @db.Decimal(12, 2)
+
   // Base audit fields
   id          String    @id @default(cuid())
   createdAt   DateTime  @default(now())
@@ -55,6 +59,7 @@ model User {
 
   transactions         Transaction[]
   budget               Budget?
+  monthlyBudgets       MonthlyBudget[]
   recurringIncomes     RecurringIncome[]
   recurringExpenses    RecurringExpense[]
   categories           Category[]
@@ -313,6 +318,34 @@ model Budget {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([deletedAt])
+}
+
+// Per-month snapshot of a user's budget. `Budget` above is the recurring
+// template (the user's current amount); each calendar month gets its own row
+// here so history is preserved. Once a month ends the rollover job sets `spent`
+// and flips `closed`; any unconsumed remainder (amount − spent − allocated) can
+// then be moved into savings goals, tracked via `allocated`.
+model MonthlyBudget {
+  id        String  @id @default(cuid())
+  userId    String
+  month     String // 'YYYY-MM'
+  amount    Decimal @db.Decimal(12, 2)
+  spent     Decimal @default(0) @db.Decimal(12, 2)
+  allocated Decimal @default(0) @db.Decimal(12, 2)
+  closed    Boolean @default(false)
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
+  @@index([userId])
   @@index([deletedAt])
 }
 

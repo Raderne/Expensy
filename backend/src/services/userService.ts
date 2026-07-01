@@ -3,16 +3,30 @@ import { hashPassword, verifyPassword } from '../lib/password.js';
 import { userRepository } from '../repositories/userRepository.js';
 import type { PublicUser } from './authService.js';
 
-const toPublic = (u: { id: string; email: string; name: string }): PublicUser => ({
+const toPublic = (u: {
+  id: string;
+  email: string;
+  name: string;
+  openingBalance: { toNumber(): number };
+}): PublicUser => ({
   id: u.id,
   email: u.email,
   name: u.name,
+  openingBalance: u.openingBalance.toNumber(),
 });
 
 export const userService = {
   async updateProfile(userId: string, input: { name: string }): Promise<PublicUser> {
     const updated = await userRepository.updateName(userId, input.name);
     return toPublic(updated);
+  },
+
+  async updateOpeningBalance(
+    userId: string,
+    amount: number,
+  ): Promise<{ openingBalance: number }> {
+    const updated = await userRepository.updateOpeningBalance(userId, amount);
+    return { openingBalance: updated.openingBalance.toNumber() };
   },
 
   async changePassword(

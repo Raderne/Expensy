@@ -37,6 +37,15 @@ class ProfileRepository {
     return (res.data!['budget']['amount'] as num).toDouble();
   }
 
+  Future<double> updateOpeningBalance(double amount) async {
+    final res = await _dio.put<Map<String, dynamic>>(
+      '/me/opening-balance',
+      data: {'amount': amount},
+    );
+    _ensureOk(res);
+    return (res.data!['openingBalance'] as num).toDouble();
+  }
+
   void _ensureOk(Response<dynamic> res) {
     final status = res.statusCode ?? 0;
     if (status >= 200 && status < 300) return;

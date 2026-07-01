@@ -1,6 +1,10 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../lib/errors.js';
-import { changePasswordSchema, updateProfileSchema } from '../schemas/user.js';
+import {
+  changePasswordSchema,
+  updateOpeningBalanceSchema,
+  updateProfileSchema,
+} from '../schemas/user.js';
 import { userService } from '../services/userService.js';
 
 const requireUserId = (req: Request): string => {
@@ -27,5 +31,12 @@ export const userController = {
     const input = changePasswordSchema.parse(req.body);
     await userService.changePassword(userId, input);
     res.status(204).send();
+  },
+
+  async updateOpeningBalance(req: Request, res: Response): Promise<void> {
+    const userId = requireUserId(req);
+    const { amount } = updateOpeningBalanceSchema.parse(req.body);
+    const result = await userService.updateOpeningBalance(userId, amount);
+    res.json(result);
   },
 };

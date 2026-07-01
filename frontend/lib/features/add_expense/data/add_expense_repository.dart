@@ -25,12 +25,12 @@ class AddExpenseRepository {
     required String idempotencyKey,
   }) async {
     final tempId = _outbox.newTempId();
-    // Store at local day granularity (the app only ever displays the day, never
-    // a time). This keeps all transactions ordered by creation within a day,
-    // instead of letting a fresh expense's time-of-day float it above earlier
-    // same-day rows that are stored at start-of-day (recurring, income).
+    // Pin the picked calendar date to UTC midnight (the app only ever displays
+    // the day, never a time). Sending the wall-clock Y/M/D as UTC keeps the day
+    // stable through the DB's UTC month-truncation and the client's grouping —
+    // sending local-midnight.toUtc() would roll the date back for UTC+ users.
     final raw = occurredAt ?? DateTime.now();
-    final when = DateTime(raw.year, raw.month, raw.day);
+    final when = DateTime.utc(raw.year, raw.month, raw.day);
     final trimmedNote = (note != null && note.trim().isNotEmpty)
         ? note.trim()
         : null;
@@ -50,7 +50,7 @@ class AddExpenseRepository {
         'categoryId': category.id,
         'amount': amount,
         'note': ?trimmedNote,
-        'occurredAt': when.toUtc().toIso8601String(),
+        'occurredAt': when.toIso8601String(),
         if (activeSplits.isNotEmpty)
           'splits': activeSplits.map((s) => s.toJson()).toList(),
       },

@@ -145,8 +145,8 @@ export const transactionRepository = {
     const sep = month.indexOf('-');
     const year = parseInt(month.slice(0, sep), 10);
     const m = parseInt(month.slice(sep + 1), 10);
-    const from = new Date(year, m - 1, 1);
-    const to = new Date(year, m, 1);
+    const from = new Date(Date.UTC(year, m - 1, 1));
+    const to = new Date(Date.UTC(year, m, 1));
     return prisma.transaction.findFirst({
       where: {
         userId,

@@ -37,6 +37,7 @@ const txStore = new Map<string, StoredTx>();
 const occurrenceStore = new Map<string, StoredOccurrence>();
 let txCounter = 0;
 let recurringCounter = 0;
+let openingBalanceValue = 0;
 
 const INCOME_CATEGORY_ID = 'cat_income';
 
@@ -49,6 +50,19 @@ const occurrenceKey = (o: {
 vi.mock('../src/repositories/budgetRepository.js', () => ({
   budgetRepository: {
     findByUser: vi.fn(async () => null),
+  },
+}));
+
+vi.mock('../src/repositories/monthlyBudgetRepository.js', () => ({
+  monthlyBudgetRepository: {
+    findByUserMonth: vi.fn(async () => null),
+    upsertAmount: vi.fn(async () => undefined),
+  },
+}));
+
+vi.mock('../src/repositories/userRepository.js', () => ({
+  userRepository: {
+    getOpeningBalance: vi.fn(async () => openingBalanceValue),
   },
 }));
 
@@ -194,6 +208,7 @@ beforeEach(() => {
   occurrenceStore.clear();
   txCounter = 0;
   recurringCounter = 0;
+  openingBalanceValue = 0;
   vi.useRealTimers();
 });
 
@@ -323,6 +338,32 @@ describe('dashboardService.getSummary net balance', () => {
     expect(summary.expenses).toBe(1200);
     expect(summary.net).toBe(3800);
     expect(summary.balance).toBe(3800);
+  });
+
+  it('adds the opening balance to the balance only, not income/expenses/net', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 25));
+    openingBalanceValue = 100000;
+
+    await incomeService.createSideIncome('u1', { amount: 5000 });
+    txStore.set('tx_exp', {
+      id: 'tx_exp',
+      userId: 'u1',
+      categoryId: 'cat_food',
+      amount: new Prisma.Decimal(-1200),
+      note: null,
+      occurredAt: new Date(2026, 4, 15),
+      recurringIncomeId: null,
+    });
+
+    const summary = await dashboardService.getSummary('u1', monthString(new Date()));
+
+    // Opening balance shifts the lifetime balance (100000 + 5000 - 1200)…
+    expect(summary.balance).toBe(103800);
+    // …but the monthly income/expenses/net are unaffected by it.
+    expect(summary.income).toBe(5000);
+    expect(summary.expenses).toBe(1200);
+    expect(summary.net).toBe(3800);
   });
 
   it('excludes unconfirmed recurring income from the summary', async () => {

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '../src/lib/prismaTypes.js';
 
 type StoredUser = {
   id: string;
   email: string;
   name: string;
   passwordHash: string;
+  openingBalance: Prisma.Decimal;
 };
 
 const store = new Map<string, StoredUser>();
@@ -17,7 +19,11 @@ vi.mock('../src/repositories/userRepository.js', () => ({
     }),
     findById: vi.fn(async (id: string) => store.get(id) ?? null),
     create: vi.fn(async (data: { email: string; passwordHash: string; name: string }) => {
-      const user: StoredUser = { id: `u_${store.size + 1}`, ...data };
+      const user: StoredUser = {
+        id: `u_${store.size + 1}`,
+        ...data,
+        openingBalance: new Prisma.Decimal(0),
+      };
       store.set(user.id, user);
       return user;
     }),
@@ -99,7 +105,12 @@ describe('authService.me', () => {
       name: 'Alice',
     });
     const me = await authService.me(signup.user.id);
-    expect(me).toEqual({ id: signup.user.id, email: 'a@b.com', name: 'Alice' });
+    expect(me).toEqual({
+      id: signup.user.id,
+      email: 'a@b.com',
+      name: 'Alice',
+      openingBalance: 0,
+    });
   });
 
   it('throws 404 for unknown user', async () => {

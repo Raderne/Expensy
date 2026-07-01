@@ -5,7 +5,8 @@ const parseMonth = (month: string): { from: Date; to: Date } => {
   const sep = month.indexOf('-');
   const year = parseInt(month.slice(0, sep), 10);
   const m = parseInt(month.slice(sep + 1), 10);
-  return { from: new Date(year, m - 1, 1), to: new Date(year, m, 1) };
+  // UTC bounds so month filtering aligns with UTC-midnight stored dates.
+  return { from: new Date(Date.UTC(year, m - 1, 1)), to: new Date(Date.UTC(year, m, 1)) };
 };
 
 export interface BreakdownItem {

@@ -60,6 +60,14 @@ class TransactionsState {
   final bool loadingMore;
   final TransactionFilters filters;
 
+  /// True while the body (summary + list) is reloading for a new month/filter.
+  /// The hero (month nav) stays put; only the content below shows a skeleton.
+  final bool contentLoading;
+
+  /// True when the last body reload failed — shows an inline retry in the body
+  /// without disturbing the hero.
+  final bool contentError;
+
   const TransactionsState({
     required this.month,
     required this.transactions,
@@ -70,18 +78,34 @@ class TransactionsState {
     required this.net,
     this.loadingMore = false,
     this.filters = TransactionFilters.none,
+    this.contentLoading = false,
+    this.contentError = false,
   });
 
   bool get hasMore => nextCursor != null;
 
-  /// Whether the user is at the newest month they have transactions in.
-  /// "Newest" is the first element of [availableMonths]; if there are no
-  /// transactions yet, the current calendar month is treated as the only month.
-  bool get isAtNewest =>
-      availableMonths.isEmpty ? true : month == availableMonths.first;
+  /// Newest navigable month: the later of the current calendar month and the
+  /// newest month with data. This lets the user reach the current month even
+  /// before it has any transactions (YYYY-MM sorts chronologically).
+  String get _newestNav {
+    final cur = _currentMonth();
+    if (availableMonths.isEmpty) return cur;
+    final first = availableMonths.first; // backend orders newest-first
+    return cur.compareTo(first) >= 0 ? cur : first;
+  }
 
-  bool get isAtOldest =>
-      availableMonths.isEmpty ? true : month == availableMonths.last;
+  /// Oldest navigable month: the earlier of the current calendar month and the
+  /// oldest month with data.
+  String get _oldestNav {
+    final cur = _currentMonth();
+    if (availableMonths.isEmpty) return cur;
+    final last = availableMonths.last; // oldest month with data
+    return cur.compareTo(last) <= 0 ? cur : last;
+  }
+
+  bool get isAtNewest => month == _newestNav;
+
+  bool get isAtOldest => month == _oldestNav;
 
   TransactionsState copyWith({
     String? month,
@@ -93,6 +117,8 @@ class TransactionsState {
     double? net,
     bool? loadingMore,
     TransactionFilters? filters,
+    bool? contentLoading,
+    bool? contentError,
     bool clearNextCursor = false,
   }) => TransactionsState(
     month: month ?? this.month,
@@ -104,12 +130,30 @@ class TransactionsState {
     net: net ?? this.net,
     loadingMore: loadingMore ?? this.loadingMore,
     filters: filters ?? this.filters,
+    contentLoading: contentLoading ?? this.contentLoading,
+    contentError: contentError ?? this.contentError,
   );
 }
 
 String _currentMonth() {
   final d = DateTime.now();
   return '${d.year}-${d.month.toString().padLeft(2, '0')}';
+}
+
+/// Steps a YYYY-MM string by [delta] calendar months, rolling the year over.
+String _addMonths(String month, int delta) {
+  final parts = month.split('-');
+  var year = int.parse(parts[0]);
+  var m = int.parse(parts[1]) + delta;
+  while (m < 1) {
+    m += 12;
+    year--;
+  }
+  while (m > 12) {
+    m -= 12;
+    year++;
+  }
+  return '$year-${m.toString().padLeft(2, '0')}';
 }
 
 class TransactionsController extends AsyncNotifier<TransactionsState> {
@@ -142,9 +186,10 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     }
 
     final months = await _repo.listMonths();
-    final month = months.isNotEmpty ? months.first : _currentMonth();
+    // Open on the current calendar month so a fresh session lands on "now",
+    // with back-navigation to earlier months that have data.
     return _loadMonth(
-      month: month,
+      month: _currentMonth(),
       availableMonths: months,
       filters: TransactionFilters.none,
     );
@@ -153,7 +198,7 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
   Future<TransactionsState?> _loadFromCache() async {
     final months = await _repo.readCachedMonths();
     if (months == null) return null;
-    final month = months.isNotEmpty ? months.first : _currentMonth();
+    final month = _currentMonth();
     final page = await _repo.readCachedFirstPage(month: month);
     if (page == null) return null;
     final summary = await _dash.readCachedSummary(month: month);
@@ -172,9 +217,7 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
   Future<void> _refreshSilently() async {
     try {
       final months = await _repo.listMonths();
-      final month =
-          state.value?.month ??
-          (months.isNotEmpty ? months.first : _currentMonth());
+      final month = state.value?.month ?? _currentMonth();
       final fresh = await _loadMonth(
         month: month,
         availableMonths: months,
@@ -217,30 +260,56 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     final current = state.value;
     if (current == null || current.month == month) return;
 
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _loadMonth(
+    // Switch the hero to the new month immediately and flag the body as loading
+    // so only the content below the hero shows a skeleton (the AsyncData wrapper
+    // is preserved, so `.when` never falls back to the full-screen loader).
+    state = AsyncData(
+      current.copyWith(month: month, contentLoading: true, contentError: false),
+    );
+    try {
+      final fresh = await _loadMonth(
         month: month,
         availableMonths: current.availableMonths,
         filters: current.filters,
-      ),
+      );
+      state = AsyncData(fresh);
+    } catch (_) {
+      final base = state.value ?? current;
+      state = AsyncData(base.copyWith(contentLoading: false, contentError: true));
+    }
+  }
+
+  /// Reloads the body for the current month/filters (used by the inline retry
+  /// after a failed month/filter change).
+  Future<void> reloadCurrentMonth() async {
+    final cur = state.value;
+    if (cur == null) return;
+    state = AsyncData(
+      cur.copyWith(contentLoading: true, contentError: false),
     );
+    try {
+      final fresh = await _loadMonth(
+        month: cur.month,
+        availableMonths: cur.availableMonths,
+        filters: cur.filters,
+      );
+      state = AsyncData(fresh);
+    } catch (_) {
+      final base = state.value ?? cur;
+      state = AsyncData(base.copyWith(contentLoading: false, contentError: true));
+    }
   }
 
   Future<void> previousMonth() async {
     final cur = state.value;
     if (cur == null || cur.isAtOldest) return;
-    final idx = cur.availableMonths.indexOf(cur.month);
-    if (idx == -1 || idx + 1 >= cur.availableMonths.length) return;
-    await setMonth(cur.availableMonths[idx + 1]);
+    await setMonth(_addMonths(cur.month, -1));
   }
 
   Future<void> nextMonth() async {
     final cur = state.value;
     if (cur == null || cur.isAtNewest) return;
-    final idx = cur.availableMonths.indexOf(cur.month);
-    if (idx <= 0) return;
-    await setMonth(cur.availableMonths[idx - 1]);
+    await setMonth(_addMonths(cur.month, 1));
   }
 
   /// Replaces the active filter set and reloads the current month.
@@ -249,14 +318,22 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
     final cur = state.value;
     if (cur == null || cur.filters == filters) return;
 
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _loadMonth(
+    // Same content-only reload treatment as a month change: keep the hero,
+    // skeleton just the body.
+    state = AsyncData(
+      cur.copyWith(filters: filters, contentLoading: true, contentError: false),
+    );
+    try {
+      final fresh = await _loadMonth(
         month: cur.month,
         availableMonths: cur.availableMonths,
         filters: filters,
-      ),
-    );
+      );
+      state = AsyncData(fresh);
+    } catch (_) {
+      final base = state.value ?? cur;
+      state = AsyncData(base.copyWith(contentLoading: false, contentError: true));
+    }
   }
 
   Future<void> clearFilters() => applyFilters(TransactionFilters.none);
@@ -291,17 +368,33 @@ class TransactionsController extends AsyncNotifier<TransactionsState> {
 
   Future<void> refresh() async {
     final cur = state.value;
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    // Cold path (e.g. retry from the full-screen error view): no data yet, so
+    // show the full-screen loader while we fetch.
+    if (cur == null) {
+      state = const AsyncLoading();
+      state = await AsyncValue.guard(() async {
+        final months = await _repo.listMonths();
+        return _loadMonth(
+          month: _currentMonth(),
+          availableMonths: months,
+          filters: TransactionFilters.none,
+        );
+      });
+      return;
+    }
+    // Warm path (pull-to-refresh): keep the current content on screen while we
+    // refetch — the RefreshIndicator's spinner already signals progress.
+    try {
       final months = await _repo.listMonths();
-      final month =
-          cur?.month ?? (months.isNotEmpty ? months.first : _currentMonth());
-      return _loadMonth(
-        month: month,
+      final fresh = await _loadMonth(
+        month: cur.month,
         availableMonths: months,
-        filters: cur?.filters ?? TransactionFilters.none,
+        filters: cur.filters,
       );
-    });
+      state = AsyncData(fresh);
+    } catch (_) {
+      // Leave existing content in place; the indicator just completes.
+    }
   }
 
   /// Offline-first: just queue the delete. The row (and its contribution to the
@@ -327,9 +420,11 @@ Transaction? _pendingTxFrom(OutboxEntry e, List<Category> categories) {
     }
   }
   if (category == null) return null;
+  // Match Transaction.fromJson: keep the UTC calendar date so a pending row
+  // buckets into the same day/month as it will after the server round-trip.
   final occurredAt = occurredAtRaw != null
-      ? DateTime.parse(occurredAtRaw).toLocal()
-      : DateTime.now();
+      ? DateTime.parse(occurredAtRaw).toUtc()
+      : DateTime.now().toUtc();
   return Transaction(
     id: e.tempId ?? e.id,
     amount: -amount, // expenses are stored negative server-side
