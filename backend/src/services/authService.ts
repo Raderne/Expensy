@@ -8,6 +8,7 @@ export interface PublicUser {
   id: string;
   email: string;
   name: string;
+  openingBalance: number;
 }
 
 export interface AuthResult {
@@ -16,10 +17,16 @@ export interface AuthResult {
   refreshToken: string;
 }
 
-const toPublic = (u: { id: string; email: string; name: string }): PublicUser => ({
+const toPublic = (u: {
+  id: string;
+  email: string;
+  name: string;
+  openingBalance: { toNumber(): number };
+}): PublicUser => ({
   id: u.id,
   email: u.email,
   name: u.name,
+  openingBalance: u.openingBalance.toNumber(),
 });
 
 const issueTokens = (userId: string) => ({

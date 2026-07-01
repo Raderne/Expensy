@@ -43,7 +43,10 @@ class Transaction {
     id: json['id'] as String,
     amount: (json['amount'] as num).toDouble(),
     note: json['note'] as String?,
-    occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
+    // Transaction dates are pure calendar dates pinned to UTC midnight; read
+    // them back in UTC (not local) so day/month grouping matches the day the
+    // user picked regardless of their timezone.
+    occurredAt: DateTime.parse(json['occurredAt'] as String).toUtc(),
     category: Category.fromJson(json['category'] as Map<String, dynamic>),
     recurringIncomeId: json['recurringIncomeId'] as String?,
     sharedOwedTotal: (json['sharedOwedTotal'] as num?)?.toDouble() ?? 0,

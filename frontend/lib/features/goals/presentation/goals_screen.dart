@@ -16,6 +16,7 @@ import '../domain/goal.dart';
 import 'widgets/add_funds_sheet.dart';
 import 'widgets/edit_goal_sheet.dart';
 import 'widgets/goal_estimate_sheet.dart';
+import 'widgets/rollover_prompt.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
@@ -35,6 +36,7 @@ class GoalsScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: _Hero(topInset: topInset, goals: goals),
             ),
+            const SliverToBoxAdapter(child: RolloverPrompt()),
             goalsAsync.when(
               loading: () => const SliverFillRemaining(
                 hasScrollBody: false,

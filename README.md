@@ -2,7 +2,7 @@
 
 A personal expense tracking mobile app. Flutter frontend (iOS + Android) backed by a Node.js REST API.
 
-**Current version:** 1.4.2
+**Current version:** 1.6.3
 
 ---
 
@@ -85,16 +85,25 @@ Use `10.0.2.2` to reach the host machine from an Android emulator; use `localhos
 
 Copy `backend/.env.example` to `backend/.env` and fill in the values below. Never commit `.env`.
 
-| Variable             | Description                               |
-| -------------------- | ----------------------------------------- |
-| `DATABASE_URL`       | PostgreSQL connection string              |
-| `JWT_ACCESS_SECRET`  | ≥ 32 random chars                         |
-| `JWT_REFRESH_SECRET` | ≥ 32 random chars (different from access) |
-| `JWT_ACCESS_TTL`     | e.g. `15m`                                |
-| `JWT_REFRESH_TTL`    | e.g. `30d`                                |
-| `PORT`               | API port (default `3000`)                 |
-| `LOG_LEVEL`          | `info` / `debug`                          |
-| `CORS_ORIGINS`       | Comma-separated allowed origins           |
+| Variable                   | Description                                                         |
+| -------------------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`             | PostgreSQL connection string                                        |
+| `JWT_ACCESS_SECRET`        | ≥ 32 random chars                                                   |
+| `JWT_REFRESH_SECRET`       | ≥ 32 random chars (different from access)                           |
+| `JWT_ACCESS_TTL`           | e.g. `15m`                                                          |
+| `JWT_REFRESH_TTL`          | e.g. `30d`                                                          |
+| `PORT`                     | API port (default `3000`)                                           |
+| `LOG_LEVEL`                | `info` / `debug`                                                    |
+| `CORS_ORIGINS`             | Comma-separated allowed origins                                     |
+| `RESET_CODE_TTL_MIN`       | Password-reset OTP lifetime in minutes (default `15`)              |
+| `SMTP_HOST` / `SMTP_PORT`  | Mail server for reset codes — when unset, codes are logged instead |
+| `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | SMTP credentials + sender address                 |
+| `GEMINI_API_KEY`           | Google Gemini key — powers the AI goal estimate (optional; feature returns 503 when unset) |
+| `GEMINI_MODEL`             | Gemini model id (default `gemini-2.0-flash`; use `gemini-2.5-flash`) |
+| `GEMINI_MAX_INPUT_TOKENS`  | Prompt-size guard (default `8000`)                                  |
+| `GEMINI_MAX_OUTPUT_TOKENS` | Response length cap (default `1024`)                                |
+| `GEMINI_THINKING_BUDGET`   | Thinking-token budget for 2.5+ models; `0` disables reasoning       |
+| `GOAL_ESTIMATE_TTL_HOURS`  | How long a goal estimate is cached before recompute (default `24`) |
 
 The Flutter app receives its API URL via `--dart-define=API_BASE_URL=<url>`. No hard-coded URLs.
 
@@ -179,6 +188,11 @@ Shared widgets live in `core/`. Features must not reach into each other's folder
 | `RecurringIncome`     | Scheduled income source (day-of-month)                             |
 | `RecurringExpense`    | Scheduled expense (weekly / bi-weekly / monthly / custom)          |
 | `RecurringOccurrence` | One instance of a recurring item (PENDING / CONFIRMED / POSTPONED) |
+| `Goal`                | Savings goal — target/saved amount, optional AI time-to-reach estimate |
+| `Contact`             | A person you split expenses or share recurring costs with          |
+| `TransactionSplit`    | One person's share of a split transaction                          |
+| `RecurringExpenseShare` | A contact's share of a shared recurring expense                  |
+| `Reimbursement`       | A repayment recorded against what a contact owes                   |
 | `PasswordResetToken`  | Short-lived 6-digit reset codes                                    |
 
 All entities use cuid IDs, `createdAt`/`updatedAt` audit timestamps, and soft-delete via `deletedAt`.
@@ -192,6 +206,8 @@ All entities use cuid IDs, `createdAt`/`updatedAt` audit timestamps, and soft-de
 - **Add Expense** — Custom numpad, 6 built-in categories + custom categories, note input
 - **Transactions** — Month navigator, grouped list (Today / Yesterday / date), income & expense summary
 - **Analytics** — Donut chart + horizontal spending bars by category
+- **Savings Goals** — Track progress toward goals, add funds, and an **AI time-to-reach estimate** (Google Gemini) with tips, shown in a draggable/expandable bottom sheet
+- **Shared Expenses** — Split bills with contacts, share recurring costs, track who owes what, and record reimbursements
 - **Recurring Income** — Manage monthly income sources
 - **Recurring Expenses** — Manage weekly/bi-weekly/monthly expenses, confirm or postpone occurrences
 - **Settings** — Appearance (light/dark theme), home-widget configuration
@@ -211,6 +227,11 @@ GitHub Actions runs on every pull request to `develop`.
 
 Concurrent runs for the same PR are automatically cancelled.
 
+Releases are published by a separate workflow (`publish.yml`) triggered by pushing to the
+`PUBLISH_V` branch: it deploys the backend to Render (when `backend/**` changed, after Prisma
+migrations) and builds a signed APK attached to a GitHub Release, with the version/tag read from
+`frontend/pubspec.yaml` (skipped if the tag already exists).
+
 ---
 
 ## Project phases
@@ -223,7 +244,9 @@ Concurrent runs for the same PR are automatically cancelled.
 | 04 — Add Expense      | `POST /transactions`, numpad UI                   | Done        |
 | 05 — Transactions     | Month nav, grouped list, pagination               | Done        |
 | 06 — Analytics        | Category breakdown API, donut chart               | Done        |
-| 07 — Polish & release | Offline cache, error states, OTA updates, signing | In progress |
+| 07 — Polish & release | Offline cache, error states, OTA updates, signing | Done        |
+| 08 — Shared expenses  | Contacts, split bills, shares, reimbursements     | Done        |
+| 09 — Savings goals    | Goals, add funds, AI time-to-reach estimate       | Done        |
 
 Full plan details live in `plans/`.
 

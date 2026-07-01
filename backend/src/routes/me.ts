@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authController } from '../controllers/authController.js';
+import { budgetRolloverController } from '../controllers/budgetRolloverController.js';
 import { contactController } from '../controllers/contactController.js';
 import { dashboardController } from '../controllers/dashboardController.js';
 import { sharedController } from '../controllers/sharedController.js';
@@ -24,6 +25,24 @@ meRouter.put(
   requireAuth,
   idempotencyMiddleware,
   asyncHandler(dashboardController.upsertBudget),
+);
+meRouter.put(
+  '/me/opening-balance',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(userController.updateOpeningBalance),
+);
+// Leftover budget from closed months that the user can move into savings goals.
+meRouter.get(
+  '/me/budget/rollovers',
+  requireAuth,
+  asyncHandler(budgetRolloverController.list),
+);
+meRouter.post(
+  '/me/budget/rollovers/:month/allocate',
+  requireAuth,
+  idempotencyMiddleware,
+  asyncHandler(budgetRolloverController.allocate),
 );
 meRouter.get(
   '/me/transaction-months',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,30 +25,9 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  final ScrollController _scroll = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scroll.removeListener(_onScroll);
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    // Trigger the next page when the user is within ~400px of the bottom.
-    if (!_scroll.hasClients) return;
-    final remaining =
-        _scroll.position.maxScrollExtent - _scroll.position.pixels;
-    if (remaining < 400) {
-      ref.read(transactionsControllerProvider.notifier).loadMore();
-    }
-  }
+  /// Direction of the last month change (+1 newer / -1 older). Drives the slide
+  /// direction of the body transition so it tracks the swipe/tap.
+  int _navDir = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -57,69 +37,89 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return async.when(
       loading: () => const _Loading(),
       error: (e, _) => _ErrorView(onRetry: controller.refresh),
-      data: (state) {
-        final groups = groupByDay(state.transactions);
-        return RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: withRefreshHaptic(controller.refresh),
-          child: CustomScrollView(
-            controller: _scroll,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: _TransactionsHero(
-                  month: state.month,
-                  canGoPrev: !state.isAtOldest,
-                  canGoNext: !state.isAtNewest,
-                  onPrev: controller.previousMonth,
-                  onNext: controller.nextMonth,
-                  filtersActive: state.filters.isActive,
-                  onOpenFilters: () => _openFilters(context, state.filters),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
-                sliver: SliverToBoxAdapter(
-                  child: SummaryRow(
-                    income: state.income,
-                    expenses: state.expenses,
-                    net: state.net,
-                  ),
-                ),
-              ),
-              if (groups.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyState(
-                    month: state.month,
-                    filtersActive: state.filters.isActive,
-                    onClearFilters: controller.clearFilters,
-                  ),
-                )
-              else ...[
-                for (final group in groups)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-                    sliver: SliverToBoxAdapter(
-                      child: _DayGroup(
-                        group: group,
-                        onDelete: _deleteTransaction,
-                      ),
-                    ),
-                  ),
-                if (state.hasMore)
-                  const SliverToBoxAdapter(child: _PageSpinner()),
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 24 + MediaQuery.paddingOf(context).bottom,
-                  ),
-                ),
-              ],
-            ],
+      // Hero (blue month nav) stays fixed; only the body below it swaps when the
+      // month/filter changes, with a slide+fade transition and swipe support.
+      data: (state) => Column(
+        children: [
+          _TransactionsHero(
+            month: state.month,
+            canGoPrev: !state.isAtOldest,
+            canGoNext: !state.isAtNewest,
+            onPrev: () => _navigate(controller.previousMonth, -1),
+            onNext: () => _navigate(controller.nextMonth, 1),
+            filtersActive: state.filters.isActive,
+            onOpenFilters: () => _openFilters(context, state.filters),
           ),
-        );
-      },
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragEnd: (d) => _onSwipe(d, state, controller),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final slide = Tween<Offset>(
+                    begin: Offset(0.08 * _navDir, 0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: slide, child: child),
+                  );
+                },
+                layoutBuilder: (currentChild, previousChildren) => Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    ...previousChildren,
+                    ?currentChild,
+                  ],
+                ),
+                child: KeyedSubtree(
+                  key: ValueKey(
+                    '${state.month}:${state.contentLoading}:${state.contentError}',
+                  ),
+                  child: state.contentLoading
+                      ? const _BodySkeleton()
+                      : _MonthBody(
+                          state: state,
+                          onRefresh: controller.refresh,
+                          onRetry: controller.reloadCurrentMonth,
+                          onLoadMore: controller.loadMore,
+                          onDelete: _deleteTransaction,
+                          onClearFilters: controller.clearFilters,
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  /// Records the navigation direction (for the slide transition), fires a light
+  /// haptic, then triggers the month change.
+  void _navigate(Future<void> Function() action, int dir) {
+    _navDir = dir;
+    HapticFeedback.selectionClick();
+    action();
+  }
+
+  void _onSwipe(
+    DragEndDetails details,
+    TransactionsState state,
+    TransactionsController controller,
+  ) {
+    final vx = details.primaryVelocity ?? 0;
+    if (vx.abs() < 220) return;
+    if (vx > 0) {
+      // Swipe right → previous (older) month.
+      if (!state.isAtOldest) _navigate(controller.previousMonth, -1);
+    } else {
+      // Swipe left → next (newer) month.
+      if (!state.isAtNewest) _navigate(controller.nextMonth, 1);
+    }
   }
 
   void _openFilters(BuildContext context, TransactionFilters current) {
@@ -274,6 +274,189 @@ class _FilterIconPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FilterIconPainter oldDelegate) => false;
+}
+
+// ─── Month body (scrollable content below the hero) ──────────────────────────
+
+class _MonthBody extends StatefulWidget {
+  final TransactionsState state;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function() onRetry;
+  final Future<void> Function() onLoadMore;
+  final Future<void> Function(String id) onDelete;
+  final VoidCallback onClearFilters;
+
+  const _MonthBody({
+    required this.state,
+    required this.onRefresh,
+    required this.onRetry,
+    required this.onLoadMore,
+    required this.onDelete,
+    required this.onClearFilters,
+  });
+
+  @override
+  State<_MonthBody> createState() => _MonthBodyState();
+}
+
+class _MonthBodyState extends State<_MonthBody> {
+  // Each month body owns its scroll controller. That keeps position per-month
+  // and avoids two bodies briefly sharing one controller during the switch
+  // animation (which would throw).
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scroll.removeListener(_onScroll);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Trigger the next page when the user is within ~400px of the bottom.
+    if (!_scroll.hasClients) return;
+    final remaining =
+        _scroll.position.maxScrollExtent - _scroll.position.pixels;
+    if (remaining < 400) widget.onLoadMore();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final groups = groupByDay(state.transactions);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: withRefreshHaptic(widget.onRefresh),
+      child: CustomScrollView(
+        controller: _scroll,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (state.contentError)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _InlineError(onRetry: widget.onRetry),
+            )
+          else ...[
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+              sliver: SliverToBoxAdapter(
+                child: SummaryRow(
+                  income: state.income,
+                  expenses: state.expenses,
+                  net: state.net,
+                ),
+              ),
+            ),
+            if (groups.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _EmptyState(
+                  month: state.month,
+                  filtersActive: state.filters.isActive,
+                  onClearFilters: widget.onClearFilters,
+                ),
+              )
+            else ...[
+              for (final group in groups)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: _DayGroup(group: group, onDelete: widget.onDelete),
+                  ),
+                ),
+              if (state.hasMore)
+                const SliverToBoxAdapter(child: _PageSpinner()),
+              SliverToBoxAdapter(child: SizedBox(height: 24 + bottomInset)),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Skeleton for the body while a month/filter reload is in flight. Excludes the
+/// hero — that stays put during the swap.
+class _BodySkeleton extends StatelessWidget {
+  const _BodySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Shimmer(
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 16, 18, 14),
+              child: Row(
+                children: [
+                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
+                  SizedBox(width: 8),
+                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
+                  SizedBox(width: 8),
+                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 0, 18, 0),
+              child: _SkeletonDayGroup(rows: 3),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
+              child: _SkeletonDayGroup(rows: 2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  final Future<void> Function() onRetry;
+  const _InlineError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
+            const SizedBox(height: 12),
+            Text('Could not load this month', style: AppTextStyles.bodyStrong),
+            const SizedBox(height: 4),
+            Text(
+              'Check your connection and try again.',
+              style: AppTextStyles.body,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(
+                'Retry',
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Empty / loading / error states ──────────────────────────────────────────

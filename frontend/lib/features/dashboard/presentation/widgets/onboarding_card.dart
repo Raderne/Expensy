@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/glass_card.dart';
+import '../../../profile/presentation/widgets/edit_opening_balance_sheet.dart';
+import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
 
 /// First-run onboarding banner. Shown on the Dashboard when the user hasn't
 /// recorded a single transaction yet — disappears the moment any data lands
@@ -100,6 +102,29 @@ class OnboardingCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Semantics(
+              button: true,
+              label: 'Set your starting balance',
+              child: GestureDetector(
+                onTap: () => showEditSheet<bool>(
+                  context,
+                  (_) => const EditOpeningBalanceSheet(initialAmount: 0),
+                ),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  height: 40,
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Already have savings? Set your starting balance',
+                    style: AppTextStyles.labelStrong.copyWith(
+                      color: AppColors.primary,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ),
               ),

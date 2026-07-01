@@ -15,6 +15,17 @@ export const userRepository = {
 
   updatePasswordHash: (id: string, passwordHash: string) =>
     prisma.user.update({ where: { id }, data: { passwordHash } }),
+
+  updateOpeningBalance: (id: string, openingBalance: number) =>
+    prisma.user.update({ where: { id }, data: { openingBalance } }),
+
+  getOpeningBalance: async (id: string): Promise<number> => {
+    const user = await prisma.user.findFirst({
+      where: { id },
+      select: { openingBalance: true },
+    });
+    return user?.openingBalance.toNumber() ?? 0;
+  },
 };
 
 export type UserRepository = typeof userRepository;

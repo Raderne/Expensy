@@ -9,12 +9,12 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/system_overlays.dart';
 import '../../../core/widgets/header_back_button.dart';
 import '../../dashboard/domain/recent_transaction.dart';
-import '../../shared/presentation/widgets/split_editor.dart';
 import '../domain/amount_input.dart';
 import '../application/add_expense_controller.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/category_grid.dart';
 import 'widgets/numpad.dart';
+import 'widgets/split_sheet.dart';
 import 'widgets/success_popup.dart';
 
 class AddExpenseScreen extends ConsumerStatefulWidget {
@@ -58,6 +58,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       }
     });
 
+    final amount = AmountInput.parse(state.amount);
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemOverlays.background(context),
       child: Scaffold(
@@ -68,7 +70,17 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    _Header(onBack: () => context.pop()),
+                    _Header(
+                      onBack: () => context.pop(),
+                      splitEnabled: amount > 0,
+                      hasSplits: state.splits.isNotEmpty,
+                      onSplit: () => showSplitSheet(
+                        context,
+                        amount: amount,
+                        initial: state.splits,
+                        onChanged: controller.setSplits,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     AmountDisplay(value: state.amount),
                     const SizedBox(height: 6),
@@ -112,18 +124,6 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                   child: _NoteField(onChanged: controller.setNote),
                 ),
               ),
-              if (AmountInput.parse(state.amount) > 0)
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                  sliver: SliverToBoxAdapter(
-                    child: SplitEditor(
-                      key: const ValueKey('add-expense-split'),
-                      amount: AmountInput.parse(state.amount),
-                      initial: state.splits,
-                      onChanged: controller.setSplits,
-                    ),
-                  ),
-                ),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 sliver: SliverToBoxAdapter(
@@ -157,7 +157,16 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
 class _Header extends StatelessWidget {
   final VoidCallback onBack;
-  const _Header({required this.onBack});
+  final bool splitEnabled;
+  final bool hasSplits;
+  final VoidCallback onSplit;
+
+  const _Header({
+    required this.onBack,
+    required this.splitEnabled,
+    required this.hasSplits,
+    required this.onSplit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +177,70 @@ class _Header extends StatelessWidget {
           HeaderBackButton.onSurface(onTap: onBack),
           const SizedBox(width: 4),
           Text('Add Expense', style: AppTextStyles.titleM),
+          const Spacer(),
+          _SplitButton(
+            enabled: splitEnabled,
+            active: hasSplits,
+            onTap: onSplit,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// Header action that opens the split sheet. Disabled (greyed, non-tappable)
+/// until the user has entered a positive amount; shows an accent dot once at
+/// least one split share exists.
+class _SplitButton extends StatelessWidget {
+  final bool enabled;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _SplitButton({
+    required this.enabled,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = enabled ? AppColors.primary : AppColors.inkFaint;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: active ? 'Split expense, active' : 'Split expense',
+      child: Material(
+        color: enabled ? AppColors.primaryLight : AppColors.surface,
+        borderRadius: BorderRadius.circular(11),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(11),
+          onTap: enabled ? onTap : null,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Stack(
+              children: [
+                Center(
+                  child: Icon(Icons.call_split_rounded, size: 20, color: fg),
+                ),
+                if (enabled && active)
+                  Positioned(
+                    top: 9,
+                    right: 9,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
