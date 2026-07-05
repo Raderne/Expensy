@@ -24,6 +24,7 @@ import '../../settings/application/theme_controller.dart';
 import 'widgets/change_password_sheet.dart';
 import 'widgets/edit_budget_sheet.dart';
 import 'widgets/edit_name_sheet.dart';
+import 'widgets/edit_opening_balance_sheet.dart';
 import 'widgets/edit_sheet_shell.dart';
 
 /// Reads the app version baked into the build at compile time (from
@@ -166,6 +167,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     value: NumberFormat.simpleCurrency(
                       decimalDigits: 0,
                     ).format(lifetimeBalance),
+                    onTap: () =>
+                        _openEditOpeningBalance(context, user.openingBalance),
                   ),
                   const _Divider(),
                   _Row(
@@ -303,6 +306,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Budget updated'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openEditOpeningBalance(
+    BuildContext context,
+    double current,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showEditSheet<bool>(
+      context,
+      (_) => EditOpeningBalanceSheet(initialAmount: current),
+    );
+    if (ok == true) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Balance updated'),
           backgroundColor: AppColors.primary,
         ),
       );
