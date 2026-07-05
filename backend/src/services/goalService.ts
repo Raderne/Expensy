@@ -5,6 +5,8 @@ import { defineAiTask, runAiTask } from '../ai/aiService.js';
 import { goalRepository } from '../repositories/goalRepository.js';
 import { transactionRepository } from '../repositories/transactionRepository.js';
 import { categoryRepository } from '../repositories/categoryRepository.js';
+import { budgetRepository } from '../repositories/budgetRepository.js';
+import { monthlyBudgetRepository } from '../repositories/monthlyBudgetRepository.js';
 import type {
   CreateGoalBody,
   UpdateGoalBody,
@@ -204,18 +206,50 @@ export const goalService = {
       });
     }
 
+    // Budget caps for the same window: a recorded MonthlyBudget wins, otherwise
+    // fall back to the user's template Budget (mirrors dashboardService).
+    const monthStrings = months.map((m) => m.month);
+    const [template, monthlyBudgets] = await Promise.all([
+      budgetRepository.findByUser(userId),
+      monthlyBudgetRepository.findByUserMonths(userId, monthStrings),
+    ]);
+    const budgetByMonth = new Map(
+      monthlyBudgets.map((b) => [b.month, b.amount.toNumber()]),
+    );
+    const templateAmount = template ? template.amount.toNumber() : null;
+
     let incomeSum = 0;
     let expenseSum = 0;
+    let budgetSum = 0;
+    let budgetMonths = 0;
+    // Compact per-month breakdown (newest first) so the model can judge volatility.
+    const breakdownLines: string[] = [];
     for (const { month } of months) {
       const { from, to } = parseMonth(month);
       const totals = await transactionRepository.summarize(userId, from, to);
       incomeSum += totals.income;
       expenseSum += totals.expenses;
+      const cap = budgetByMonth.get(month) ?? templateAmount;
+      if (cap != null) {
+        budgetSum += cap;
+        budgetMonths += 1;
+      }
+      breakdownLines.push(
+        `${month}: income ${Math.round(totals.income)}, spent ${Math.round(
+          totals.expenses,
+        )}, budget ${cap != null ? Math.round(cap) : 'none'}`,
+      );
     }
     const n = months.length;
     const avgIncome = incomeSum / n;
     const avgExpenses = expenseSum / n;
     const avgNet = avgIncome - avgExpenses;
+    const avgBudget = budgetMonths > 0 ? budgetSum / budgetMonths : null;
+    const budgetUtilizationPct =
+      avgBudget && avgBudget > 0
+        ? Math.round((avgExpenses / avgBudget) * 100)
+        : null;
+    const monthlyBreakdown = breakdownLines.join('; ');
 
     // Top spending categories across the same window, for richer tips.
     const windowFrom = parseMonth(months[n - 1]!.month).from;
@@ -250,6 +284,9 @@ export const goalService = {
       avgIncome: round2(avgIncome),
       avgExpenses: round2(avgExpenses),
       avgNetSavings: round2(avgNet),
+      avgMonthlyBudget: avgBudget != null ? round2(avgBudget) : 'none set',
+      budgetUtilizationPct: budgetUtilizationPct != null ? budgetUtilizationPct : 'n/a',
+      monthlyBreakdown,
       topCategories,
     });
 

@@ -7,6 +7,11 @@ export const monthlyBudgetRepository = {
   findByUserMonth: (userId: string, month: string) =>
     prisma.monthlyBudget.findFirst({ where: { userId, month } }),
 
+  // Batch fetch of the recorded budgets for a set of months (one query instead
+  // of N). Used by the goal estimate to attach each analysed month's cap.
+  findByUserMonths: (userId: string, months: string[]) =>
+    prisma.monthlyBudget.findMany({ where: { userId, month: { in: months } } }),
+
   // Create or update the recorded budget amount for a month. Used when the user
   // edits their budget (current month) and by carry-forward on a new month.
   upsertAmount: (userId: string, month: string, amount: Prisma.Decimal) =>

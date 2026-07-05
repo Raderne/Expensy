@@ -14,7 +14,7 @@
     },
     "monthlyNetSavings": {
       "type": "number",
-      "description": "The average monthly net savings used for the estimate (echo the input figure)."
+      "description": "The realistic monthly net savings the estimate is based on, after reconciling average income, actual spend, and the user's budget (conservative)."
     },
     "confidence": {
       "type": "string",

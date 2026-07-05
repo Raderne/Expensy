@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Monthly spending insights",
+  "description": "An AI read-out of a user's finances for one month: a headline, sentiment-tagged insights, and suggestions.",
+  "properties": {
+    "headline": {
+      "type": "string",
+      "maxLength": 120,
+      "description": "The single most important takeaway for the month, in one plain-language sentence."
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 280,
+      "description": "One or two sentences expanding on the headline with the key numbers."
+    },
+    "insights": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 5,
+      "description": "Two to five specific, quantified observations about the month.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sentiment": {
+            "type": "string",
+            "enum": ["positive", "warning", "neutral"],
+            "description": "Whether this observation is a good sign, something to watch, or a neutral fact."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 70,
+            "description": "A short label for the insight, e.g. 'Under budget by $240'."
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "One sentence explaining the insight with the relevant figure."
+          }
+        },
+        "required": ["sentiment", "title", "detail"],
+        "additionalProperties": false
+      }
+    },
+    "suggestions": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "type": "string" },
+      "description": "Up to three concrete, actionable suggestions. Empty array if none are useful."
+    },
+    "savingsRatePct": {
+      "type": ["number", "null"],
+      "description": "The month's savings rate as a percentage (net ÷ income × 100). Null when income is zero."
+    }
+  },
+  "required": ["headline", "summary", "insights", "suggestions", "savingsRatePct"],
+  "additionalProperties": false
+}

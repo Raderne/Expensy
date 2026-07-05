@@ -10,3 +10,9 @@ analyticsRouter.get(
   requireAuth,
   asyncHandler(analyticsController.breakdown),
 );
+
+analyticsRouter.get(
+  '/analytics/insights',
+  requireAuth,
+  asyncHandler(analyticsController.insights),
+);
