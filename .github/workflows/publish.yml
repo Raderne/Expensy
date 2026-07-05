@@ -1,11 +1,12 @@
 name: Publish
 
 # Release pipeline. Triggered by pushing to PUBLISH_V.
-#  - Backend is deployed to Render (via Deploy Hook) only when backend/** changed,
-#    and only after Prisma migrations have been applied to the prod DB.
 #  - A signed release APK is built and attached to a GitHub Release only when
 #    the version in frontend/pubspec.yaml is bumped. The version/tag is read from
 #    that file and the release is skipped if the tag already exists (idempotent).
+#
+# The backend is NOT deployed here. It is self-hosted on the Oracle VM and
+# deployed with scripts/deploy.sh, run on the box (over SSH). See VM/MIGRATION.md.
 on:
   push:
     branches: [PUBLISH_V]
@@ -13,10 +14,6 @@ on:
     inputs:
       force_frontend:
         description: 'Force the frontend (APK + release) job to run'
-        type: boolean
-        default: false
-      force_backend:
-        description: 'Force the backend (Render deploy) job to run'
         type: boolean
         default: false
 
@@ -37,8 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       # A manual dispatch has no diff base, so detection returns nothing —
-      # fall back to the force_* inputs to make "force a publish" actually work.
-      backend: ${{ steps.version.outputs.backend == 'true' || inputs.force_backend == true }}
+      # fall back to the force_frontend input to make "force a publish" actually work.
       # Frontend release is gated on a version bump in pubspec.yaml, not on any
       # frontend file edit (and the tag-exists guard makes it idempotent).
       frontend: ${{ steps.version.outputs.changed == 'true' || inputs.force_frontend == true }}
@@ -47,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history + tags so we can diff backend/ against the deploy marker and pubspec against the previous commit
+          fetch-depth: 0 # full history + tags so we can diff pubspec against the previous commit
 
       - id: version
         name: Read version + detect bump in pubspec.yaml
@@ -76,119 +72,7 @@ jobs:
             [ "$prev" != "$version" ] && changed=true
           fi
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
-
-          # Backend: deploy when backend/** differs from the last SUCCESSFUL backend
-          # deploy, tracked by the moving 'backend-deployed' tag. This is independent
-          # of how work is split across commits/pushes, so a release push still
-          # deploys backend changes that landed in earlier pushes. No marker yet
-          # (first deploy) => deploy.
-          marker=backend-deployed
-          git fetch --quiet origin "refs/tags/$marker:refs/tags/$marker" 2>/dev/null || true
-          backend=true
-          if git rev-parse -q --verify "refs/tags/$marker" >/dev/null; then
-            if git diff --quiet "refs/tags/$marker" HEAD -- backend/; then
-              backend=false
-            fi
-            echo "Last deployed: $(git rev-parse --short "refs/tags/$marker") | backend changed=$backend"
-          else
-            echo "No '$marker' marker yet — will deploy backend."
-          fi
-          echo "backend=$backend" >> "$GITHUB_OUTPUT"
-          echo "Release version: $version (tag v$version), frontend=$changed, backend=$backend"
-
-  # ---------------------------------------------------------------------------
-  # Backend: validate, apply migrations to prod, then trigger the Render deploy.
-  # ---------------------------------------------------------------------------
-  deploy-backend:
-    name: deploy backend (Render)
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    # Throwaway Postgres used only to validate that the full migration history
-    # applies cleanly from scratch (see the "Validate migrations" step below).
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: expensy_ci
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - run: npm ci
-      - run: npx prisma generate
-
-      # Code-correctness gate (matches the existing CI; tests do not need a DB).
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test
-
-      # Migration safety gate #1: full history must apply on an empty database.
-      - name: Validate migrations on a clean DB
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/expensy_ci?schema=public
-        run: npx prisma migrate deploy
-
-      # Migration check against PROD (informational — pending migrations are
-      # expected here and must NOT fail the job).
-      - name: Check prod migration status
-        continue-on-error: true
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma migrate status
-
-      # Migration safety gate #2 (the real one): apply to prod. If this fails,
-      # the Render Deploy Hook below is never reached.
-      - name: Apply migrations to prod
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma migrate deploy
-
-      # Trigger Render to rebuild/restart the service against the new commit.
-      - name: Trigger Render deploy
-        run: |
-          echo "Triggering Render Deploy Hook..."
-          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-          echo
-
-      # Verify the rollout: /health returns 200 only when the DB is reachable.
-      - name: Wait for /health to be healthy
-        env:
-          BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
-        run: |
-          echo "Polling $BASE_URL/health ..."
-          deadline=$((SECONDS + 600))   # up to ~10 min for a cold Render rollout
-          until curl -fsS -o /dev/null "$BASE_URL/health"; do
-            if [ $SECONDS -ge $deadline ]; then
-              echo "::error::Backend did not become healthy in time"
-              exit 1
-            fi
-            echo "  not ready yet, retrying in 15s..."
-            sleep 15
-          done
-          echo "Backend is healthy."
-
-      # Record this commit as the deployed backend state so the next run only
-      # redeploys when backend/** changes again (moving lightweight tag).
-      - name: Mark backend as deployed
-        if: success()
-        run: |
-          git tag -f backend-deployed "$GITHUB_SHA"
-          git push -f origin "refs/tags/backend-deployed"
+          echo "Release version: $version (tag v$version), frontend=$changed"
 
   # ---------------------------------------------------------------------------
   # Frontend: build a signed release APK and publish it as a GitHub Release.
