@@ -44,6 +44,8 @@ const EnvSchema = z.object({
   GEMINI_THINKING_BUDGET: z.coerce.number().int().min(0).optional(),
   // How long a persisted goal estimate is served before a fresh Gemini call.
   GOAL_ESTIMATE_TTL_HOURS: z.coerce.number().int().positive().default(24),
+  // How long an in-memory analytics insight is served before a fresh Gemini call.
+  INSIGHTS_TTL_HOURS: z.coerce.number().int().positive().default(12),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

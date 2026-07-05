@@ -1,7 +1,11 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../lib/errors.js';
-import { analyticsQuerySchema } from '../schemas/analytics.js';
+import {
+  analyticsQuerySchema,
+  analyticsInsightsQuerySchema,
+} from '../schemas/analytics.js';
 import { analyticsService } from '../services/analyticsService.js';
+import { insightsService } from '../services/insightsService.js';
 
 const requireUserId = (req: Request): string => {
   if (!req.userId) {
@@ -20,5 +24,12 @@ export const analyticsController = {
     const { month } = analyticsQuerySchema.parse(req.query);
     const data = await analyticsService.getBreakdown(userId, month);
     res.json(data);
+  },
+
+  async insights(req: Request, res: Response): Promise<void> {
+    const userId = requireUserId(req);
+    const { month, refresh } = analyticsInsightsQuerySchema.parse(req.query);
+    const insights = await insightsService.getInsights(userId, month, { refresh });
+    res.json({ insights });
   },
 };

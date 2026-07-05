@@ -63,6 +63,20 @@ vi.mock('../src/repositories/categoryRepository.js', () => ({
   },
 }));
 
+vi.mock('../src/repositories/budgetRepository.js', () => ({
+  budgetRepository: {
+    findByUser: vi.fn(async () => ({ amount: new Prisma.Decimal(2_500) })),
+  },
+}));
+
+vi.mock('../src/repositories/monthlyBudgetRepository.js', () => ({
+  monthlyBudgetRepository: {
+    findByUserMonths: vi.fn(async () => [
+      { month: '2026-06', amount: new Prisma.Decimal(2_400) },
+    ]),
+  },
+}));
+
 const runAiTask = vi.fn();
 vi.mock('../src/ai/aiService.js', () => ({
   runAiTask: (...args: unknown[]) => runAiTask(...args),
@@ -110,6 +124,21 @@ describe('goalService.estimate', () => {
     expect(result.estimatedMonths).toBe(8);
     expect(result.estimatedDate).not.toBeNull();
     expect(result.generatedAt).toEqual(expect.any(String));
+  });
+
+  it('feeds budget cap, utilisation, and per-month breakdown to the model', async () => {
+    goals.set('g1', makeGoal());
+    runAiTask.mockResolvedValue(validAiResponse);
+
+    await goalService.estimate('u1', 'g1', {});
+
+    const vars = runAiTask.mock.calls[0]![1] as Record<string, unknown>;
+    // Recorded month wins (2400); other two fall back to the template (2500).
+    expect(vars.avgMonthlyBudget).toBeCloseTo((2400 + 2500 + 2500) / 3, 2);
+    // avg spend 2000 / avg budget ~2466.67 → 81%.
+    expect(vars.budgetUtilizationPct).toBe(81);
+    expect(vars.monthlyBreakdown).toContain('2026-06: income 3000, spent 2000, budget 2400');
+    expect(vars.monthlyBreakdown).toContain('budget 2500');
   });
 
   it('recomputes when refresh is requested even if the cache is fresh', async () => {
