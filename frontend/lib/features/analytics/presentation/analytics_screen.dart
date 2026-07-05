@@ -9,6 +9,7 @@ import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../application/analytics_controller.dart';
 import '../domain/analytics_breakdown.dart';
+import 'widgets/ai_insights_card.dart';
 import 'widgets/donut_chart.dart';
 import 'widgets/donut_legend.dart';
 import 'widgets/month_picker_sheet.dart';
@@ -173,6 +174,8 @@ class _Content extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
               child: SpendingBars(items: data.items),
             ),
+            const SizedBox(height: 18),
+            AiInsightsCard(month: data.month),
           ],
         ),
       ),

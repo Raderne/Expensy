@@ -13,3 +13,12 @@ export const analyticsQuerySchema = z.object({
 });
 
 export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>;
+
+export const analyticsInsightsQuerySchema = analyticsQuerySchema.extend({
+  refresh: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
+});
+
+export type AnalyticsInsightsQuery = z.infer<typeof analyticsInsightsQuerySchema>;
