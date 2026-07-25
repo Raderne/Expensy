@@ -52,8 +52,10 @@ die() { printf '\n\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 # running file safe from `git reset` and refreshes ~/ops in one step.
 case "$SCRIPT_DIR/" in
   "$REPO_DIR"/*)
-    mkdir -p "$OPS_DIR"
+    mkdir -p "$OPS_DIR" "$HOME/ops/expensy"
     cp "$SCRIPT_DIR"/*.sh "$OPS_DIR"/
+    # Cron runs the nested path; keep it in sync with the repo copy.
+    install -m 700 "$SCRIPT_DIR/backup.sh" "$HOME/ops/expensy/backup.sh"
     log "Relocated ops scripts to $OPS_DIR — re-running from there"
     exec bash "$OPS_DIR/$(basename "$0")" "$@"
     ;;

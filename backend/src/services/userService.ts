@@ -1,7 +1,7 @@
 import { AppError } from '../lib/errors.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { userRepository } from '../repositories/userRepository.js';
-import type { PublicUser } from './authService.js';
+import { authService, type PublicUser } from './authService.js';
 
 const toPublic = (u: {
   id: string;
@@ -47,5 +47,6 @@ export const userService = {
     }
     const newHash = await hashPassword(input.newPassword);
     await userRepository.updatePasswordHash(userId, newHash);
+    await authService.revokeAllRefreshTokens(userId);
   },
 };
