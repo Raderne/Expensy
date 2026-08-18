@@ -6,6 +6,10 @@ import { hashPassword } from '../lib/password.js';
 import { passwordResetRepository } from '../repositories/passwordResetRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import type { ForgotPasswordInput, ResetPasswordInput } from '../schemas/auth.js';
+import { authService } from './authService.js';
+
+/** Max wrong-code tries before the OTP is locked and a new forgot-password is required. */
+export const MAX_RESET_ATTEMPTS = 5;
 
 const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
 
@@ -57,6 +61,8 @@ export const passwordResetService = {
   /**
    * Verifies the code and sets the new password. Throws INVALID_RESET_CODE for
    * any failure (unknown email, wrong/expired/used code) so nothing is leaked.
+   * Wrong codes increment failedAttempts; after MAX_RESET_ATTEMPTS the token is
+   * consumed (locked) and a fresh forgot-password request is required.
    */
   async resetPassword(input: ResetPasswordInput): Promise<void> {
     const user = await userRepository.findByEmail(input.email);
@@ -65,10 +71,18 @@ export const passwordResetService = {
     const token = await passwordResetRepository.findActiveByUser(user.id, new Date());
     if (!token) throw invalidCodeError();
 
-    if (!hashesMatch(token.codeHash, sha256(input.code))) throw invalidCodeError();
+    if (!hashesMatch(token.codeHash, sha256(input.code))) {
+      const attempts = await passwordResetRepository.incrementFailedAttempts(token.id);
+      if (attempts >= MAX_RESET_ATTEMPTS) {
+        await passwordResetRepository.markConsumed(token.id, new Date());
+      }
+      throw invalidCodeError();
+    }
 
     const passwordHash = await hashPassword(input.newPassword);
     await userRepository.updatePasswordHash(user.id, passwordHash);
     await passwordResetRepository.markConsumed(token.id, new Date());
+    // Password reset invalidates every refresh session for this user.
+    await authService.revokeAllRefreshTokens(user.id);
   },
 };

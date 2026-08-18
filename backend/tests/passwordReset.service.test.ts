@@ -7,11 +7,13 @@ type StoredToken = {
   codeHash: string;
   expiresAt: Date;
   consumedAt: Date | null;
+  failedAttempts: number;
 };
 
 const users = new Map<string, StoredUser>();
 const tokens = new Map<string, StoredToken>();
 let lastMail: { to: string; subject: string; text: string } | null = null;
+const revokeAll = vi.fn(async () => undefined);
 
 vi.mock('../src/repositories/userRepository.js', () => ({
   userRepository: {
@@ -30,7 +32,12 @@ vi.mock('../src/repositories/userRepository.js', () => ({
 vi.mock('../src/repositories/passwordResetRepository.js', () => ({
   passwordResetRepository: {
     create: vi.fn(async (data: { userId: string; codeHash: string; expiresAt: Date }) => {
-      const token: StoredToken = { id: `t_${tokens.size + 1}`, consumedAt: null, ...data };
+      const token: StoredToken = {
+        id: `t_${tokens.size + 1}`,
+        consumedAt: null,
+        failedAttempts: 0,
+        ...data,
+      };
       tokens.set(token.id, token);
       return token;
     }),
@@ -46,6 +53,12 @@ vi.mock('../src/repositories/passwordResetRepository.js', () => ({
       if (t) t.consumedAt = consumedAt;
       return t ?? null;
     }),
+    incrementFailedAttempts: vi.fn(async (id: string) => {
+      const t = tokens.get(id);
+      if (!t) return 0;
+      t.failedAttempts += 1;
+      return t.failedAttempts;
+    }),
     deleteByUser: vi.fn(async (userId: string) => {
       for (const [k, t] of tokens) if (t.userId === userId) tokens.delete(k);
       return { count: 0 };
@@ -59,7 +72,15 @@ vi.mock('../src/lib/mailer.js', () => ({
   }),
 }));
 
-const { passwordResetService } = await import('../src/services/passwordResetService.js');
+vi.mock('../src/services/authService.js', () => ({
+  authService: {
+    revokeAllRefreshTokens: (...args: unknown[]) => revokeAll(...args),
+  },
+}));
+
+const { passwordResetService, MAX_RESET_ATTEMPTS } = await import(
+  '../src/services/passwordResetService.js'
+);
 const { hashPassword, verifyPassword } = await import('../src/lib/password.js');
 
 const codeFromMail = (): string => {
@@ -72,6 +93,7 @@ beforeEach(async () => {
   users.clear();
   tokens.clear();
   lastMail = null;
+  revokeAll.mockClear();
   users.set('u_1', {
     id: 'u_1',
     email: 'a@b.com',
@@ -113,6 +135,7 @@ describe('passwordResetService.resetPassword', () => {
     expect(await verifyPassword('brandnewpassword', user.passwordHash)).toBe(true);
     const [token] = [...tokens.values()];
     expect(token.consumedAt).not.toBeNull();
+    expect(revokeAll).toHaveBeenCalledWith('u_1');
   });
 
   it('rejects a wrong code with 400 INVALID_RESET_CODE', async () => {
@@ -121,6 +144,35 @@ describe('passwordResetService.resetPassword', () => {
       passwordResetService.resetPassword({
         email: 'a@b.com',
         code: '000000',
+        newPassword: 'brandnewpassword',
+      }),
+    ).rejects.toMatchObject({ status: 400, code: 'INVALID_RESET_CODE' });
+    const [token] = [...tokens.values()];
+    expect(token.failedAttempts).toBe(1);
+  });
+
+  it('locks the token after too many wrong attempts', async () => {
+    await passwordResetService.requestReset({ email: 'a@b.com' });
+    const code = codeFromMail();
+
+    for (let i = 0; i < MAX_RESET_ATTEMPTS; i += 1) {
+      await expect(
+        passwordResetService.resetPassword({
+          email: 'a@b.com',
+          code: '000000',
+          newPassword: 'brandnewpassword',
+        }),
+      ).rejects.toMatchObject({ status: 400, code: 'INVALID_RESET_CODE' });
+    }
+
+    const [token] = [...tokens.values()];
+    expect(token.failedAttempts).toBe(MAX_RESET_ATTEMPTS);
+    expect(token.consumedAt).not.toBeNull();
+
+    await expect(
+      passwordResetService.resetPassword({
+        email: 'a@b.com',
+        code,
         newPassword: 'brandnewpassword',
       }),
     ).rejects.toMatchObject({ status: 400, code: 'INVALID_RESET_CODE' });
@@ -139,10 +191,18 @@ describe('passwordResetService.resetPassword', () => {
   it('rejects an already-consumed code', async () => {
     await passwordResetService.requestReset({ email: 'a@b.com' });
     const code = codeFromMail();
-    await passwordResetService.resetPassword({ email: 'a@b.com', code, newPassword: 'brandnewpassword' });
+    await passwordResetService.resetPassword({
+      email: 'a@b.com',
+      code,
+      newPassword: 'brandnewpassword',
+    });
 
     await expect(
-      passwordResetService.resetPassword({ email: 'a@b.com', code, newPassword: 'anotherpassword' }),
+      passwordResetService.resetPassword({
+        email: 'a@b.com',
+        code,
+        newPassword: 'anotherpassword',
+      }),
     ).rejects.toMatchObject({ status: 400, code: 'INVALID_RESET_CODE' });
   });
 });

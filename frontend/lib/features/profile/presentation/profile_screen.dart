@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../core/layout/breakpoints.dart';
+import '../../../core/layout/pane_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/update/update_controller.dart';
@@ -187,6 +189,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Goals',
                     value: goalsSummary,
                     onTap: () => context.push('/profile/goals'),
+                    route: '/profile/goals',
                   ),
                   const _Divider(),
                   _Row(
@@ -194,6 +197,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Recurring expenses',
                     value: recurringSummary,
                     onTap: () => context.push('/profile/recurring-expenses'),
+                    route: '/profile/recurring-expenses',
                   ),
                   const _Divider(),
                   _Row(
@@ -201,6 +205,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Income sources',
                     value: incomeSummary,
                     onTap: () => context.push('/profile/income-sources'),
+                    route: '/profile/income-sources',
                   ),
                   const _Divider(),
                   _Row(
@@ -220,6 +225,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'People',
                     value: peopleSummary,
                     onTap: () => context.push('/profile/contacts'),
+                    route: '/profile/contacts',
                   ),
                   const _Divider(),
                   _Row(
@@ -227,6 +233,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Who owes me',
                     value: 'Track split bills & repayments',
                     onTap: () => context.push('/shared'),
+                    route: '/shared',
                   ),
                 ],
               ),
@@ -239,6 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Theme & widgets',
                     value: ref.watch(themeModeProvider).label,
                     onTap: () => context.push('/profile/appearance'),
+                    route: '/profile/appearance',
                   ),
                 ],
               ),
@@ -404,7 +412,12 @@ class _ProfileHeroExpanded extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(22, topInset + 8, 22, 24),
+      padding: EdgeInsets.fromLTRB(
+        heroInsetOf(context),
+        topInset + 8,
+        heroInsetOf(context),
+        24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -449,7 +462,11 @@ class _ProfileHeroCollapsed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(top: topInset, left: 22, right: 22),
+      padding: EdgeInsets.only(
+        top: topInset,
+        left: heroInsetOf(context),
+        right: heroInsetOf(context),
+      ),
       child: SizedBox(
         height: 56,
         child: Center(
@@ -553,19 +570,29 @@ class _Row extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
 
+  /// Route this row opens. In a two-pane layout the detail lands in the
+  /// companion pane, so the row marks itself selected while it is showing —
+  /// without it, a list-detail split leaves no trace of where the right-hand
+  /// content came from.
+  final String? route;
+
   const _Row({
     required this.icon,
     required this.label,
     required this.value,
     this.trailing,
     this.onTap,
+    this.route,
   });
 
   @override
   Widget build(BuildContext context) {
     final tap = onTap;
+    final selected =
+        route != null && PaneScope.isDetailSelected(context, route!);
     return Material(
-      color: Colors.transparent,
+      color: selected ? AppColors.primaryLight : Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: tap,
@@ -610,8 +637,10 @@ class _Row extends StatelessWidget {
               ?trailing,
               if (trailing == null && tap != null)
                 Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.inkLight,
+                  selected
+                      ? Icons.chevron_left_rounded
+                      : Icons.chevron_right_rounded,
+                  color: selected ? AppColors.primary : AppColors.inkLight,
                   size: 22,
                 ),
             ],

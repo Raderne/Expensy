@@ -27,7 +27,11 @@ NavTab _tabForLocation(String location) {
   if (location.startsWith('/add')) return NavTab.add;
   if (location.startsWith('/transactions')) return NavTab.transactions;
   if (location.startsWith('/analytics')) return NavTab.analytics;
-  if (location.startsWith('/profile')) return NavTab.profile;
+  if (location.startsWith('/profile') ||
+      location == '/shared' ||
+      location == '/postponed') {
+    return NavTab.profile;
+  }
   return NavTab.home;
 }
 
@@ -100,8 +104,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       ShellRoute(
         builder: (context, state, child) {
-          final active = _tabForLocation(state.matchedLocation);
-          return AppShell(active: active, child: child);
+          final loc = state.matchedLocation;
+          final active = _tabForLocation(loc);
+          return AppShell(active: active, location: loc, child: child);
         },
         routes: [
           GoRoute(

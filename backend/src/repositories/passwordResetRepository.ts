@@ -14,6 +14,15 @@ export const passwordResetRepository = {
   markConsumed: (id: string, consumedAt: Date) =>
     prisma.passwordResetToken.update({ where: { id }, data: { consumedAt } }),
 
+  incrementFailedAttempts: async (id: string): Promise<number> => {
+    const updated = await prisma.passwordResetToken.update({
+      where: { id },
+      data: { failedAttempts: { increment: 1 } },
+      select: { failedAttempts: true },
+    });
+    return updated.failedAttempts;
+  },
+
   // Invalidate any prior codes before issuing a fresh one.
   deleteByUser: (userId: string) =>
     prisma.passwordResetToken.deleteMany({ where: { userId } }),

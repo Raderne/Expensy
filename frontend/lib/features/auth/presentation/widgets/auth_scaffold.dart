@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/system_overlays.dart';
 import '../../../../core/widgets/hero_gradient.dart';
+import '../../../../core/layout/breakpoints.dart';
 
 /// Shared layout for Login and Signup. Hero gradient header with title +
 /// subtitle, white card holding the form body and a trailing CTA row.
@@ -62,16 +63,24 @@ class AuthScaffold extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [form, const SizedBox(height: 20), footer],
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: Breakpoints.authFormMaxWidth,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [form, const SizedBox(height: 20), footer],
+                        ),
+                      ),
                     ),
                   ),
                 ),

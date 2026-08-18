@@ -39,7 +39,18 @@ class AddExpenseState {
   }
 
   bool get canSave =>
-      !saving && categoryId != null && AmountInput.isValid(amount) && !overSplit;
+      !saving &&
+      categoryId != null &&
+      AmountInput.isValid(amount) &&
+      !overSplit;
+
+  /// True once the user has put anything into the form. Used to decide whether a
+  /// fold/unfold should carry the entry across layouts or just drop the pane.
+  bool get hasDraft =>
+      amount != '0' ||
+      categoryId != null ||
+      note.isNotEmpty ||
+      splits.isNotEmpty;
 
   AddExpenseState copyWith({
     String? amount,

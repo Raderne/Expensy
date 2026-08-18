@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { AppError } from '../lib/errors.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
+import { refreshTokenRepository } from '../repositories/refreshTokenRepository.js';
 import { userRepository } from '../repositories/userRepository.js';
 import type { LoginInput, SignupInput } from '../schemas/auth.js';
 
@@ -29,10 +31,31 @@ const toPublic = (u: {
   openingBalance: u.openingBalance.toNumber(),
 });
 
-const issueTokens = (userId: string) => ({
-  accessToken: signAccessToken(userId),
-  refreshToken: signRefreshToken(userId),
-});
+const invalidRefresh = () =>
+  new AppError({
+    status: 401,
+    code: 'INVALID_REFRESH',
+    message: 'Invalid or expired refresh token',
+  });
+
+const issueTokens = async (userId: string): Promise<{ accessToken: string; refreshToken: string }> => {
+  const jti = randomUUID();
+  const refreshToken = signRefreshToken(userId, jti);
+  const payload = verifyRefreshToken(refreshToken);
+  if (!payload.exp) throw new Error('Refresh token missing exp');
+
+  await refreshTokenRepository.create({
+    id: jti,
+    userId,
+    tokenHash: refreshTokenRepository.hash(refreshToken),
+    expiresAt: new Date(payload.exp * 1000),
+  });
+
+  return {
+    accessToken: signAccessToken(userId),
+    refreshToken,
+  };
+};
 
 export const authService = {
   async signup(input: SignupInput): Promise<AuthResult> {
@@ -50,7 +73,7 @@ export const authService = {
       passwordHash,
       name: input.name,
     });
-    return { user: toPublic(user), ...issueTokens(user.id) };
+    return { user: toPublic(user), ...(await issueTokens(user.id)) };
   },
 
   async login(input: LoginInput): Promise<AuthResult> {
@@ -70,7 +93,7 @@ export const authService = {
         message: 'Invalid email or password',
       });
     }
-    return { user: toPublic(user), ...issueTokens(user.id) };
+    return { user: toPublic(user), ...(await issueTokens(user.id)) };
   },
 
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
@@ -78,12 +101,32 @@ export const authService = {
     try {
       payload = verifyRefreshToken(refreshToken);
     } catch {
-      throw new AppError({
-        status: 401,
-        code: 'INVALID_REFRESH',
-        message: 'Invalid or expired refresh token',
-      });
+      throw invalidRefresh();
     }
+
+    const stored = await refreshTokenRepository.findById(payload.jti);
+    if (!stored || stored.userId !== payload.sub) {
+      throw invalidRefresh();
+    }
+
+    const tokenHash = refreshTokenRepository.hash(refreshToken);
+    if (stored.tokenHash !== tokenHash) {
+      throw invalidRefresh();
+    }
+
+    // Reuse of an already-rotated token → revoke all sessions for this user.
+    if (stored.revokedAt) {
+      if (stored.replacedById) {
+        await refreshTokenRepository.revokeAllForUser(stored.userId, new Date());
+      }
+      throw invalidRefresh();
+    }
+
+    if (stored.expiresAt.getTime() <= Date.now()) {
+      await refreshTokenRepository.revoke(stored.id, new Date());
+      throw invalidRefresh();
+    }
+
     const user = await userRepository.findById(payload.sub);
     if (!user) {
       throw new AppError({
@@ -92,7 +135,15 @@ export const authService = {
         message: 'User no longer exists',
       });
     }
-    return issueTokens(user.id);
+
+    const next = await issueTokens(user.id);
+    const nextJti = verifyRefreshToken(next.refreshToken).jti;
+    await refreshTokenRepository.revoke(stored.id, new Date(), nextJti);
+    return next;
+  },
+
+  async revokeAllRefreshTokens(userId: string): Promise<void> {
+    await refreshTokenRepository.revokeAllForUser(userId, new Date());
   },
 
   async me(userId: string): Promise<PublicUser> {

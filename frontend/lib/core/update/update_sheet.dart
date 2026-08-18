@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/app_bottom_sheet.dart';
 import '../widgets/simple_markdown.dart';
 import 'update_controller.dart';
 import 'update_info.dart';
@@ -308,11 +309,8 @@ Future<void> showUpdateSheet(
 ) async {
   ref.read(updateSheetVisibleProvider.notifier).set(true);
   try {
-    await showModalBottomSheet<void>(
+    await showAppBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: AppColors.scrim,
       builder: (_) => UpdateSheet(info: info),
     );
   } finally {

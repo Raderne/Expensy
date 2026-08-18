@@ -19,6 +19,35 @@ extension NavTabPath on NavTab {
   };
 }
 
+/// Icon and label for a tab, shared by [BottomNav] and `AppNavRail` so the two
+/// presentations of the same navigation cannot drift apart.
+extension NavTabChrome on NavTab {
+  IconData get icon => switch (this) {
+    NavTab.home => Icons.home_rounded,
+    NavTab.add => Icons.add_rounded,
+    NavTab.transactions => Icons.receipt_long_rounded,
+    NavTab.analytics => Icons.pie_chart_rounded,
+    NavTab.profile => Icons.person_rounded,
+  };
+
+  String get label => switch (this) {
+    NavTab.home => 'Home',
+    NavTab.add => 'Add',
+    NavTab.transactions => 'List',
+    NavTab.analytics => 'Stats',
+    NavTab.profile => 'Me',
+  };
+}
+
+/// The four tabs that appear as destinations, in bar/rail order. [NavTab.add] is
+/// excluded: Add Expense is an action, not a destination.
+const List<NavTab> kNavDestinations = [
+  NavTab.home,
+  NavTab.transactions,
+  NavTab.analytics,
+  NavTab.profile,
+];
+
 /// Frosted-glass tab bar with a centered, prominent orange FAB.
 ///
 /// Rendered as a translucent blurred bar so the ambient background and scrolling
@@ -31,11 +60,15 @@ class BottomNav extends StatelessWidget {
   /// a tab, so it gets its own callback instead of going through [onTap].
   final VoidCallback onAdd;
 
+  /// When true (expanded companion pane open), the FAB shows a selected ring.
+  final bool addActive;
+
   const BottomNav({
     super.key,
     required this.active,
     required this.onTap,
     required this.onAdd,
+    this.addActive = false,
   });
 
   void _switchTab(NavTab tab) {
@@ -64,41 +97,24 @@ class BottomNav extends StatelessWidget {
           ),
           child: SafeArea(
             top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavItem(
-                    tab: NavTab.home,
-                    icon: Icons.home_rounded,
-                    label: 'Home',
-                    active: active,
-                    onTap: _switchTab,
-                  ),
-                  _NavItem(
-                    tab: NavTab.transactions,
-                    icon: Icons.receipt_long_rounded,
-                    label: 'List',
-                    active: active,
-                    onTap: _switchTab,
-                  ),
-                  _AddButton(onTap: _pressAdd),
-                  _NavItem(
-                    tab: NavTab.analytics,
-                    icon: Icons.pie_chart_rounded,
-                    label: 'Stats',
-                    active: active,
-                    onTap: _switchTab,
-                  ),
-                  _NavItem(
-                    tab: NavTab.profile,
-                    icon: Icons.person_rounded,
-                    label: 'Me',
-                    active: active,
-                    onTap: _switchTab,
-                  ),
-                ],
+            // Nav labels are already at the small end of the scale; letting the
+            // system font size run all the way up bursts the fixed-height bar.
+            // Clamp here (as Material does for its own nav bars) and let the
+            // label clip beyond that rather than throw a layout overflow.
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    for (final tab in kNavDestinations.take(2))
+                      _NavItem(tab: tab, active: active, onTap: _switchTab),
+                    AddNavButton(onTap: _pressAdd, active: addActive),
+                    for (final tab in kNavDestinations.skip(2))
+                      _NavItem(tab: tab, active: active, onTap: _switchTab),
+                  ],
+                ),
               ),
             ),
           ),
@@ -110,21 +126,19 @@ class BottomNav extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   final NavTab tab;
-  final IconData icon;
-  final String label;
   final NavTab active;
   final ValueChanged<NavTab> onTap;
 
   const _NavItem({
     required this.tab,
-    required this.icon,
-    required this.label,
     required this.active,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final icon = tab.icon;
+    final label = tab.label;
     final isActive = active == tab;
     final color = isActive ? AppColors.primary : AppColors.inkLight;
     return Semantics(
@@ -158,11 +172,15 @@ class _NavItem extends StatelessWidget {
                 child: Icon(icon, size: 22, color: color),
               ),
               const SizedBox(height: 3),
-              Text(
-                label,
-                style: AppTextStyles.mutedSmall.copyWith(
-                  color: color,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.mutedSmall.copyWith(
+                    color: color,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -173,19 +191,24 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
+/// The orange "+" FAB. Shared with `AppNavRail`, which anchors it at the bottom
+/// of the rail rather than the centre of a bar.
+class AddNavButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _AddButton({required this.onTap});
+  final bool active;
+  const AddNavButton({super.key, required this.onTap, this.active = false});
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Add expense',
       button: true,
+      selected: active,
       child: InkResponse(
         onTap: onTap,
         radius: 34,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
           width: 58,
           height: 58,
           decoration: BoxDecoration(
@@ -197,14 +220,16 @@ class _AddButton extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.45),
-                blurRadius: 18,
+                color: AppColors.accent.withValues(alpha: active ? 0.55 : 0.45),
+                blurRadius: active ? 22 : 18,
                 offset: const Offset(0, 6),
               ),
             ],
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
-              width: 1,
+              color: active
+                  ? Colors.white.withValues(alpha: 0.85)
+                  : Colors.white.withValues(alpha: 0.25),
+              width: active ? 2.5 : 1,
             ),
           ),
           child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),

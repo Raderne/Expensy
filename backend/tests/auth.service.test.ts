@@ -9,7 +9,17 @@ type StoredUser = {
   openingBalance: Prisma.Decimal;
 };
 
+type StoredRefresh = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  replacedById: string | null;
+};
+
 const store = new Map<string, StoredUser>();
+const refreshStore = new Map<string, StoredRefresh>();
 
 vi.mock('../src/repositories/userRepository.js', () => ({
   userRepository: {
@@ -30,11 +40,55 @@ vi.mock('../src/repositories/userRepository.js', () => ({
   },
 }));
 
+vi.mock('../src/repositories/refreshTokenRepository.js', async () => {
+  const { createHash } = await import('node:crypto');
+  const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+  return {
+    refreshTokenRepository: {
+      hash,
+      create: vi.fn(
+        async (data: { id: string; userId: string; tokenHash: string; expiresAt: Date }) => {
+          const row: StoredRefresh = {
+            ...data,
+            revokedAt: null,
+            replacedById: null,
+          };
+          refreshStore.set(row.id, row);
+          return row;
+        },
+      ),
+      findById: vi.fn(async (id: string) => refreshStore.get(id) ?? null),
+      findByTokenHash: vi.fn(async (tokenHash: string) => {
+        for (const row of refreshStore.values()) if (row.tokenHash === tokenHash) return row;
+        return null;
+      }),
+      revoke: vi.fn(async (id: string, revokedAt: Date, replacedById?: string) => {
+        const row = refreshStore.get(id);
+        if (!row) return null;
+        row.revokedAt = revokedAt;
+        if (replacedById) row.replacedById = replacedById;
+        return row;
+      }),
+      revokeAllForUser: vi.fn(async (userId: string, revokedAt: Date) => {
+        let count = 0;
+        for (const row of refreshStore.values()) {
+          if (row.userId === userId && row.revokedAt === null) {
+            row.revokedAt = revokedAt;
+            count += 1;
+          }
+        }
+        return { count };
+      }),
+    },
+  };
+});
+
 const { authService } = await import('../src/services/authService.js');
 const { AppError } = await import('../src/lib/errors.js');
 
 beforeEach(() => {
   store.clear();
+  refreshStore.clear();
 });
 
 describe('authService.signup', () => {
@@ -48,6 +102,7 @@ describe('authService.signup', () => {
     expect(result.user.id).toBeTruthy();
     expect(result.accessToken).toBeTypeOf('string');
     expect(result.refreshToken).toBeTypeOf('string');
+    expect(refreshStore.size).toBe(1);
   });
 
   it('rejects a duplicate email with 409 EMAIL_TAKEN', async () => {
@@ -81,15 +136,37 @@ describe('authService.login', () => {
 });
 
 describe('authService.refresh', () => {
-  it('issues new tokens from a valid refresh token', async () => {
+  it('issues new tokens from a valid refresh token and rotates the session', async () => {
     const signup = await authService.signup({
       email: 'a@b.com',
       password: 'password123',
       name: 'Alice',
     });
+    const [first] = [...refreshStore.values()];
     const refreshed = await authService.refresh(signup.refreshToken);
     expect(refreshed.accessToken).toBeTypeOf('string');
     expect(refreshed.refreshToken).toBeTypeOf('string');
+    expect(refreshed.refreshToken).not.toBe(signup.refreshToken);
+    expect(first.revokedAt).not.toBeNull();
+    expect(first.replacedById).toBeTruthy();
+  });
+
+  it('rejects reuse of a rotated refresh token and revokes all sessions', async () => {
+    const signup = await authService.signup({
+      email: 'a@b.com',
+      password: 'password123',
+      name: 'Alice',
+    });
+    const rotated = await authService.refresh(signup.refreshToken);
+    await expect(authService.refresh(signup.refreshToken)).rejects.toMatchObject({
+      status: 401,
+      code: 'INVALID_REFRESH',
+    });
+    // The replacement session is also revoked after reuse detection.
+    await expect(authService.refresh(rotated.refreshToken)).rejects.toMatchObject({
+      status: 401,
+      code: 'INVALID_REFRESH',
+    });
   });
 
   it('rejects a malformed refresh token', async () => {

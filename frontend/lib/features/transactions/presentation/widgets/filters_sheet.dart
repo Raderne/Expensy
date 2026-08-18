@@ -6,6 +6,7 @@ import '../../../../core/data/categories_repository.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../application/transactions_controller.dart';
 
 /// Modal bottom sheet that stages filter changes locally and only applies them
@@ -16,11 +17,8 @@ Future<void> showTransactionsFiltersSheet(
   required TransactionFilters initial,
   required ValueChanged<TransactionFilters> onApply,
 }) {
-  return showModalBottomSheet<void>(
+  return showAppBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.scrim,
     builder: (_) => _FiltersSheet(initial: initial, onApply: onApply),
   );
 }

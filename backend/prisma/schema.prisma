@@ -64,6 +64,7 @@ model User {
   recurringExpenses    RecurringExpense[]
   categories           Category[]
   passwordResetTokens  PasswordResetToken[]
+  refreshTokens        RefreshToken[]
   recurringOccurrences RecurringOccurrence[]
   contacts             Contact[]
   splits               TransactionSplit[]
@@ -81,6 +82,8 @@ model PasswordResetToken {
   codeHash   String
   expiresAt  DateTime
   consumedAt DateTime?
+  // Wrong-code attempts; token is locked (consumed) after MAX_RESET_ATTEMPTS.
+  failedAttempts Int @default(0)
 
   // Base audit fields
   createdAt   DateTime  @default(now())
@@ -91,6 +94,32 @@ model PasswordResetToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([deletedAt])
+}
+
+// Server-side refresh sessions. JWT `jti` == id; raw JWT is never stored —
+// only sha256(token). Rotation: present token → revoke row → issue replacement.
+// Reuse of a revoked-but-rotated token revokes the user's entire session set.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  tokenHash    String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+
+  // Base audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenHash])
   @@index([userId])
   @@index([expiresAt])
   @@index([deletedAt])

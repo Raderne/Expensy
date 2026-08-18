@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/ambient_background.dart';
@@ -132,14 +133,18 @@ class GoalsScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.inkMid,
+              ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               'Delete',
-              style: AppTextStyles.labelStrong.copyWith(color: AppColors.danger),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.danger,
+              ),
             ),
           ),
         ],
@@ -184,7 +189,12 @@ class _Hero extends StatelessWidget {
     return DecoratedBox(
       decoration: HeroGradient.decoration,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(18, topInset + 8, 18, 24),
+        padding: EdgeInsets.fromLTRB(
+          pageInsetOf(context),
+          topInset + 8,
+          pageInsetOf(context),
+          24,
+        ),
         child: Column(
           children: [
             Row(
@@ -320,7 +330,9 @@ class _GoalCard extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: Row(
               children: [
-                Expanded(child: _ProgressBar(progress: goal.progress, color: color)),
+                Expanded(
+                  child: _ProgressBar(progress: goal.progress, color: color),
+                ),
                 const SizedBox(width: 10),
                 Text(
                   '${goal.pct}%',
@@ -599,7 +611,10 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 12),
             Text('Could not load goals', style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
-            Text('Check your connection and try again.', style: AppTextStyles.body),
+            Text(
+              'Check your connection and try again.',
+              style: AppTextStyles.body,
+            ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: onRetry,

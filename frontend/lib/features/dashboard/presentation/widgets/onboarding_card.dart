@@ -94,11 +94,18 @@ class OnboardingCard extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        'Tap + to add your first expense',
-                        style: AppTextStyles.labelStrong.copyWith(
-                          color: Colors.white,
-                          fontSize: 13.5,
+                      // Flexible so the label degrades gracefully in a narrow
+                      // pane, a split-screen window, or at a large system font
+                      // size instead of overflowing the pill.
+                      Flexible(
+                        child: Text(
+                          'Tap + to add your first expense',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.labelStrong.copyWith(
+                            color: Colors.white,
+                            fontSize: 13.5,
+                          ),
                         ),
                       ),
                     ],
