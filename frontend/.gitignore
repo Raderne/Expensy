@@ -48,3 +48,6 @@ app.*.map.json
 /android/key.properties
 /android/app/*.jks
 /android/app/*.keystore
+
+# Generated at release time by scripts/changelog-section.mjs.
+RELEASE_NOTES.md

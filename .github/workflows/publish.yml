@@ -4,6 +4,10 @@ name: Publish
 #  - A signed release APK is built and attached to a GitHub Release only when
 #    the version in frontend/pubspec.yaml is bumped. The version/tag is read from
 #    that file and the release is skipped if the tag already exists (idempotent).
+#  - The release body is the matching section of CHANGELOG.md, sliced by
+#    scripts/changelog-section.mjs. That same text is what the app shows in its
+#    update sheet and What's New sheet, so notes and changelog cannot drift.
+#    Bumping pubspec.yaml without adding a CHANGELOG section fails the run.
 #
 # The backend is NOT deployed here. It is self-hosted on the Oracle VM and
 # deployed with scripts/deploy.sh, run on the box (over SSH). See VM/MIGRATION.md.
@@ -73,6 +77,15 @@ jobs:
           fi
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
           echo "Release version: $version (tag v$version), frontend=$changed"
+
+      # Fail here rather than after a ten-minute APK build. CHANGELOG.md is the
+      # single source of the release body *and* of the notes the app shows in its
+      # update sheet, so a release with no section for this version would ship an
+      # APK whose "What's new" is blank.
+      - name: Check CHANGELOG.md has a section for this version
+        if: steps.version.outputs.changed == 'true' || inputs.force_frontend == true
+        run: |
+          node scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" >/dev/null
 
   # ---------------------------------------------------------------------------
   # Frontend: build a signed release APK and publish it as a GitHub Release.
@@ -152,26 +165,18 @@ jobs:
           done
           ls -la dist
 
-      # Build release notes from commit messages since the previous tag,
-      # excluding merge commits.
-      - name: Generate release notes
+      # Slice the release body out of CHANGELOG.md. Hand-written notes, one
+      # source: the same text becomes the GitHub release body and the "What's
+      # new" the app renders after updating. Already validated in the `changes`
+      # job, so this cannot fail here for a missing section.
+      - name: Slice release notes from CHANGELOG.md
         if: steps.guard.outputs.exists == 'false'
+        working-directory: .
         run: |
-          prev_tag="$(git tag --list 'v*' --sort=-version:refname | head -n1)"
-          if [ -n "$prev_tag" ]; then
-            echo "Collecting commits since $prev_tag..."
-            range="${prev_tag}..HEAD"
-          else
-            echo "No previous tag found — using full history."
-            range="HEAD"
-          fi
-          {
-            echo "## What's Changed"
-            echo
-            git log --no-merges --pretty=format:'- %s' "$range"
-            echo
-          } > RELEASE_NOTES.md
-          cat RELEASE_NOTES.md
+          node scripts/changelog-section.mjs "${{ needs.changes.outputs.version }}" \
+            > frontend/RELEASE_NOTES.md
+          echo "--- release notes ---"
+          cat frontend/RELEASE_NOTES.md
 
       - name: Create GitHub Release
         if: steps.guard.outputs.exists == 'false'
