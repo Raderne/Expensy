@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/layout/breakpoints.dart';
+import '../../../core/layout/pane_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/shimmer_box.dart';
+import '../../transactions/application/transactions_controller.dart';
 import '../application/analytics_controller.dart';
 import '../domain/analytics_breakdown.dart';
 import 'widgets/ai_insights_card.dart';
@@ -46,9 +50,9 @@ class AnalyticsScreen extends ConsumerWidget {
             else
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
-                  18,
+                  pageInsetOf(context),
                   8,
-                  18,
+                  pageInsetOf(context),
                   24 + MediaQuery.paddingOf(context).bottom,
                 ),
                 sliver: SliverToBoxAdapter(
@@ -89,7 +93,12 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = _monthLabel(month);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
+      padding: EdgeInsets.fromLTRB(
+        pageInsetOf(context),
+        4,
+        pageInsetOf(context),
+        14,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -139,14 +148,33 @@ class _MonthChip extends StatelessWidget {
 
 // ─── Content (donut + legend, then bars) ─────────────────────────────────────
 
-class _Content extends StatelessWidget {
+class _Content extends ConsumerWidget {
   final AnalyticsBreakdown data;
   final bool loading;
 
   const _Content({required this.data, required this.loading});
 
+  void _selectCategory(WidgetRef ref, String? categoryId) {
+    HapticFeedback.selectionClick();
+    final filters = categoryId == null
+        ? TransactionFilters.none
+        : TransactionFilters(categoryId: categoryId);
+    ref.read(transactionsControllerProvider.notifier).applyFilters(filters);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Tapping a slice filters the *companion* Transactions pane. With no
+    // companion — a phone, or a folded Fold — that would silently mutate
+    // another tab with no visible feedback, so the legend stays read-only.
+    final crossPane = PaneScope.isInPane(context);
+    final selectedCategoryId = ref
+        .watch(transactionsControllerProvider)
+        .asData
+        ?.value
+        .filters
+        .categoryId;
+
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
       opacity: loading ? 0.55 : 1.0,
@@ -155,6 +183,18 @@ class _Content extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (crossPane && selectedCategoryId != null) ...[
+              _FilterChip(
+                label: () {
+                  for (final i in data.items) {
+                    if (i.categoryId == selectedCategoryId) return i.label;
+                  }
+                  return 'Category';
+                }(),
+                onClear: () => _selectCategory(ref, null),
+              ),
+              const SizedBox(height: 12),
+            ],
             GlassCard(
               radius: 22,
               padding: const EdgeInsets.all(18),
@@ -162,7 +202,19 @@ class _Content extends StatelessWidget {
                 children: [
                   DonutChart(data: data),
                   const SizedBox(width: 12),
-                  Expanded(child: DonutLegend(items: data.items)),
+                  Expanded(
+                    child: DonutLegend(
+                      items: data.items,
+                      selectedCategoryId: crossPane ? selectedCategoryId : null,
+                      onSelect: crossPane
+                          ? (id) {
+                              // Toggle off when tapping the selected category.
+                              final next = id == selectedCategoryId ? null : id;
+                              _selectCategory(ref, next);
+                            }
+                          : null,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -183,6 +235,49 @@ class _Content extends StatelessWidget {
   }
 }
 
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onClear;
+
+  const _FilterChip({required this.label, required this.onClear});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Material(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onClear,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.labelStrong.copyWith(
+                    color: AppColors.primary,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── States ──────────────────────────────────────────────────────────────────
 
 class _LoadingScaffold extends StatelessWidget {
@@ -194,10 +289,15 @@ class _LoadingScaffold extends StatelessWidget {
       child: CustomScrollView(
         physics: const NeverScrollableScrollPhysics(),
         slivers: [
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(18, 4, 18, 14),
-              child: Row(
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                4,
+                pageInsetOf(context),
+                14,
+              ),
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ShimmerBox(height: 22, width: 100, radius: 6),
@@ -207,7 +307,12 @@ class _LoadingScaffold extends StatelessWidget {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              8,
+              pageInsetOf(context),
+              24,
+            ),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

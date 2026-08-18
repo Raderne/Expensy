@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../../core/widgets/shimmer_box.dart';
 import '../../application/goal_estimate_controller.dart';
 import '../../data/goals_repository.dart';
@@ -21,11 +22,8 @@ class GoalEstimateSheet extends ConsumerStatefulWidget {
 
   /// Opens the estimate as a draggable, expandable modal sheet.
   static Future<void> show(BuildContext context, Goal goal) {
-    return showModalBottomSheet<void>(
+    return showAppBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: AppColors.scrim,
       // DraggableScrollableSheet owns the drag gesture (expand + dismiss), so
       // the modal's own drag-to-dismiss must be off to avoid the two fighting.
       enableDrag: false,
@@ -71,7 +69,9 @@ class _GoalEstimateSheetState extends ConsumerState<GoalEstimateSheet> {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.scrim,
@@ -106,7 +106,9 @@ class _GoalEstimateSheetState extends ConsumerState<GoalEstimateSheet> {
                       goalName: goal.name,
                       busy: estimateAsync.isLoading,
                       onRefresh: () => ref
-                          .read(goalEstimateControllerProvider(goal.id).notifier)
+                          .read(
+                            goalEstimateControllerProvider(goal.id).notifier,
+                          )
                           .refresh(),
                     ),
                     const SizedBox(height: 18),
@@ -209,9 +211,7 @@ class _EstimateContent extends StatelessWidget {
       children: [
         // Hero estimate.
         Text(
-          reachable
-              ? _humanMonths(estimate.estimatedMonths!)
-              : 'Beyond reach',
+          reachable ? _humanMonths(estimate.estimatedMonths!) : 'Beyond reach',
           style: AppTextStyles.titleL.copyWith(
             fontSize: 30,
             letterSpacing: -0.5,
@@ -225,10 +225,7 @@ class _EstimateContent extends StatelessWidget {
             style: AppTextStyles.muted,
           )
         else
-          Text(
-            'at your current saving pace',
-            style: AppTextStyles.muted,
-          ),
+          Text('at your current saving pace', style: AppTextStyles.muted),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -247,7 +244,10 @@ class _EstimateContent extends StatelessWidget {
         ),
         if (estimate.summary.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text(estimate.summary, style: AppTextStyles.body.copyWith(height: 1.4)),
+          Text(
+            estimate.summary,
+            style: AppTextStyles.body.copyWith(height: 1.4),
+          ),
         ],
         if (estimate.tips.isNotEmpty) ...[
           const SizedBox(height: 18),
@@ -408,27 +408,31 @@ class _ErrorState extends StatelessWidget {
         ? (error as GoalsApiException).code
         : null;
 
-    final (IconData icon, String title, String body, bool canRetry) =
-        switch (code) {
-          'INSUFFICIENT_DATA' => (
-            Icons.receipt_long_rounded,
-            'Not enough history yet',
-            'Add a few transactions so we can learn your spending and estimate this goal.',
-            false,
-          ),
-          'AI_UNAVAILABLE' => (
-            Icons.cloud_off_rounded,
-            'Estimates unavailable',
-            'AI estimates are temporarily unavailable. Please try again later.',
-            true,
-          ),
-          _ => (
-            Icons.error_outline_rounded,
-            'Couldn’t estimate',
-            'Something went wrong generating this estimate.',
-            true,
-          ),
-        };
+    final (
+      IconData icon,
+      String title,
+      String body,
+      bool canRetry,
+    ) = switch (code) {
+      'INSUFFICIENT_DATA' => (
+        Icons.receipt_long_rounded,
+        'Not enough history yet',
+        'Add a few transactions so we can learn your spending and estimate this goal.',
+        false,
+      ),
+      'AI_UNAVAILABLE' => (
+        Icons.cloud_off_rounded,
+        'Estimates unavailable',
+        'AI estimates are temporarily unavailable. Please try again later.',
+        true,
+      ),
+      _ => (
+        Icons.error_outline_rounded,
+        'Couldn’t estimate',
+        'Something went wrong generating this estimate.',
+        true,
+      ),
+    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),

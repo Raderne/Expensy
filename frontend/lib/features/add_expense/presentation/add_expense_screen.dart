@@ -4,13 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/data/categories_repository.dart';
+import '../../../core/layout/breakpoints.dart';
+import '../../../core/layout/expanded_add_pane.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/system_overlays.dart';
 import '../../../core/widgets/header_back_button.dart';
 import '../../dashboard/domain/recent_transaction.dart';
-import '../domain/amount_input.dart';
 import '../application/add_expense_controller.dart';
+import '../domain/amount_input.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/category_grid.dart';
 import 'widgets/numpad.dart';
@@ -18,7 +20,14 @@ import 'widgets/split_sheet.dart';
 import 'widgets/success_popup.dart';
 
 class AddExpenseScreen extends ConsumerStatefulWidget {
-  const AddExpenseScreen({super.key});
+  /// When true, renders as a shell companion pane (no route pop on close).
+  final bool embedded;
+
+  /// Called when the user dismisses the embedded pane. Ignored when not
+  /// [embedded].
+  final VoidCallback? onClose;
+
+  const AddExpenseScreen({super.key, this.embedded = false, this.onClose});
 
   @override
   ConsumerState<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -27,6 +36,7 @@ class AddExpenseScreen extends ConsumerStatefulWidget {
 class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   // Guards against opening the success popup more than once per save.
   bool _popupOpen = false;
+  bool _redirectScheduled = false;
 
   Future<void> _onSaved(RecentTransaction tx) async {
     if (_popupOpen) return;
@@ -39,11 +49,38 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     if (!mounted) return;
 
     // Clear the form either way; if the user didn't pick "Add Another",
-    // close the modal back to wherever it was launched from.
+    // close the modal / embedded pane back to wherever it was launched from.
     ref.read(addExpenseControllerProvider.notifier).reset();
-    if (action != SuccessAction.addAnother && context.canPop()) {
-      context.pop();
+    if (action != SuccessAction.addAnother) {
+      _dismiss();
     }
+  }
+
+  void _dismiss() {
+    if (widget.embedded) {
+      widget.onClose?.call();
+      return;
+    }
+    if (context.canPop()) context.pop();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Fold/unfold or widget deep-link on an expanded window: don't cover the
+    // two-pane shell with the fullscreen modal — hand off to the companion pane.
+    if (widget.embedded || _redirectScheduled) return;
+    if (!useTwoPane(context)) return;
+    _redirectScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(expandedAddPaneProvider.notifier).open();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/');
+      }
+    });
   }
 
   @override
@@ -60,95 +97,113 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
     final amount = AmountInput.parse(state.amount);
 
+    final body = SafeArea(
+      // Embedded pane already sits inside the shell SafeArea; keep bottom
+      // clear of the translucent nav via MediaQuery padding from Scaffold.
+      top: !widget.embedded,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                _Header(
+                  onBack: _dismiss,
+                  splitEnabled: amount > 0,
+                  hasSplits: state.splits.isNotEmpty,
+                  onSplit: () => showSplitSheet(
+                    context,
+                    amount: amount,
+                    initial: state.splits,
+                    onChanged: controller.setSplits,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                AmountDisplay(value: state.amount),
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+          const SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 18),
+            sliver: SliverToBoxAdapter(child: _SectionLabel(text: 'CATEGORY')),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              0,
+              pageInsetOf(context),
+              10,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: categoriesAsync.when(
+                loading: () => const _CategorySkeleton(),
+                error: (e, _) => _CategoryError(
+                  onRetry: () => ref.invalidate(categoriesProvider),
+                ),
+                data: (cats) => CategoryGrid(
+                  categories: cats
+                      .where(
+                        (c) => c.key != 'income' && c.key != 'subscriptions',
+                      )
+                      .toList(),
+                  selectedId: state.categoryId,
+                  onSelect: controller.selectCategory,
+                ),
+              ),
+            ),
+          ),
+          const SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 18),
+            sliver: SliverToBoxAdapter(child: _SectionLabel(text: 'NOTE')),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              0,
+              pageInsetOf(context),
+              10,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _NoteField(onChanged: controller.setNote),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            sliver: SliverToBoxAdapter(
+              child: Numpad(
+                onDigit: controller.pressDigit,
+                onDot: controller.pressDot,
+                onBackspace: controller.pressBackspace,
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              10,
+              18,
+              16 + (widget.embedded ? MediaQuery.paddingOf(context).bottom : 0),
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _SaveButton(
+                enabled: state.canSave,
+                saving: state.saving,
+                error: state.error,
+                onTap: controller.save,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (widget.embedded) {
+      return ColoredBox(color: AppColors.background, child: body);
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemOverlays.background(context),
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    _Header(
-                      onBack: () => context.pop(),
-                      splitEnabled: amount > 0,
-                      hasSplits: state.splits.isNotEmpty,
-                      onSplit: () => showSplitSheet(
-                        context,
-                        amount: amount,
-                        initial: state.splits,
-                        onChanged: controller.setSplits,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    AmountDisplay(value: state.amount),
-                    const SizedBox(height: 6),
-                  ],
-                ),
-              ),
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
-                sliver: SliverToBoxAdapter(
-                  child: _SectionLabel(text: 'CATEGORY'),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                sliver: SliverToBoxAdapter(
-                  child: categoriesAsync.when(
-                    loading: () => const _CategorySkeleton(),
-                    error: (e, _) => _CategoryError(
-                      onRetry: () => ref.invalidate(categoriesProvider),
-                    ),
-                    data: (cats) => CategoryGrid(
-                      categories: cats
-                          .where(
-                            (c) =>
-                                c.key != 'income' && c.key != 'subscriptions',
-                          )
-                          .toList(),
-                      selectedId: state.categoryId,
-                      onSelect: controller.selectCategory,
-                    ),
-                  ),
-                ),
-              ),
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
-                sliver: SliverToBoxAdapter(child: _SectionLabel(text: 'NOTE')),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-                sliver: SliverToBoxAdapter(
-                  child: _NoteField(onChanged: controller.setNote),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                sliver: SliverToBoxAdapter(
-                  child: Numpad(
-                    onDigit: controller.pressDigit,
-                    onDot: controller.pressDot,
-                    onBackspace: controller.pressBackspace,
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
-                sliver: SliverToBoxAdapter(
-                  child: _SaveButton(
-                    enabled: state.canSave,
-                    saving: state.saving,
-                    error: state.error,
-                    onTap: controller.save,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: Scaffold(backgroundColor: AppColors.background, body: body),
     );
   }
 }
@@ -171,7 +226,12 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
+      padding: EdgeInsets.fromLTRB(
+        pageInsetOf(context),
+        2,
+        pageInsetOf(context),
+        10,
+      ),
       child: Row(
         children: [
           HeaderBackButton.onSurface(onTap: onBack),

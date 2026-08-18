@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../shared/domain/expense_split_draft.dart';
 import '../../../shared/presentation/widgets/split_editor.dart';
 
@@ -14,11 +15,8 @@ Future<void> showSplitSheet(
   required List<ExpenseSplitDraft> initial,
   required ValueChanged<List<ExpenseSplitDraft>> onChanged,
 }) {
-  return showModalBottomSheet<void>(
+  return showAppBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.scrim,
     builder: (_) =>
         _SplitSheet(amount: amount, initial: initial, onChanged: onChanged),
   );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/collapsing_hero.dart';
@@ -36,62 +37,74 @@ class OwedOverviewScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverCollapsingHero(
-            minHeight: topInset + 56,
-            maxHeight: topInset + 150,
-            expanded: Padding(
-              padding: EdgeInsets.fromLTRB(18, topInset + 8, 18, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _header(context, 'Who owes me'),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Total owed to you',
-                    style: AppTextStyles.body.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 12,
+              minHeight: topInset + 56,
+              maxHeight: topInset + 150,
+              expanded: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  pageInsetOf(context),
+                  topInset + 8,
+                  pageInsetOf(context),
+                  20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _header(context, 'Who owes me'),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Total owed to you',
+                      style: AppTextStyles.body.copyWith(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    money.format(total),
-                    style: AppTextStyles.heroAmount,
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(money.format(total), style: AppTextStyles.heroAmount),
+                  ],
+                ),
               ),
-            ),
-            collapsed: Padding(
-              padding: EdgeInsets.only(top: topInset, left: 18, right: 18),
-              child: SizedBox(height: 56, child: _header(context, 'Who owes me')),
-            ),
-          ),
-          async.when(
-            loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-            ),
-            error: (_, _) => SliverFillRemaining(
-              child: Center(
-                child: TextButton(
-                  onPressed: () => ref.invalidate(owedControllerProvider),
-                  child: const Text('Retry'),
+              collapsed: Padding(
+                padding: EdgeInsets.only(top: topInset, left: 18, right: 18),
+                child: SizedBox(
+                  height: 56,
+                  child: _header(context, 'Who owes me'),
                 ),
               ),
             ),
-            data: (overview) => SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
-              sliver: overview.contacts.isEmpty
-                  ? const SliverToBoxAdapter(child: _EmptyState())
-                  : SliverList.list(
-                      children: [
-                        for (final c in overview.contacts)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _ContactGroup(contact: c),
-                          ),
-                      ],
-                    ),
+            async.when(
+              loading: () => const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+              error: (_, _) => SliverFillRemaining(
+                child: Center(
+                  child: TextButton(
+                    onPressed: () => ref.invalidate(owedControllerProvider),
+                    child: const Text('Retry'),
+                  ),
+                ),
+              ),
+              data: (overview) => SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  pageInsetOf(context),
+                  16,
+                  pageInsetOf(context),
+                  28,
+                ),
+                sliver: overview.contacts.isEmpty
+                    ? const SliverToBoxAdapter(child: _EmptyState())
+                    : SliverList.list(
+                        children: [
+                          for (final c in overview.contacts)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _ContactGroup(contact: c),
+                            ),
+                        ],
+                      ),
+              ),
             ),
-          ),
           ],
         ),
       ),
@@ -127,7 +140,11 @@ class _ContactGroup extends ConsumerWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
-          BoxShadow(color: Color(0x10000C22), blurRadius: 14, offset: Offset(0, 3)),
+          BoxShadow(
+            color: Color(0x10000C22),
+            blurRadius: 14,
+            offset: Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -138,14 +155,18 @@ class _ContactGroup extends ConsumerWidget {
               children: [
                 ContactAvatar(contact: avatarContact),
                 const SizedBox(width: 12),
-                Expanded(child: Text(contact.contactName, style: AppTextStyles.titleS)),
+                Expanded(
+                  child: Text(contact.contactName, style: AppTextStyles.titleS),
+                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('owes you', style: AppTextStyles.mutedSmall),
                     Text(
                       money.format(contact.outstanding),
-                      style: AppTextStyles.titleS.copyWith(color: AppColors.accent),
+                      style: AppTextStyles.titleS.copyWith(
+                        color: AppColors.accent,
+                      ),
                     ),
                   ],
                 ),
@@ -169,20 +190,31 @@ class _SplitRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final money = NumberFormat.simpleCurrency(decimalDigits: 2);
-    final progress = split.owedAmount > 0 ? split.settledAmount / split.owedAmount : 0.0;
+    final progress = split.owedAmount > 0
+        ? split.settledAmount / split.owedAmount
+        : 0.0;
     final color = _parseHex(split.categoryColor);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
       child: Row(
         children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(split.label, style: AppTextStyles.bodyStrong, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  split.label,
+                  style: AppTextStyles.bodyStrong,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   split.settledAmount > 0
@@ -198,7 +230,9 @@ class _SplitRow extends ConsumerWidget {
                       value: progress.clamp(0, 1),
                       minHeight: 4,
                       backgroundColor: AppColors.background,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.success),
+                      valueColor: const AlwaysStoppedAnimation(
+                        AppColors.success,
+                      ),
                     ),
                   ),
                 ],
@@ -222,7 +256,10 @@ class _SplitRow extends ConsumerWidget {
     );
     if (ok == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Repayment recorded'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Repayment recorded'),
+          backgroundColor: AppColors.success,
+        ),
       );
     }
   }
@@ -256,7 +293,10 @@ class _SettleButton extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               'Settle $label',
-              style: AppTextStyles.labelStrong.copyWith(color: Colors.white, fontSize: 12),
+              style: AppTextStyles.labelStrong.copyWith(
+                color: Colors.white,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -281,8 +321,15 @@ class _EmptyState extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
-            decoration: BoxDecoration(color: AppColors.successLight, borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.success, size: 26),
+            decoration: BoxDecoration(
+              color: AppColors.successLight,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppColors.success,
+              size: 26,
+            ),
           ),
           const SizedBox(height: 12),
           Text('All settled up', style: AppTextStyles.bodyStrong),

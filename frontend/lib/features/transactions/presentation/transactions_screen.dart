@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
@@ -70,10 +71,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 },
                 layoutBuilder: (currentChild, previousChildren) => Stack(
                   alignment: Alignment.topCenter,
-                  children: [
-                    ...previousChildren,
-                    ?currentChild,
-                  ],
+                  children: [...previousChildren, ?currentChild],
                 ),
                 child: KeyedSubtree(
                   key: ValueKey(
@@ -174,16 +172,28 @@ class _TransactionsHero extends StatelessWidget {
     return DecoratedBox(
       decoration: HeroGradient.decoration,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(18, topInset + 10, 18, 18),
+        padding: EdgeInsets.fromLTRB(
+          pageInsetOf(context),
+          topInset + 10,
+          pageInsetOf(context),
+          18,
+        ),
         child: Column(
           children: [
             Row(
               children: [
-                Text(
-                  'Transactions',
-                  style: AppTextStyles.titleL.copyWith(color: Colors.white),
+                // Expanded rather than Spacer: in a narrow pane or at a large
+                // system font the title must give way to the filter button, not
+                // push it off the edge.
+                Expanded(
+                  child: Text(
+                    'Transactions',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.titleL.copyWith(color: Colors.white),
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 _FilterButton(active: filtersActive, onTap: onOpenFilters),
               ],
             ),
@@ -346,7 +356,12 @@ class _MonthBodyState extends State<_MonthBody> {
             )
           else ...[
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                16,
+                pageInsetOf(context),
+                4,
+              ),
               sliver: SliverToBoxAdapter(
                 child: SummaryRow(
                   income: state.income,
@@ -367,7 +382,12 @@ class _MonthBodyState extends State<_MonthBody> {
             else ...[
               for (final group in groups)
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    pageInsetOf(context),
+                    12,
+                    pageInsetOf(context),
+                    0,
+                  ),
                   sliver: SliverToBoxAdapter(
                     child: _DayGroup(group: group, onDelete: widget.onDelete),
                   ),
@@ -390,14 +410,19 @@ class _BodySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Shimmer(
+    return Shimmer(
       child: SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(18, 16, 18, 14),
-              child: Row(
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                16,
+                pageInsetOf(context),
+                14,
+              ),
+              child: const Row(
                 children: [
                   Expanded(child: ShimmerBox(height: 80, radius: 16)),
                   SizedBox(width: 8),
@@ -408,12 +433,22 @@ class _BodySkeleton extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(18, 0, 18, 0),
-              child: _SkeletonDayGroup(rows: 3),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                0,
+                pageInsetOf(context),
+                0,
+              ),
+              child: const _SkeletonDayGroup(rows: 3),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
-              child: _SkeletonDayGroup(rows: 2),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                12,
+                pageInsetOf(context),
+                0,
+              ),
+              child: const _SkeletonDayGroup(rows: 2),
             ),
           ],
         ),
@@ -472,10 +507,15 @@ class _Loading extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(child: SizedBox(height: topInset + 8)),
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(18, 4, 18, 14),
-              child: Row(
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                4,
+                pageInsetOf(context),
+                14,
+              ),
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ShimmerBox(height: 22, width: 148, radius: 6),
@@ -484,15 +524,25 @@ class _Loading extends StatelessWidget {
               ),
             ),
           ),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
-            sliver: SliverToBoxAdapter(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              0,
+              pageInsetOf(context),
+              14,
+            ),
+            sliver: const SliverToBoxAdapter(
               child: ShimmerBox(height: 44, radius: 14),
             ),
           ),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(18, 0, 18, 14),
-            sliver: SliverToBoxAdapter(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              0,
+              pageInsetOf(context),
+              14,
+            ),
+            sliver: const SliverToBoxAdapter(
               child: Row(
                 children: [
                   Expanded(child: ShimmerBox(height: 80, radius: 16)),
@@ -504,13 +554,23 @@ class _Loading extends StatelessWidget {
               ),
             ),
           ),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
-            sliver: SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 3)),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              12,
+              pageInsetOf(context),
+              0,
+            ),
+            sliver: const SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 3)),
           ),
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(18, 12, 18, 0),
-            sliver: SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 2)),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              12,
+              pageInsetOf(context),
+              0,
+            ),
+            sliver: const SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 2)),
           ),
         ],
       ),

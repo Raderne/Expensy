@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/layout/breakpoints.dart';
+import '../../../core/layout/pane_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/update/auto_update.dart';
@@ -148,7 +150,11 @@ class _DashboardContent extends StatelessWidget {
               const PostponedItemsCard(),
               // When the onboarding card is showing the dashboard already has a
               // primary CTA; the section's own empty state would be redundant.
-              if (!isFirstRun)
+              // When rendered as a pane the companion pane is the full
+              // transactions list, so Recent activity would duplicate it.
+              // Asks PaneScope, not the size class: inside a pane the ambient
+              // MediaQuery reports the pane's own (compact) width.
+              if (!isFirstRun && !PaneScope.isInPane(context))
                 RecentTransactionsSection(
                   transactions: state.recentTransactions,
                 ),
@@ -187,7 +193,12 @@ class _HeroExpanded extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(22, topInset + 4, 22, 22),
+      padding: EdgeInsets.fromLTRB(
+        heroInsetOf(context),
+        topInset + 4,
+        heroInsetOf(context),
+        22,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +254,11 @@ class _HeroCollapsed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(top: topInset, left: 22, right: 22),
+      padding: EdgeInsets.only(
+        top: topInset,
+        left: heroInsetOf(context),
+        right: heroInsetOf(context),
+      ),
       child: SizedBox(
         height: 56,
         child: Row(
@@ -306,7 +321,12 @@ class _DashboardScaffold extends StatelessWidget {
     return Column(
       children: [
         HeroGradient(
-          padding: EdgeInsets.fromLTRB(22, topInset + 4, 22, 22),
+          padding: EdgeInsets.fromLTRB(
+            heroInsetOf(context),
+            topInset + 4,
+            heroInsetOf(context),
+            22,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -348,9 +368,14 @@ class _HeroPlaceholder extends StatelessWidget {
 class _SkeletonBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(18, 16, 18, 0),
-      child: Column(
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        pageInsetOf(context),
+        16,
+        pageInsetOf(context),
+        0,
+      ),
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ShimmerBox(height: 80, radius: 16),

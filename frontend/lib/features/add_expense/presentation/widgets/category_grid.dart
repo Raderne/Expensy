@@ -6,16 +6,20 @@ import '../../../../core/data/categories_repository.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 import '../../../profile/presentation/widgets/edit_sheet_shell.dart';
 import 'add_edit_category_sheet.dart';
 
 /// Horizontal 2-row grid of category tiles.
 ///
-/// Tile size is derived from the screen width so exactly 3 tiles are visible
-/// per row (6 total) before the user scrolls. The calculation runs once in
-/// [didChangeDependencies] and is only repeated on screen-size changes
-/// (orientation flip, window resize) — not on every parent rebuild.
-class CategoryGrid extends StatefulWidget {
+/// Tile size is derived from the **parent** width (via [LayoutBuilder]) so
+/// two-pane / Fold layouts don't inflate tiles to the full window width.
+/// Roomier panes (≥360dp content) show 4 tiles per row; otherwise 3.
+class CategoryGrid extends StatelessWidget {
+  /// Content width at which a fourth tile per row still leaves comfortable
+  /// targets. Below this, three.
+  static const double _fourTileWidth = 360;
+
   final List<Category> categories;
   final String? selectedId;
   final ValueChanged<Category> onSelect;
@@ -27,59 +31,57 @@ class CategoryGrid extends StatefulWidget {
     required this.onSelect,
   });
 
-  @override
-  State<CategoryGrid> createState() => _CategoryGridState();
-}
-
-class _CategoryGridState extends State<CategoryGrid> {
-  // 3 tiles per row across (screenWidth − 36 outer padding − 16 inter-tile gaps) / 3
-  // Initial value is a reasonable fallback before the first frame.
-  double _tileSize = 80.0;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    // Parent SliverPadding: 18 left + 18 right = 36 px
-    // 3 tiles per row → 2 gaps of 8 px = 16 px
-    _tileSize = (screenWidth - 36.0 - 16.0) / 3.0;
-  }
+  /// Tiles per row for a given content width. Shared with the "All categories"
+  /// sheet so both grids break at the same place.
+  static int tilesPerRow(double contentWidth) =>
+      contentWidth >= _fourTileWidth ? 4 : 3;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _tileSize * 2 + 8,
-      child: GridView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        // categories + "More" tile
-        itemCount: widget.categories.length + 1,
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          // cross-axis = vertical in a horizontal scroll → tile height
-          maxCrossAxisExtent: _tileSize,
-          // main-axis = horizontal → tile width
-          mainAxisExtent: _tileSize,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-        ),
-        itemBuilder: (ctx, i) {
-          if (i == widget.categories.length) {
-            return _MoreTile(
-              selectedId: widget.selectedId,
-              onSelect: widget.onSelect,
-            );
-          }
-          final c = widget.categories[i];
-          return _Tile(
-            category: c,
-            selected: c.id == widget.selectedId,
-            onTap: () {
-              HapticFeedback.selectionClick();
-              widget.onSelect(c);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Use the pane/parent width, never the full window — critical in
+        // two-pane. Derived inline rather than cached in State: a post-frame
+        // setState would render one frame at the previous tile size.
+        final w = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final tiles = tilesPerRow(w);
+        // N tiles → (N−1) gaps of 8px. Width already excludes outer padding.
+        final tileSize = (w - (tiles - 1) * 8.0) / tiles;
+
+        return SizedBox(
+          height: tileSize * 2 + 8,
+          child: GridView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            // categories + "More" tile
+            itemCount: categories.length + 1,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              // cross-axis = vertical in a horizontal scroll → tile height
+              maxCrossAxisExtent: tileSize,
+              // main-axis = horizontal → tile width
+              mainAxisExtent: tileSize,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemBuilder: (ctx, i) {
+              if (i == categories.length) {
+                return _MoreTile(selectedId: selectedId, onSelect: onSelect);
+              }
+              final c = categories[i];
+              return _Tile(
+                category: c,
+                selected: c.id == selectedId,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onSelect(c);
+                },
+              );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -205,11 +207,8 @@ class _MoreTile extends StatelessWidget {
   }
 
   void _showAll(BuildContext context) {
-    showModalBottomSheet<void>(
+    showAppBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: AppColors.scrim,
       builder: (sheetCtx) => _AllCategoriesSheet(
         selectedId: selectedId,
         onSelect: (c) {
@@ -269,33 +268,40 @@ class _AllCategoriesSheet extends ConsumerWidget {
               const SizedBox(height: 16),
               Text('All categories', style: AppTextStyles.titleM),
               const SizedBox(height: 16),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
-                itemCount: displayCats.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 1.0,
+              // Same break as the inline grid, so the sheet gains a fourth
+              // column on a Fold inner display instead of showing three fat
+              // tiles across a much wider sheet.
+              LayoutBuilder(
+                builder: (context, constraints) => GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: displayCats.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: CategoryGrid.tilesPerRow(
+                      constraints.maxWidth,
+                    ),
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1.0,
+                  ),
+                  itemBuilder: (_, i) {
+                    final c = displayCats[i];
+                    return _Tile(
+                      category: c,
+                      selected: c.id == selectedId,
+                      onTap: () => onSelect(c),
+                      onLongPress: c.isSystem
+                          ? null
+                          : () async {
+                              await showEditSheet<bool>(
+                                context,
+                                (_) => AddEditCategorySheet(existing: c),
+                              );
+                            },
+                    );
+                  },
                 ),
-                itemBuilder: (_, i) {
-                  final c = displayCats[i];
-                  return _Tile(
-                    category: c,
-                    selected: c.id == selectedId,
-                    onTap: () => onSelect(c),
-                    onLongPress: c.isSystem
-                        ? null
-                        : () async {
-                            await showEditSheet<bool>(
-                              context,
-                              (_) => AddEditCategorySheet(existing: c),
-                            );
-                          },
-                  );
-                },
               ),
               const SizedBox(height: 12),
               _AddCategoryButton(onDone: () {}),

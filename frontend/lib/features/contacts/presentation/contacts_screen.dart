@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/collapsing_hero.dart';
@@ -37,7 +38,9 @@ class ContactsScreen extends ConsumerWidget {
           ),
           async.when(
             loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
             ),
             error: (_, _) => SliverFillRemaining(
               child: Center(
@@ -48,7 +51,12 @@ class ContactsScreen extends ConsumerWidget {
               ),
             ),
             data: (contacts) => SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                16,
+                pageInsetOf(context),
+                28,
+              ),
               sliver: SliverList.list(
                 children: [
                   if (contacts.isEmpty)
@@ -86,10 +94,16 @@ class ContactsScreen extends ConsumerWidget {
   );
 
   Future<void> _openAdd(BuildContext context) async {
-    final ok = await showEditSheet<bool>(context, (_) => const EditContactSheet());
+    final ok = await showEditSheet<bool>(
+      context,
+      (_) => const EditContactSheet(),
+    );
     if (ok == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contact added'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Contact added'),
+          backgroundColor: AppColors.success,
+        ),
       );
     }
   }
@@ -101,12 +115,19 @@ class ContactsScreen extends ConsumerWidget {
     );
     if (ok == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contact updated'), backgroundColor: AppColors.primary),
+        const SnackBar(
+          content: Text('Contact updated'),
+          backgroundColor: AppColors.primary,
+        ),
       );
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Contact contact) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Contact contact,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -121,11 +142,21 @@ class ContactsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Cancel', style: AppTextStyles.labelStrong.copyWith(color: AppColors.inkMid)),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.inkMid,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Remove', style: AppTextStyles.labelStrong.copyWith(color: AppColors.danger)),
+            child: Text(
+              'Remove',
+              style: AppTextStyles.labelStrong.copyWith(
+                color: AppColors.danger,
+              ),
+            ),
           ),
         ],
       ),
@@ -142,7 +173,11 @@ class _ContactCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _ContactCard({required this.contact, required this.onEdit, required this.onDelete});
+  const _ContactCard({
+    required this.contact,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +193,9 @@ class _ContactCard extends StatelessWidget {
             children: [
               ContactAvatar(contact: contact),
               const SizedBox(width: 12),
-              Expanded(child: Text(contact.name, style: AppTextStyles.bodyStrong)),
+              Expanded(
+                child: Text(contact.name, style: AppTextStyles.bodyStrong),
+              ),
               if (contact.pending)
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
@@ -166,7 +203,11 @@ class _ContactCard extends StatelessWidget {
                 ),
               IconButton(
                 onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.danger,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -196,7 +237,10 @@ class ContactAvatar extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         contact.initials,
-        style: AppTextStyles.labelStrong.copyWith(color: color, fontSize: size * 0.36),
+        style: AppTextStyles.labelStrong.copyWith(
+          color: color,
+          fontSize: size * 0.36,
+        ),
       ),
     );
   }
@@ -222,7 +266,11 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.group_outlined, color: AppColors.primary, size: 26),
+            child: const Icon(
+              Icons.group_outlined,
+              color: AppColors.primary,
+              size: 26,
+            ),
           ),
           const SizedBox(height: 12),
           Text('No contacts yet', style: AppTextStyles.bodyStrong),
@@ -262,7 +310,12 @@ class _AddButton extends StatelessWidget {
             children: [
               const Icon(Icons.add_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: 6),
-              Text('Add contact', style: AppTextStyles.labelStrong.copyWith(color: AppColors.primary)),
+              Text(
+                'Add contact',
+                style: AppTextStyles.labelStrong.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
             ],
           ),
         ),

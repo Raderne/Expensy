@@ -3,18 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/collapsing_hero.dart';
 import '../../../core/widgets/header_back_button.dart';
-import '../application/income_controller.dart';
-import '../data/income_repository.dart';
-import '../domain/recurring_income.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../profile/presentation/widgets/edit_sheet_shell.dart';
 import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
 import '../../recurring_confirmations/presentation/confirmation_queue.dart';
 import '../../transactions/application/transactions_controller.dart';
+import '../application/income_controller.dart';
+import '../data/income_repository.dart';
+import '../domain/recurring_income.dart';
 import 'widgets/edit_recurring_income_sheet.dart';
 
 class IncomeSourcesScreen extends ConsumerWidget {
@@ -36,7 +37,12 @@ class IncomeSourcesScreen extends ConsumerWidget {
             // unaffected.
             maxHeight: topInset + 132,
             expanded: Padding(
-              padding: EdgeInsets.fromLTRB(18, topInset + 8, 18, 20),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                topInset + 8,
+                pageInsetOf(context),
+                20,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -76,7 +82,12 @@ class IncomeSourcesScreen extends ConsumerWidget {
               ),
             ),
             data: (sources) => SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                16,
+                pageInsetOf(context),
+                28,
+              ),
               sliver: SliverList.list(
                 children: [
                   if (sources.isEmpty)

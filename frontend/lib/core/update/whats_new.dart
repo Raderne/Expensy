@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/settings/data/settings_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/app_bottom_sheet.dart';
 import '../widgets/simple_markdown.dart';
 import 'update_controller.dart';
 
@@ -39,11 +40,8 @@ Future<void> maybeShowWhatsNew(BuildContext context, WidgetRef ref) async {
   await store.setString(pendingUpdateNotesKey, '');
 
   if (!context.mounted) return;
-  await showModalBottomSheet<void>(
+  await showAppBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.scrim,
     builder: (_) => _WhatsNewSheet(version: pendingVersion, notes: notes),
   );
 }

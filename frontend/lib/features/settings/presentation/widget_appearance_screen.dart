@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/header_back_button.dart';
@@ -27,7 +28,12 @@ class WidgetAppearanceScreen extends ConsumerWidget {
         slivers: [
           SliverToBoxAdapter(
             child: HeroGradient(
-              padding: EdgeInsets.fromLTRB(18, topInset + 8, 18, 20),
+              padding: EdgeInsets.fromLTRB(
+                pageInsetOf(context),
+                topInset + 8,
+                pageInsetOf(context),
+                20,
+              ),
               child: Column(
                 children: [
                   Row(
@@ -58,7 +64,12 @@ class WidgetAppearanceScreen extends ConsumerWidget {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
+            padding: EdgeInsets.fromLTRB(
+              pageInsetOf(context),
+              16,
+              pageInsetOf(context),
+              28,
+            ),
             sliver: SliverList.list(
               children: [
                 for (final type in WidgetType.values)

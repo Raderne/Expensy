@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 
 /// Reusable bottom sheet that lists [months] (YYYY-MM, newest first) and
 /// returns the selected one. Returns null on dismiss.
@@ -15,11 +16,8 @@ Future<String?> showMonthPickerSheet(
   // If we have no months yet, surface the currently-selected one so the user
   // can still see the active state.
   final list = months.isEmpty ? [selected] : months;
-  return showModalBottomSheet<String>(
+  return showAppBottomSheet<String>(
     context: context,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.scrim,
-    isScrollControlled: true,
     builder: (_) => _MonthPickerSheet(months: list, selected: selected),
   );
 }

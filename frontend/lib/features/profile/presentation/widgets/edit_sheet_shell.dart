@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_bottom_sheet.dart';
 
 /// Shared chrome for every Profile edit bottom sheet — drag handle, title,
 /// caption, body, and a primary action button that owns its busy + error UI.
@@ -166,11 +167,5 @@ class _ActionButton extends StatelessWidget {
 
 /// Common helper to open any of the edit sheets with the same look + behavior.
 Future<T?> showEditSheet<T>(BuildContext context, WidgetBuilder builder) {
-  return showModalBottomSheet<T>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: AppColors.scrim,
-    builder: builder,
-  );
+  return showAppBottomSheet<T>(context: context, builder: builder);
 }
