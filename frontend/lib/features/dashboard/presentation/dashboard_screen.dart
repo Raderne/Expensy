@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/layout/breakpoints.dart';
-import '../../../core/layout/pane_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/update/auto_update.dart';
@@ -16,18 +14,52 @@ import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_state.dart';
-import '../../goals/presentation/widgets/goals_summary_card.dart';
 import '../../recurring_confirmations/application/pending_occurrences_controller.dart';
 import '../../recurring_confirmations/presentation/confirmation_queue.dart';
-import '../../recurring_confirmations/presentation/postponed_items_card.dart';
-import '../../recurring_expenses/presentation/widgets/upcoming_bills_card.dart';
 import '../application/dashboard_controller.dart';
-import '../domain/dashboard_summary.dart';
-import 'widgets/balance_card.dart';
-import 'widgets/budget_card.dart';
-import 'widgets/onboarding_card.dart';
-import 'widgets/recent_transactions_section.dart';
+import 'widgets/dashboard_cards.dart';
+import 'widgets/dashboard_header_bar.dart';
 
+/// Runs the dashboard's once-per-launch side effects (What's New, the weekly
+/// update check, due recurring confirmations). Kept out of the layout so the
+/// compact screen and the expanded pane can each mount it without duplicating
+/// the wiring — only one of the two is ever in the tree at a time.
+void _mountDashboardEffects(BuildContext context, WidgetRef ref) {
+  // Show the release notes once after an in-app update lands. Runs before the
+  // confirmation queue so the two modals don't collide; its own one-shot guard
+  // prevents repeats.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) maybeShowWhatsNew(context, ref);
+  });
+
+  // Weekly auto-check: fires on cold start if enough days have passed.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) maybeAutoCheckOnLaunch(ref);
+  });
+
+  // When the auto-check (or any check) finds an update while the dashboard is
+  // visible, show the update sheet immediately.
+  ref.listen(updateControllerProvider, (_, next) {
+    if (next is! UpdateAvailable) return;
+    if (ref.read(updateSheetVisibleProvider)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) showUpdateSheet(context, ref, next.info);
+    });
+  });
+
+  // Auto-prompt the user to confirm/postpone any due recurring items once the
+  // dashboard is up. The queue runner guards against double-presentation.
+  ref.watch(pendingOccurrencesControllerProvider);
+  ref.listen(pendingOccurrencesControllerProvider, (_, next) {
+    final due = next.maybeWhen(data: (value) => value, orElse: () => const []);
+    if (due.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) runConfirmationQueue(context);
+    });
+  });
+}
+
+/// Compact (phone / folded) dashboard: collapsing hero above the card stack.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -40,42 +72,7 @@ class DashboardScreen extends ConsumerWidget {
     };
     final dashState = ref.watch(dashboardViewProvider);
 
-    // Show the "What's new" notes once after an in-app update lands. Runs before
-    // the confirmation queue so the two modals don't collide; its own one-shot
-    // guard prevents repeats.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (context.mounted) maybeShowWhatsNew(context, ref);
-    });
-
-    // Weekly auto-check: fires on cold start if ≥7 days since the last check.
-    // Runs after What's New to avoid two sheets at once.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (context.mounted) maybeAutoCheckOnLaunch(ref);
-    });
-
-    // When the auto-check (or any check) finds an update while the dashboard is
-    // visible, show the update sheet immediately.
-    ref.listen(updateControllerProvider, (_, next) {
-      if (next is! UpdateAvailable) return;
-      if (ref.read(updateSheetVisibleProvider)) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) showUpdateSheet(context, ref, next.info);
-      });
-    });
-
-    // Auto-prompt the user to confirm/postpone any due recurring items once the
-    // dashboard is up. The queue runner guards against double-presentation.
-    ref.watch(pendingOccurrencesControllerProvider);
-    ref.listen(pendingOccurrencesControllerProvider, (_, next) {
-      final due = next.maybeWhen(
-        data: (value) => value,
-        orElse: () => const [],
-      );
-      if (due.isEmpty) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) runConfirmationQueue(context);
-      });
-    });
+    _mountDashboardEffects(context, ref);
 
     return dashState.when(
       loading: () => Shimmer(
@@ -99,7 +96,34 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ─── Loaded content ─────────────────────────────────────────────────────────
+/// Expanded shell's left pane: the card stack alone. The greeting and balance
+/// live in the destination header above both panes, and the full activity feed
+/// is the companion pane, so neither is repeated here.
+class DashboardCardsPane extends ConsumerWidget {
+  const DashboardCardsPane({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    _mountDashboardEffects(context, ref);
+    final dashState = ref.watch(dashboardViewProvider);
+
+    return dashState.when(
+      loading: () => Shimmer(child: _SkeletonBody()),
+      error: (e, _) => _ErrorBody(
+        onRetry: () => ref.read(dashboardControllerProvider.notifier).refresh(),
+      ),
+      data: (state) => RefreshIndicator(
+        onRefresh: withRefreshHaptic(
+          () => ref.read(dashboardControllerProvider.notifier).refresh(),
+        ),
+        color: AppColors.primary,
+        child: DashboardCards(state: state, showRecent: false),
+      ),
+    );
+  }
+}
+
+// ─── Loaded content (compact) ────────────────────────────────────────────────
 
 class _DashboardContent extends StatelessWidget {
   final String name;
@@ -110,7 +134,7 @@ class _DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
-    final isFirstRun = _isFirstRun(state);
+    final cards = DashboardCards(state: state);
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -123,7 +147,7 @@ class _DashboardContent extends StatelessWidget {
           // it enough room to clear the inset. minHeight is unchanged, so the
           // collapsed bar doesn't gain any extra space.
           maxHeight: topInset + 290,
-          expanded: _HeroExpanded(
+          expanded: DashboardHeroContent(
             name: name,
             topInset: topInset,
             summary: state.summary,
@@ -132,117 +156,21 @@ class _DashboardContent extends StatelessWidget {
         ),
         SliverPadding(
           padding: EdgeInsets.fromLTRB(
-            18,
+            pageInsetOf(context),
             16,
-            18,
+            pageInsetOf(context),
             24 + MediaQuery.paddingOf(context).bottom,
           ),
           sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              if (isFirstRun) ...[
-                const OnboardingCard(),
-                const SizedBox(height: 14),
-              ],
-              BudgetCard(budget: state.summary.budget),
-              const SizedBox(height: 14),
-              const GoalsSummaryCard(),
-              const UpcomingBillsCard(),
-              const PostponedItemsCard(),
-              // When the onboarding card is showing the dashboard already has a
-              // primary CTA; the section's own empty state would be redundant.
-              // When rendered as a pane the companion pane is the full
-              // transactions list, so Recent activity would duplicate it.
-              // Asks PaneScope, not the size class: inside a pane the ambient
-              // MediaQuery reports the pane's own (compact) width.
-              if (!isFirstRun && !PaneScope.isInPane(context))
-                RecentTransactionsSection(
-                  transactions: state.recentTransactions,
-                ),
-            ]),
+            delegate: SliverChildListDelegate(cards.children(context)),
           ),
         ),
       ],
     );
   }
-
-  /// True only for users with no recorded activity ever. Once any transaction
-  /// is materialized (recurring income, side income, an added expense) the
-  /// onboarding banner steps aside for the real dashboard.
-  static bool _isFirstRun(DashboardState state) {
-    final s = state.summary;
-    return state.recentTransactions.isEmpty &&
-        s.balance == 0 &&
-        s.income == 0 &&
-        s.expenses == 0;
-  }
 }
 
 // ─── Hero section ────────────────────────────────────────────────────────────
-
-class _HeroExpanded extends StatelessWidget {
-  final String name;
-  final double topInset;
-  final DashboardSummary summary;
-
-  const _HeroExpanded({
-    required this.name,
-    required this.topInset,
-    required this.summary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        heroInsetOf(context),
-        topInset + 4,
-        heroInsetOf(context),
-        22,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _greeting(),
-                    style: AppTextStyles.body.copyWith(
-                      color: Colors.white.withValues(alpha: 0.58),
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    name,
-                    style: AppTextStyles.titleM.copyWith(
-                      color: Colors.white,
-                      letterSpacing: -0.4,
-                    ),
-                  ),
-                ],
-              ),
-              _AvatarPill(),
-            ],
-          ),
-          const SizedBox(height: 14),
-          BalanceCard(summary: summary),
-        ],
-      ),
-    );
-  }
-
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h >= 5 && h < 12) return 'Good morning,';
-    if (h >= 12 && h < 18) return 'Good afternoon,';
-    return 'Good evening,';
-  }
-}
 
 /// Compact bar shown once the hero is scrolled away: full name + profile button.
 class _HeroCollapsed extends StatelessWidget {
@@ -275,31 +203,8 @@ class _HeroCollapsed extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            _AvatarPill(),
+            const DashboardAvatarPill(),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AvatarPill extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Open profile',
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(13),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(13),
-          onTap: () => context.go('/profile'),
-          child: const SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
-          ),
         ),
       ),
     );
@@ -337,7 +242,7 @@ class _DashboardScaffold extends StatelessWidget {
                     name.isNotEmpty ? name : '  ',
                     style: AppTextStyles.titleM.copyWith(color: Colors.white),
                   ),
-                  _AvatarPill(),
+                  const DashboardAvatarPill(),
                 ],
               ),
               const SizedBox(height: 14),

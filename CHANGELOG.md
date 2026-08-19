@@ -28,6 +28,23 @@ remain on the [GitHub releases page](https://github.com/Raderne/Expensy/releases
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-08-19
+
+A proper large-screen layout for each tab, instead of two phone screens side by side.
+
+### Changed
+
+- The unfolded layout is no longer two phone screens side by side. Each tab now has one header across the top and two panels below it that are built for the space.
+- Home shows your balance and greeting once across the top, your budget, goals and bills on the left, and a clean activity feed on the right.
+- Stats states the month once. The donut is bigger, and the Spending Breakdown underneath is now what you tap to filter the transactions beside it.
+- The Transactions title, month and filters sit in one header, so the month is never shown twice on the same screen.
+- Add Expense as a side panel keeps the numpad and Save fixed at the bottom, so Save is always in reach and no longer floats in empty space.
+- The Me screen fills the right-hand side with an at-a-glance summary of your balance, budget, goals and recurring items instead of a "Choose a setting" placeholder.
+
+### Fixed
+
+- The Monthly Budget card no longer overflows in a narrow panel or at a large system font size.
+
 ## [1.7.0] - 2026-08-18
 
 Large-screen and foldable support, built around the Galaxy Z Fold 7's inner display.

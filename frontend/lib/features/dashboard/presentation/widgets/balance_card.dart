@@ -9,7 +9,12 @@ import '../../domain/dashboard_summary.dart';
 class BalanceCard extends StatelessWidget {
   final DashboardSummary summary;
 
-  const BalanceCard({super.key, required this.summary});
+  /// Lay the card out horizontally — balance on the left, the income/expenses
+  /// boxes beside it — instead of stacking them. Used by the expanded header
+  /// band, where height is the scarce dimension and width is not.
+  final bool wide;
+
+  const BalanceCard({super.key, required this.summary, this.wide = false});
 
   @override
   Widget build(BuildContext context) {
@@ -26,56 +31,116 @@ class BalanceCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'BALANCE',
-                style: AppTextStyles.mutedSmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.58),
-                  letterSpacing: 0.9,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                money.format(summary.net),
-                style: AppTextStyles.heroAmount.copyWith(
-                  fontSize: 38,
-                  letterSpacing: -1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'All-time ${money.format(summary.balance)}',
-                style: AppTextStyles.mutedSmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatBox(
-                      label: 'INCOME',
-                      amount: summary.income,
-                      money: money,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _StatBox(
-                      label: 'EXPENSES',
-                      amount: summary.expenses,
-                      money: money,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          child: wide ? _wide(money) : _stacked(money),
         ),
       ),
+    );
+  }
+
+  Widget _stacked(NumberFormat money) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _Amount(summary: summary, money: money),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+            child: _StatBox(
+              label: 'INCOME',
+              amount: summary.income,
+              money: money,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatBox(
+              label: 'EXPENSES',
+              amount: summary.expenses,
+              money: money,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  Widget _wide(NumberFormat money) => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Expanded(
+        flex: 5,
+        child: _Amount(summary: summary, money: money),
+      ),
+      const SizedBox(width: 18),
+      Expanded(
+        flex: 4,
+        child: Row(
+          children: [
+            Expanded(
+              child: _StatBox(
+                label: 'INCOME',
+                amount: summary.income,
+                money: money,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatBox(
+                label: 'EXPENSES',
+                amount: summary.expenses,
+                money: money,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _Amount extends StatelessWidget {
+  final DashboardSummary summary;
+  final NumberFormat money;
+
+  const _Amount({required this.summary, required this.money});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'BALANCE',
+          style: AppTextStyles.mutedSmall.copyWith(
+            color: Colors.white.withValues(alpha: 0.58),
+            letterSpacing: 0.9,
+          ),
+        ),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            money.format(summary.net),
+            maxLines: 1,
+            style: AppTextStyles.heroAmount.copyWith(
+              fontSize: 38,
+              letterSpacing: -1.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'All-time ${money.format(summary.balance)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.mutedSmall.copyWith(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -111,11 +176,16 @@ class _StatBox extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            money.format(amount),
-            style: AppTextStyles.titleS.copyWith(
-              color: Colors.white,
-              fontSize: 16.5,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              money.format(amount),
+              maxLines: 1,
+              style: AppTextStyles.titleS.copyWith(
+                color: Colors.white,
+                fontSize: 16.5,
+              ),
             ),
           ),
         ],

@@ -29,10 +29,17 @@ class BudgetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                'Monthly Budget',
-                style: AppTextStyles.label.copyWith(color: AppColors.ink),
+              // Flexible so a narrow pane or a large system font shortens the
+              // title rather than pushing the percentage off the card.
+              Flexible(
+                child: Text(
+                  'Monthly Budget',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.label.copyWith(color: AppColors.ink),
+                ),
               ),
+              const SizedBox(width: 8),
               if (budget.isSet)
                 Text(
                   '${budget.pct}% used',

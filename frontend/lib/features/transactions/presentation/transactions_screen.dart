@@ -1,107 +1,96 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/layout/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/haptic_refresh.dart';
-import '../../../core/widgets/hero_gradient.dart';
 import '../../../core/widgets/shimmer_box.dart';
+import '../application/month_nav_direction.dart';
 import '../application/transactions_controller.dart';
 import '../data/transactions_repository.dart';
 import '../domain/date_grouping.dart';
-import 'widgets/filters_sheet.dart';
-import 'widgets/month_nav.dart';
+import 'widgets/day_group_card.dart';
 import 'widgets/summary_row.dart';
-import 'widgets/swipeable_transaction_row.dart';
+import 'widgets/transactions_header_bar.dart';
 
-class TransactionsScreen extends ConsumerStatefulWidget {
+/// Compact (phone / folded) Transactions: the hero header above the month body.
+///
+/// On an expanded window the shell hoists [TransactionsHeaderBar] into the
+/// destination header and renders [TransactionsBody] alone in the left pane, so
+/// the two pieces are deliberately independent of each other.
+class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        TransactionsHeaderBar(),
+        Expanded(child: TransactionsBody()),
+      ],
+    );
+  }
 }
 
-class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  /// Direction of the last month change (+1 newer / -1 older). Drives the slide
-  /// direction of the body transition so it tracks the swipe/tap.
-  int _navDir = 1;
+/// Everything below the header: the month summary and the day-grouped list,
+/// with a slide+fade transition and swipe-to-change-month.
+class TransactionsBody extends ConsumerStatefulWidget {
+  const TransactionsBody({super.key});
 
+  @override
+  ConsumerState<TransactionsBody> createState() => _TransactionsBodyState();
+}
+
+class _TransactionsBodyState extends ConsumerState<TransactionsBody> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(transactionsViewProvider);
     final controller = ref.read(transactionsControllerProvider.notifier);
+    final navDir = ref.watch(monthNavDirectionProvider);
 
     return async.when(
-      loading: () => const _Loading(),
+      loading: () => const _BodySkeleton(),
       error: (e, _) => _ErrorView(onRetry: controller.refresh),
-      // Hero (blue month nav) stays fixed; only the body below it swaps when the
-      // month/filter changes, with a slide+fade transition and swipe support.
-      data: (state) => Column(
-        children: [
-          _TransactionsHero(
-            month: state.month,
-            canGoPrev: !state.isAtOldest,
-            canGoNext: !state.isAtNewest,
-            onPrev: () => _navigate(controller.previousMonth, -1),
-            onNext: () => _navigate(controller.nextMonth, 1),
-            filtersActive: state.filters.isActive,
-            onOpenFilters: () => _openFilters(context, state.filters),
+      data: (state) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragEnd: (d) => _onSwipe(d, state, controller),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            final slide = Tween<Offset>(
+              begin: Offset(0.08 * navDir, 0),
+              end: Offset.zero,
+            ).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: slide, child: child),
+            );
+          },
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.topCenter,
+            children: [...previousChildren, ?currentChild],
           ),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onHorizontalDragEnd: (d) => _onSwipe(d, state, controller),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  final slide = Tween<Offset>(
-                    begin: Offset(0.08 * _navDir, 0),
-                    end: Offset.zero,
-                  ).animate(animation);
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(position: slide, child: child),
-                  );
-                },
-                layoutBuilder: (currentChild, previousChildren) => Stack(
-                  alignment: Alignment.topCenter,
-                  children: [...previousChildren, ?currentChild],
-                ),
-                child: KeyedSubtree(
-                  key: ValueKey(
-                    '${state.month}:${state.contentLoading}:${state.contentError}',
-                  ),
-                  child: state.contentLoading
-                      ? const _BodySkeleton()
-                      : _MonthBody(
-                          state: state,
-                          onRefresh: controller.refresh,
-                          onRetry: controller.reloadCurrentMonth,
-                          onLoadMore: controller.loadMore,
-                          onDelete: _deleteTransaction,
-                          onClearFilters: controller.clearFilters,
-                        ),
-                ),
-              ),
+          child: KeyedSubtree(
+            key: ValueKey(
+              '${state.month}:${state.contentLoading}:${state.contentError}',
             ),
+            child: state.contentLoading
+                ? const _BodySkeleton()
+                : _MonthBody(
+                    state: state,
+                    onRefresh: controller.refresh,
+                    onRetry: controller.reloadCurrentMonth,
+                    onLoadMore: controller.loadMore,
+                    onDelete: _deleteTransaction,
+                    onClearFilters: controller.clearFilters,
+                  ),
           ),
-        ],
+        ),
       ),
     );
-  }
-
-  /// Records the navigation direction (for the slide transition), fires a light
-  /// haptic, then triggers the month change.
-  void _navigate(Future<void> Function() action, int dir) {
-    _navDir = dir;
-    HapticFeedback.selectionClick();
-    action();
   }
 
   void _onSwipe(
@@ -111,23 +100,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   ) {
     final vx = details.primaryVelocity ?? 0;
     if (vx.abs() < 220) return;
+    final dir = ref.read(monthNavDirectionProvider.notifier);
     if (vx > 0) {
       // Swipe right → previous (older) month.
-      if (!state.isAtOldest) _navigate(controller.previousMonth, -1);
+      if (state.isAtOldest) return;
+      dir.older();
+      controller.previousMonth();
     } else {
       // Swipe left → next (newer) month.
-      if (!state.isAtNewest) _navigate(controller.nextMonth, 1);
+      if (state.isAtNewest) return;
+      dir.newer();
+      controller.nextMonth();
     }
-  }
-
-  void _openFilters(BuildContext context, TransactionFilters current) {
-    showTransactionsFiltersSheet(
-      context,
-      initial: current,
-      onApply: (filters) => ref
-          .read(transactionsControllerProvider.notifier)
-          .applyFilters(filters),
-    );
   }
 
   Future<void> _deleteTransaction(String id) async {
@@ -145,148 +129,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 }
 
-// ─── Hero header ─────────────────────────────────────────────────────────────
-
-class _TransactionsHero extends StatelessWidget {
-  final String month;
-  final bool canGoPrev;
-  final bool canGoNext;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-  final bool filtersActive;
-  final VoidCallback onOpenFilters;
-
-  const _TransactionsHero({
-    required this.month,
-    required this.canGoPrev,
-    required this.canGoNext,
-    required this.onPrev,
-    required this.onNext,
-    required this.filtersActive,
-    required this.onOpenFilters,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final topInset = MediaQuery.paddingOf(context).top;
-    return DecoratedBox(
-      decoration: HeroGradient.decoration,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          pageInsetOf(context),
-          topInset + 10,
-          pageInsetOf(context),
-          18,
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                // Expanded rather than Spacer: in a narrow pane or at a large
-                // system font the title must give way to the filter button, not
-                // push it off the edge.
-                Expanded(
-                  child: Text(
-                    'Transactions',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.titleL.copyWith(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _FilterButton(active: filtersActive, onTap: onOpenFilters),
-              ],
-            ),
-            const SizedBox(height: 16),
-            MonthNav(
-              month: month,
-              canGoPrev: canGoPrev,
-              canGoNext: canGoNext,
-              onPrev: onPrev,
-              onNext: onNext,
-              onHero: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterButton extends StatelessWidget {
-  final bool active;
-  final VoidCallback onTap;
-
-  const _FilterButton({required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: active ? 'Filters, active' : 'Filters',
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(11),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(11),
-          onTap: onTap,
-          child: SizedBox(
-            width: 38,
-            height: 38,
-            child: Stack(
-              children: [
-                Center(
-                  child: CustomPaint(
-                    size: const Size(16, 13),
-                    painter: _FilterIconPainter(),
-                  ),
-                ),
-                if (active)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.accent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white;
-    void bar(double x, double y, double w) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, y, w, 1.8),
-          const Radius.circular(0.9),
-        ),
-        paint,
-      );
-    }
-
-    bar(0, 0, 16);
-    bar(3, 5.5, 10);
-    bar(6, 11, 4);
-  }
-
-  @override
-  bool shouldRepaint(covariant _FilterIconPainter oldDelegate) => false;
-}
-
-// ─── Month body (scrollable content below the hero) ──────────────────────────
+// ─── Month body (scrollable content below the header) ────────────────────────
 
 class _MonthBody extends StatefulWidget {
   final TransactionsState state;
@@ -352,7 +195,7 @@ class _MonthBodyState extends State<_MonthBody> {
           if (state.contentError)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: _InlineError(onRetry: widget.onRetry),
+              child: InlineTransactionsError(onRetry: widget.onRetry),
             )
           else ...[
             SliverPadding(
@@ -373,7 +216,7 @@ class _MonthBodyState extends State<_MonthBody> {
             if (groups.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: _EmptyState(
+                child: TransactionsEmptyState(
                   month: state.month,
                   filtersActive: state.filters.isActive,
                   onClearFilters: widget.onClearFilters,
@@ -389,11 +232,13 @@ class _MonthBodyState extends State<_MonthBody> {
                     0,
                   ),
                   sliver: SliverToBoxAdapter(
-                    child: _DayGroup(group: group, onDelete: widget.onDelete),
+                    child: DayGroupCard(
+                      group: group,
+                      onDelete: widget.onDelete,
+                    ),
                   ),
                 ),
-              if (state.hasMore)
-                const SliverToBoxAdapter(child: _PageSpinner()),
+              if (state.hasMore) const SliverToBoxAdapter(child: PageSpinner()),
               SliverToBoxAdapter(child: SizedBox(height: 24 + bottomInset)),
             ],
           ],
@@ -404,7 +249,7 @@ class _MonthBodyState extends State<_MonthBody> {
 }
 
 /// Skeleton for the body while a month/filter reload is in flight. Excludes the
-/// hero — that stays put during the swap.
+/// header — that stays put during the swap.
 class _BodySkeleton extends StatelessWidget {
   const _BodySkeleton();
 
@@ -433,13 +278,8 @@ class _BodySkeleton extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                pageInsetOf(context),
-                0,
-                pageInsetOf(context),
-                0,
-              ),
-              child: const _SkeletonDayGroup(rows: 3),
+              padding: EdgeInsets.symmetric(horizontal: pageInsetOf(context)),
+              child: const SkeletonDayGroup(rows: 3),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(
@@ -448,7 +288,7 @@ class _BodySkeleton extends StatelessWidget {
                 pageInsetOf(context),
                 0,
               ),
-              child: const _SkeletonDayGroup(rows: 2),
+              child: const SkeletonDayGroup(rows: 2),
             ),
           ],
         ),
@@ -457,129 +297,20 @@ class _BodySkeleton extends StatelessWidget {
   }
 }
 
-class _InlineError extends StatelessWidget {
+class InlineTransactionsError extends StatelessWidget {
   final Future<void> Function() onRetry;
-  const _InlineError({required this.onRetry});
+  const InlineTransactionsError({super.key, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
-            const SizedBox(height: 12),
-            Text('Could not load this month', style: AppTextStyles.bodyStrong),
-            const SizedBox(height: 4),
-            Text(
-              'Check your connection and try again.',
-              style: AppTextStyles.body,
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: onRetry,
-              child: Text(
-                'Retry',
-                style: AppTextStyles.labelStrong.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return _Retry(title: 'Could not load this month', onRetry: () => onRetry());
   }
 }
 
 // ─── Empty / loading / error states ──────────────────────────────────────────
 
-class _Loading extends StatelessWidget {
-  const _Loading();
-
-  @override
-  Widget build(BuildContext context) {
-    final topInset = MediaQuery.paddingOf(context).top;
-    return Shimmer(
-      child: CustomScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(child: SizedBox(height: topInset + 8)),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                pageInsetOf(context),
-                4,
-                pageInsetOf(context),
-                14,
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ShimmerBox(height: 22, width: 148, radius: 6),
-                  ShimmerBox(height: 36, width: 36, radius: 11),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              pageInsetOf(context),
-              0,
-              pageInsetOf(context),
-              14,
-            ),
-            sliver: const SliverToBoxAdapter(
-              child: ShimmerBox(height: 44, radius: 14),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              pageInsetOf(context),
-              0,
-              pageInsetOf(context),
-              14,
-            ),
-            sliver: const SliverToBoxAdapter(
-              child: Row(
-                children: [
-                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
-                  SizedBox(width: 8),
-                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
-                  SizedBox(width: 8),
-                  Expanded(child: ShimmerBox(height: 80, radius: 16)),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              pageInsetOf(context),
-              12,
-              pageInsetOf(context),
-              0,
-            ),
-            sliver: const SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 3)),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              pageInsetOf(context),
-              12,
-              pageInsetOf(context),
-              0,
-            ),
-            sliver: const SliverToBoxAdapter(child: _SkeletonDayGroup(rows: 2)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SkeletonDayGroup extends StatelessWidget {
-  const _SkeletonDayGroup({required this.rows});
+class SkeletonDayGroup extends StatelessWidget {
+  const SkeletonDayGroup({super.key, required this.rows});
 
   final int rows;
 
@@ -657,8 +388,23 @@ class _SkeletonTransactionRow extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  final VoidCallback onRetry;
+  final Future<void> Function() onRetry;
   const _ErrorView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return _Retry(
+      title: 'Could not load transactions',
+      onRetry: () => onRetry(),
+    );
+  }
+}
+
+class _Retry extends StatelessWidget {
+  final String title;
+  final VoidCallback onRetry;
+
+  const _Retry({required this.title, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -670,10 +416,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.inkLight),
             const SizedBox(height: 12),
-            Text(
-              'Could not load transactions',
-              style: AppTextStyles.bodyStrong,
-            ),
+            Text(title, style: AppTextStyles.bodyStrong),
             const SizedBox(height: 4),
             Text(
               'Check your connection and try again.',
@@ -696,12 +439,13 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class TransactionsEmptyState extends StatelessWidget {
   final String month;
   final bool filtersActive;
   final VoidCallback onClearFilters;
 
-  const _EmptyState({
+  const TransactionsEmptyState({
+    super.key,
     required this.month,
     required this.filtersActive,
     required this.onClearFilters,
@@ -780,8 +524,8 @@ class _EmptyState extends StatelessWidget {
       (m >= 1 && m <= 12) ? _names[m] : 'this month';
 }
 
-class _PageSpinner extends StatelessWidget {
-  const _PageSpinner();
+class PageSpinner extends StatelessWidget {
+  const PageSpinner({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -797,53 +541,6 @@ class _PageSpinner extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─── Day group card ───────────────────────────────────────────────────────────
-
-class _DayGroup extends StatelessWidget {
-  final TransactionGroup group;
-  final Future<void> Function(String id) onDelete;
-
-  const _DayGroup({required this.group, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 8),
-          child: Text(group.label, style: AppTextStyles.groupLabel),
-        ),
-        GlassCard(
-          radius: 16,
-          strong: true,
-          blur: 14,
-          child: Column(
-            children: [
-              for (int i = 0; i < group.transactions.length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    indent: 68,
-                    color: AppColors.glassBorder,
-                  ),
-                SwipeableTransactionRow(
-                  transaction: group.transactions[i],
-                  onDelete: () => onDelete(group.transactions[i].id),
-                  onTap: group.transactions[i].isShared
-                      ? () => context.push('/shared')
-                      : null,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

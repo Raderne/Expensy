@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/layout/breakpoints.dart';
-import '../../../core/layout/pane_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/haptic_refresh.dart';
 import '../../../core/widgets/shimmer_box.dart';
-import '../../transactions/application/transactions_controller.dart';
 import '../application/analytics_controller.dart';
 import '../domain/analytics_breakdown.dart';
 import 'widgets/ai_insights_card.dart';
+import 'widgets/analytics_header_bar.dart';
 import 'widgets/donut_chart.dart';
 import 'widgets/donut_legend.dart';
-import 'widgets/month_picker_sheet.dart';
 import 'widgets/spending_bars.dart';
 
+/// Compact (phone / folded) Analytics: header, donut with its legend, then the
+/// spending breakdown.
+///
+/// On an expanded window the shell uses [AnalyticsHeaderBar] as the destination
+/// header and `AnalyticsPane` as the left pane instead — see `analytics_pane.dart`
+/// for why the legend is dropped there.
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
 
@@ -29,23 +31,23 @@ class AnalyticsScreen extends ConsumerWidget {
 
     return async.when(
       loading: () => const _LoadingScaffold(),
-      error: (e, _) => _ErrorScaffold(onRetry: controller.refresh),
+      error: (e, _) => Column(
+        children: [
+          const AnalyticsHeaderBar(),
+          Expanded(child: AnalyticsErrorBody(onRetry: controller.refresh)),
+        ],
+      ),
       data: (state) => RefreshIndicator(
         color: AppColors.primary,
         onRefresh: withRefreshHaptic(controller.refresh),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(
-              child: _Header(
-                month: state.month,
-                onPickMonth: () => _pickMonth(context, ref, state),
-              ),
-            ),
+            const SliverToBoxAdapter(child: AnalyticsHeaderBar()),
             if (state.data == null || state.data!.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: _EmptyState(month: state.month),
+                child: AnalyticsEmptyBody(month: state.month),
               )
             else
               SliverPadding(
@@ -64,117 +66,18 @@ class AnalyticsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  Future<void> _pickMonth(
-    BuildContext context,
-    WidgetRef ref,
-    AnalyticsState state,
-  ) async {
-    final picked = await showMonthPickerSheet(
-      context,
-      months: state.availableMonths,
-      selected: state.month,
-    );
-    if (picked != null && picked != state.month) {
-      await ref.read(analyticsControllerProvider.notifier).setMonth(picked);
-    }
-  }
-}
-
-// ─── Header (title + month chip) ─────────────────────────────────────────────
-
-class _Header extends StatelessWidget {
-  final String month;
-  final VoidCallback onPickMonth;
-
-  const _Header({required this.month, required this.onPickMonth});
-
-  @override
-  Widget build(BuildContext context) {
-    final label = _monthLabel(month);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        pageInsetOf(context),
-        4,
-        pageInsetOf(context),
-        14,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('Analytics', style: AppTextStyles.titleL),
-          _MonthChip(label: label, onTap: onPickMonth),
-        ],
-      ),
-    );
-  }
-}
-
-class _MonthChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _MonthChip({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      radius: 11,
-      shadow: false,
-      strong: true,
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.labelStrong.copyWith(
-              fontSize: 13,
-              color: AppColors.ink,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: AppColors.inkMid,
-            size: 18,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ─── Content (donut + legend, then bars) ─────────────────────────────────────
 
-class _Content extends ConsumerWidget {
+class _Content extends StatelessWidget {
   final AnalyticsBreakdown data;
   final bool loading;
 
   const _Content({required this.data, required this.loading});
 
-  void _selectCategory(WidgetRef ref, String? categoryId) {
-    HapticFeedback.selectionClick();
-    final filters = categoryId == null
-        ? TransactionFilters.none
-        : TransactionFilters(categoryId: categoryId);
-    ref.read(transactionsControllerProvider.notifier).applyFilters(filters);
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Tapping a slice filters the *companion* Transactions pane. With no
-    // companion — a phone, or a folded Fold — that would silently mutate
-    // another tab with no visible feedback, so the legend stays read-only.
-    final crossPane = PaneScope.isInPane(context);
-    final selectedCategoryId = ref
-        .watch(transactionsControllerProvider)
-        .asData
-        ?.value
-        .filters
-        .categoryId;
-
+  Widget build(BuildContext context) {
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
       opacity: loading ? 0.55 : 1.0,
@@ -183,18 +86,6 @@ class _Content extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (crossPane && selectedCategoryId != null) ...[
-              _FilterChip(
-                label: () {
-                  for (final i in data.items) {
-                    if (i.categoryId == selectedCategoryId) return i.label;
-                  }
-                  return 'Category';
-                }(),
-                onClear: () => _selectCategory(ref, null),
-              ),
-              const SizedBox(height: 12),
-            ],
             GlassCard(
               radius: 22,
               padding: const EdgeInsets.all(18),
@@ -202,19 +93,7 @@ class _Content extends ConsumerWidget {
                 children: [
                   DonutChart(data: data),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: DonutLegend(
-                      items: data.items,
-                      selectedCategoryId: crossPane ? selectedCategoryId : null,
-                      onSelect: crossPane
-                          ? (id) {
-                              // Toggle off when tapping the selected category.
-                              final next = id == selectedCategoryId ? null : id;
-                              _selectCategory(ref, next);
-                            }
-                          : null,
-                    ),
-                  ),
+                  Expanded(child: DonutLegend(items: data.items)),
                 ],
               ),
             ),
@@ -235,49 +114,6 @@ class _Content extends ConsumerWidget {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onClear;
-
-  const _FilterChip({required this.label, required this.onClear});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Material(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onClear,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: AppTextStyles.labelStrong.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.close_rounded,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ─── States ──────────────────────────────────────────────────────────────────
 
 class _LoadingScaffold extends StatelessWidget {
@@ -285,120 +121,81 @@ class _LoadingScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Shimmer(
-      child: CustomScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                pageInsetOf(context),
-                4,
-                pageInsetOf(context),
-                14,
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ShimmerBox(height: 22, width: 100, radius: 6),
-                  ShimmerBox(height: 34, width: 120, radius: 11),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              pageInsetOf(context),
-              8,
-              pageInsetOf(context),
-              24,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x12000C22),
-                          blurRadius: 18,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        ShimmerBox(height: 130, width: 130, radius: 65),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              _SkeletonLegendItem(),
-                              SizedBox(height: 12),
-                              _SkeletonLegendItem(),
-                              SizedBox(height: 12),
-                              _SkeletonLegendItem(),
-                              SizedBox(height: 12),
-                              _SkeletonLegendItem(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const ShimmerBox(height: 16, width: 160, radius: 4),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x10000C22),
-                          blurRadius: 14,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: const Column(
-                      children: [
-                        _SkeletonBarRow(),
-                        SizedBox(height: 16),
-                        _SkeletonBarRow(),
-                        SizedBox(height: 16),
-                        _SkeletonBarRow(),
-                        SizedBox(height: 16),
-                        _SkeletonBarRow(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return const Column(
+      children: [
+        AnalyticsHeaderBar(),
+        Expanded(child: AnalyticsSkeletonBody()),
+      ],
     );
   }
 }
 
-class _SkeletonLegendItem extends StatelessWidget {
-  const _SkeletonLegendItem();
+/// Skeleton for everything below the header. Shared with the expanded pane.
+class AnalyticsSkeletonBody extends StatelessWidget {
+  const AnalyticsSkeletonBody({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        ShimmerBox(height: 10, width: 10, radius: 2),
-        SizedBox(width: 8),
-        Expanded(child: ShimmerBox(height: 11, radius: 4)),
-      ],
+    return Shimmer(
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+          pageInsetOf(context),
+          8,
+          pageInsetOf(context),
+          24,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x12000C22),
+                    blurRadius: 18,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: ShimmerBox(height: 160, width: 160, radius: 80),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const ShimmerBox(height: 16, width: 160, radius: 4),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x10000C22),
+                    blurRadius: 14,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Column(
+                children: [
+                  _SkeletonBarRow(),
+                  SizedBox(height: 16),
+                  _SkeletonBarRow(),
+                  SizedBox(height: 16),
+                  _SkeletonBarRow(),
+                  SizedBox(height: 16),
+                  _SkeletonBarRow(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -434,9 +231,9 @@ class _SkeletonBarRow extends StatelessWidget {
   }
 }
 
-class _ErrorScaffold extends StatelessWidget {
+class AnalyticsErrorBody extends StatelessWidget {
   final Future<void> Function() onRetry;
-  const _ErrorScaffold({required this.onRetry});
+  const AnalyticsErrorBody({super.key, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -471,9 +268,9 @@ class _ErrorScaffold extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class AnalyticsEmptyBody extends StatelessWidget {
   final String month;
-  const _EmptyState({required this.month});
+  const AnalyticsEmptyBody({super.key, required this.month});
 
   @override
   Widget build(BuildContext context) {
@@ -507,7 +304,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              'No expenses in ${_monthLabel(month)}',
+              'No expenses in ${monthLabel(month)}',
               style: AppTextStyles.bodyStrong,
             ),
             const SizedBox(height: 4),
@@ -520,11 +317,4 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
-}
-
-String _monthLabel(String month) {
-  final parts = month.split('-');
-  if (parts.length != 2) return month;
-  final dt = DateTime(int.parse(parts[0]), int.parse(parts[1]));
-  return DateFormat('MMMM yyyy').format(dt);
 }

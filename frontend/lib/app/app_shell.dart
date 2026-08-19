@@ -5,25 +5,35 @@ import 'package:go_router/go_router.dart';
 
 import '../core/layout/breakpoints.dart';
 import '../core/layout/expanded_add_pane.dart';
-import '../core/theme/app_colors.dart';
-import '../core/theme/app_text_styles.dart';
+import '../core/layout/expanded_destination.dart';
 import '../core/theme/system_overlays.dart';
 import '../core/widgets/ambient_background.dart';
 import '../core/widgets/bottom_nav.dart';
 import '../core/widgets/nav_rail.dart';
-import '../core/widgets/two_pane.dart';
 import '../features/add_expense/application/add_expense_controller.dart';
 import '../features/add_expense/presentation/add_expense_screen.dart';
 import '../features/analytics/application/analytics_controller.dart';
+import '../features/analytics/presentation/analytics_pane.dart';
+import '../features/analytics/presentation/widgets/analytics_header_bar.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
-import '../features/profile/presentation/profile_screen.dart';
+import '../features/dashboard/presentation/widgets/dashboard_header_bar.dart';
+import '../features/profile/presentation/profile_settings_pane.dart';
+import '../features/profile/presentation/widgets/account_overview_pane.dart';
+import '../features/profile/presentation/widgets/profile_header_bar.dart';
 import '../features/transactions/application/transactions_controller.dart';
 import '../features/transactions/presentation/transactions_screen.dart';
+import '../features/transactions/presentation/widgets/activity_feed_pane.dart';
+import '../features/transactions/presentation/widgets/transactions_header_bar.dart';
 
-/// Hosts navigation and renders the current branch (child) beside it.
+/// Hosts navigation and renders the current destination beside it.
 ///
-/// Compact / medium: bottom nav under a single column. Expanded (Fold inner,
-/// tablet): a left navigation rail beside a [TwoPane] pairing.
+/// Compact / medium: bottom nav under the single-column screen from the router.
+///
+/// Expanded (Fold inner, tablet): a left navigation rail, then one full-width
+/// header for the destination and two purpose-built content panes underneath —
+/// see [ExpandedDestination]. The shell composes those panes itself rather than
+/// using the router's [child], because the top-level screens ship their own
+/// hero and chrome for the compact case and a pane must not.
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
   final NavTab active;
@@ -49,8 +59,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     // Keep the transactions month in step with analytics whenever Stats is
-    // paired with the list. Lives here rather than in build() so it stays a
-    // reaction to a state change instead of a write during layout.
+    // paired with the feed — the Stats header is then the only month control on
+    // screen, and the feed beside it has to follow. Lives here rather than in
+    // build() so it stays a reaction to a state change instead of a write
+    // during layout.
     ref.listenManual(analyticsControllerProvider, (_, next) {
       if (!mounted) return;
       if (!widget.location.startsWith('/analytics')) return;
@@ -89,15 +101,18 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final hasHero =
-        widget.active == NavTab.home ||
-        widget.active == NavTab.profile ||
-        widget.active == NavTab.transactions;
-
     final isTwoPane = useTwoPane(context);
     final showAdd = ref.watch(expandedAddPaneProvider);
     final addActive =
         isTwoPane && (showAdd || widget.location.startsWith('/transactions'));
+
+    // Compact heroes bleed under the status bar; the expanded header band does
+    // the same, except on Stats which has never had a gradient.
+    final hasHero = isTwoPane
+        ? widget.active != NavTab.analytics
+        : (widget.active == NavTab.home ||
+              widget.active == NavTab.profile ||
+              widget.active == NavTab.transactions);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: hasHero
@@ -110,12 +125,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         extendBody: !isTwoPane,
         body: AmbientBackground(
           child: isTwoPane
-              ? _expandedBody(
-                  context,
-                  hasHero: hasHero,
-                  addActive: addActive,
-                  showAdd: showAdd,
-                )
+              ? _expandedBody(context, hasHero: hasHero, showAdd: showAdd)
               : SafeArea(top: !hasHero, bottom: false, child: widget.child),
         ),
         bottomNavigationBar: isTwoPane
@@ -133,45 +143,41 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _expandedBody(
     BuildContext context, {
     required bool hasHero,
-    required bool addActive,
     required bool showAdd,
   }) {
     final padding = MediaQuery.paddingOf(context);
-    // Display-feature bounds are window coordinates; tell TwoPane how far its
-    // own origin sits from the window's, or it will look for the crease in the
-    // wrong place now that a rail occupies the left edge.
-    final origin = Offset(
-      padding.left + AppNavRail.width,
-      hasHero ? 0 : padding.top,
-    );
-    final pairing = _pairingFor(widget.location, showAdd: showAdd);
+    final layout = _layoutFor(widget.location, showAdd: showAdd);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppNavRail(
           active: widget.active,
-          addActive: addActive,
+          addActive: showAdd || widget.location.startsWith('/transactions'),
           onTap: _onTab,
           onAdd: () => _onAdd(isTwoPane: true),
         ),
         Expanded(
           child: SafeArea(
             left: false,
+            // A gradient header draws its own status-bar padding; a flat one
+            // needs the inset consumed for it.
             top: !hasHero,
-            child: TwoPane(
-              origin: origin,
-              // Profile is the only list-detail pairing today: the nested route
-              // in the right pane is what the left-hand list should mark.
-              detailLocation:
-                  _isProfileFamily(widget.location) &&
-                      widget.location != '/profile'
-                  ? widget.location
-                  : null,
-              primaryLabel: pairing.primaryLabel,
-              secondaryLabel: pairing.secondaryLabel,
-              primary: pairing.primary,
-              secondary: pairing.secondary,
+            child: ExpandedDestination(
+              // Display-feature bounds are window coordinates; tell the layout
+              // how far its own origin sits from the window's, or it will look
+              // for the crease in the wrong place now that a rail occupies the
+              // left edge.
+              origin: Offset(
+                padding.left + AppNavRail.width,
+                hasHero ? 0 : padding.top,
+              ),
+              header: layout.header,
+              primary: layout.primary,
+              secondary: layout.secondary,
+              primaryLabel: layout.primaryLabel,
+              secondaryLabel: layout.secondaryLabel,
+              detailLocation: layout.detailLocation,
             ),
           ),
         ),
@@ -205,53 +211,53 @@ class _AppShellState extends ConsumerState<AppShell> {
     onClose: () => ref.read(expandedAddPaneProvider.notifier).close(),
   );
 
-  _PanePair _pairingFor(String loc, {required bool showAdd}) {
-    // Profile nest + shared/postponed companions: Profile always on the left.
+  _ExpandedLayout _layoutFor(String loc, {required bool showAdd}) {
+    // Profile nest + shared/postponed companions: settings always on the left.
     if (_isProfileFamily(loc)) {
       final nested = loc != '/profile';
-      return _PanePair(
-        primaryLabel: 'Profile',
+      return _ExpandedLayout(
+        header: const ProfileHeaderBar(),
+        primaryLabel: 'Settings',
         secondaryLabel: showAdd
             ? 'Add expense'
-            : (nested ? 'Settings detail' : 'Settings'),
-        primary: const ProfileScreen(),
+            : (nested ? 'Settings detail' : 'Account overview'),
+        primary: const ProfileSettingsPane(),
         secondary: showAdd
             ? _addPane()
-            : (nested
-                  ? widget.child
-                  : const _EmptyCompanion(
-                      message: 'Choose a setting',
-                      hint: 'Tap an item on the left to open it here.',
-                    )),
+            : (nested ? widget.child : const AccountOverviewPane()),
+        detailLocation: nested ? loc : null,
       );
     }
 
     if (loc.startsWith('/transactions')) {
-      return _PanePair(
+      return _ExpandedLayout(
+        header: const TransactionsHeaderBar(),
         primaryLabel: 'Transactions',
         secondaryLabel: 'Add expense',
-        primary: widget.child,
+        primary: const TransactionsBody(),
         secondary: _addPane(),
       );
     }
 
     if (loc.startsWith('/analytics')) {
-      return _PanePair(
+      return _ExpandedLayout(
+        header: const AnalyticsHeaderBar(),
         primaryLabel: 'Analytics',
         secondaryLabel: showAdd ? 'Add expense' : 'Transactions',
-        primary: widget.child,
-        secondary: showAdd ? _addPane() : const TransactionsScreen(),
+        primary: const AnalyticsPane(),
+        secondary: showAdd
+            ? _addPane()
+            : const ActivityFeedPane(showFilter: true),
       );
     }
 
-    // Home (and any other shell path): Dashboard | Transactions (or Add).
-    return _PanePair(
+    // Home (and any other shell path): dashboard cards | activity feed (or Add).
+    return _ExpandedLayout(
+      header: const DashboardHeaderBar(),
       primaryLabel: 'Home',
-      secondaryLabel: showAdd ? 'Add expense' : 'Transactions',
-      primary: loc == '/' || loc.isEmpty
-          ? widget.child
-          : const DashboardScreen(),
-      secondary: showAdd ? _addPane() : const TransactionsScreen(),
+      secondaryLabel: showAdd ? 'Add expense' : 'Recent activity',
+      primary: const DashboardCardsPane(),
+      secondary: showAdd ? _addPane() : const ActivityFeedPane(),
     );
   }
 
@@ -259,51 +265,20 @@ class _AppShellState extends ConsumerState<AppShell> {
       loc.startsWith('/profile') || loc == '/shared' || loc == '/postponed';
 }
 
-class _PanePair {
+class _ExpandedLayout {
+  final Widget header;
   final Widget primary;
   final Widget secondary;
   final String primaryLabel;
   final String secondaryLabel;
+  final String? detailLocation;
 
-  const _PanePair({
+  const _ExpandedLayout({
+    required this.header,
     required this.primary,
     required this.secondary,
     required this.primaryLabel,
     required this.secondaryLabel,
+    this.detailLocation,
   });
-}
-
-/// Placeholder when Profile has no nested child selected.
-class _EmptyCompanion extends StatelessWidget {
-  final String message;
-  final String hint;
-
-  const _EmptyCompanion({required this.message, required this.hint});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.touch_app_outlined, size: 40, color: AppColors.inkLight),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: AppTextStyles.titleS,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              hint,
-              style: AppTextStyles.body.copyWith(color: AppColors.inkMid),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

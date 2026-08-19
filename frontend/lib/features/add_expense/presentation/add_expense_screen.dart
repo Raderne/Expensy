@@ -97,26 +97,65 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
 
     final amount = AmountInput.parse(state.amount);
 
+    final categorySection = categoriesAsync.when(
+      loading: () => const _CategorySkeleton(),
+      error: (e, _) =>
+          _CategoryError(onRetry: () => ref.invalidate(categoriesProvider)),
+      data: (cats) => CategoryGrid(
+        categories: cats
+            .where((c) => c.key != 'income' && c.key != 'subscriptions')
+            .toList(),
+        selectedId: state.categoryId,
+        onSelect: controller.selectCategory,
+      ),
+    );
+
+    final header = _Header(
+      onBack: _dismiss,
+      splitEnabled: amount > 0,
+      hasSplits: state.splits.isNotEmpty,
+      onSplit: () => showSplitSheet(
+        context,
+        amount: amount,
+        initial: state.splits,
+        onChanged: controller.setSplits,
+      ),
+    );
+
+    final numpad = Numpad(
+      onDigit: controller.pressDigit,
+      onDot: controller.pressDot,
+      onBackspace: controller.pressBackspace,
+    );
+
+    final saveButton = _SaveButton(
+      enabled: state.canSave,
+      saving: state.saving,
+      error: state.error,
+      onTap: controller.save,
+    );
+
+    if (widget.embedded) {
+      return ColoredBox(
+        color: AppColors.background,
+        child: _EmbeddedLayout(
+          header: header,
+          amountDisplay: AmountDisplay(value: state.amount),
+          categorySection: categorySection,
+          note: _NoteField(onChanged: controller.setNote),
+          numpad: numpad,
+          saveButton: saveButton,
+        ),
+      );
+    }
+
     final body = SafeArea(
-      // Embedded pane already sits inside the shell SafeArea; keep bottom
-      // clear of the translucent nav via MediaQuery padding from Scaffold.
-      top: !widget.embedded,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Column(
               children: [
-                _Header(
-                  onBack: _dismiss,
-                  splitEnabled: amount > 0,
-                  hasSplits: state.splits.isNotEmpty,
-                  onSplit: () => showSplitSheet(
-                    context,
-                    amount: amount,
-                    initial: state.splits,
-                    onChanged: controller.setSplits,
-                  ),
-                ),
+                header,
                 const SizedBox(height: 6),
                 AmountDisplay(value: state.amount),
                 const SizedBox(height: 6),
@@ -134,23 +173,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
               pageInsetOf(context),
               10,
             ),
-            sliver: SliverToBoxAdapter(
-              child: categoriesAsync.when(
-                loading: () => const _CategorySkeleton(),
-                error: (e, _) => _CategoryError(
-                  onRetry: () => ref.invalidate(categoriesProvider),
-                ),
-                data: (cats) => CategoryGrid(
-                  categories: cats
-                      .where(
-                        (c) => c.key != 'income' && c.key != 'subscriptions',
-                      )
-                      .toList(),
-                  selectedId: state.categoryId,
-                  onSelect: controller.selectCategory,
-                ),
-              ),
-            ),
+            sliver: SliverToBoxAdapter(child: categorySection),
           ),
           const SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: 18),
@@ -169,41 +192,89 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            sliver: SliverToBoxAdapter(
-              child: Numpad(
-                onDigit: controller.pressDigit,
-                onDot: controller.pressDot,
-                onBackspace: controller.pressBackspace,
-              ),
-            ),
+            sliver: SliverToBoxAdapter(child: numpad),
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              18,
-              10,
-              18,
-              16 + (widget.embedded ? MediaQuery.paddingOf(context).bottom : 0),
-            ),
-            sliver: SliverToBoxAdapter(
-              child: _SaveButton(
-                enabled: state.canSave,
-                saving: state.saving,
-                error: state.error,
-                onTap: controller.save,
-              ),
-            ),
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
+            sliver: SliverToBoxAdapter(child: saveButton),
           ),
         ],
       ),
     );
 
-    if (widget.embedded) {
-      return ColoredBox(color: AppColors.background, child: body);
-    }
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppSystemOverlays.background(context),
       child: Scaffold(backgroundColor: AppColors.background, body: body),
+    );
+  }
+}
+
+/// Add Expense as a shell companion pane.
+///
+/// The fullscreen modal is one long scroll, which in a ~330 dp pane left Save
+/// stranded mid-column with a few hundred dp of empty space beneath it. Here
+/// the amount is pinned at the top and the numpad and Save are pinned at the
+/// bottom, so the button never moves and the scroll region — the part whose
+/// height actually varies — absorbs whatever is left over.
+class _EmbeddedLayout extends StatelessWidget {
+  final Widget header;
+  final Widget amountDisplay;
+  final Widget categorySection;
+  final Widget note;
+  final Widget numpad;
+  final Widget saveButton;
+
+  const _EmbeddedLayout({
+    required this.header,
+    required this.amountDisplay,
+    required this.categorySection,
+    required this.note,
+    required this.numpad,
+    required this.saveButton,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = pageInsetOf(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        header,
+        const SizedBox(height: 4),
+        amountDisplay,
+        const SizedBox(height: 6),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(inset, 0, inset, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _SectionLabel(text: 'CATEGORY'),
+                categorySection,
+                const SizedBox(height: 12),
+                const _SectionLabel(text: 'NOTE'),
+                note,
+              ],
+            ),
+          ),
+        ),
+        // Pinned action zone. A hairline keeps it visually separate from the
+        // scrolling content once that content runs underneath it.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(inset, 10, inset, 14 + bottomInset),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [numpad, const SizedBox(height: 10), saveButton],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
