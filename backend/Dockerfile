@@ -2,6 +2,11 @@
 
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app
+# Must match the runtime stage. Prisma picks the engine build from the libssl it
+# detects, and with no openssl here it falls back to `openssl-1.1.x` -- baking an
+# engine the (openssl-3.0.x) runtime rejects, which sends it back to downloading
+# one at deploy time. That is the failure this stage exists to prevent.
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 COPY prisma ./prisma
 # `--ignore-scripts` skips @prisma/engines' postinstall, which is what downloads
