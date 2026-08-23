@@ -4,7 +4,15 @@ FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm ci --omit=dev --ignore-scripts && npx prisma generate
+# `--ignore-scripts` skips @prisma/engines' postinstall, which is what downloads
+# the query-engine and schema-engine binaries. `prisma generate` only needs the
+# former, so the build would still pass -- but `prisma migrate status|deploy`
+# (the deploy gate in scripts/deploy.sh) needs schema-engine and would try to
+# download it at deploy time, inside a container that can't write to
+# /app/node_modules. Fetch the engines here instead, where we are root.
+RUN npm ci --omit=dev --ignore-scripts \
+ && npm rebuild @prisma/engines \
+ && npx prisma generate
 
 FROM node:20-bookworm-slim AS build
 WORKDIR /app

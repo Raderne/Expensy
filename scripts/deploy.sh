@@ -90,10 +90,13 @@ if status_out="$(docker compose run --rm api npx prisma migrate status 2>&1)"; t
   log "Database schema is in sync — proceeding"
 else
   echo "$status_out"
-  die "Pending migrations (or DB not in sync) — deploy CANCELLED. The running API
-     was NOT changed. Apply migrations deliberately first:
+  die "Migration status check FAILED — deploy CANCELLED. The running API was NOT
+     changed. Read the output above before acting: a clean 'pending migrations'
+     report means schema changes are waiting, and the fix is
          bash ~/ops/migrate.sh
-     then re-run this deploy."
+     then re-run this deploy. But the prisma CLI itself erroring (engines,
+     permissions, DB unreachable) is NOT a pending migration — migrate.sh runs
+     the same command and would fail the same way. Fix that first."
 fi
 
 # 4. Safety backup before rolling. The DB is untouched by this deploy, but a fresh
