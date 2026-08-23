@@ -26,4 +26,12 @@ COPY --from=build  /app/dist         ./dist
 COPY package.json ./
 EXPOSE 3000
 
+# /health returns 200 only when the DB is reachable. 60s (not Docker's 30s
+# default) is plenty: nothing auto-restarts on this status today, it only
+# feeds the STATUS column in `docker compose ps`. Keep the interval here so
+# it ships with the image -- do not redefine it in the prod compose file,
+# which would silently override this.
+HEALTHCHECK --interval=60s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["sh", "-c", "node dist/index.js"]

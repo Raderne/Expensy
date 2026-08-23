@@ -60,8 +60,22 @@ const devReqSerializer = (req: Parameters<typeof stdSerializers.req>[0]) => {
   return { ...withHeaders, body: redactBody(expressReq.body) };
 };
 
+/**
+ * The container healthcheck probes `GET /health` on loopback every minute, and
+ * `deploy.sh`/`status.sh` hit it too. A full request/response line per probe
+ * buries real traffic in `docker compose logs`, so successful probes stay
+ * silent. A failing one still logs: `/health` is 503 only when the DB is
+ * unreachable, which is exactly the line worth keeping.
+ */
+const isHealthProbe = (url: string | undefined): boolean =>
+  url === '/health' || (url?.startsWith('/health?') ?? false);
+
 export const requestLogger = pinoHttp({
   logger,
+  // 'info' is pino-http's own default level for every request, so this only
+  // ever subtracts the successful health probes.
+  customLogLevel: (req, res, err) =>
+    !err && res.statusCode < 400 && isHealthProbe(req.url) ? 'silent' : 'info',
   // Always inherit the request id placed on the headers by
   // `requestContextMiddleware`, so logs and the `X-Request-Id` response header
   // share the same value.
