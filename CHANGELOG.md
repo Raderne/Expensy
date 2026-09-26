@@ -28,6 +28,23 @@ remain on the [GitHub releases page](https://github.com/Raderne/Expensy/releases
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-09-26
+
+A financial review you open from Stats, written from your own totals.
+
+### Added
+
+- **Generate insights** on Stats opens a full report for the month you are viewing, instead of a short note on the same screen.
+- The report shows income, spending, what you kept, and budget use, plus a six-month view of your net.
+- Findings and next steps stay tied to those figures. A next step can open Transactions, recurring expenses, income sources, goals, or your budget.
+- Goals and upcoming bills appear as current context, separate from the month you selected.
+- Before the first run, Stats explains that totals, category names, and goal names are sent to Google Gemini, and that notes, contacts, and individual transactions stay in Expensy.
+
+### Changed
+
+- The report says how many months of history it used and when it was written, and labels the commentary as **AI-generated · may contain errors**.
+- The calculated figures stay on the report when the written commentary is unavailable.
+
 ## [1.7.1] - 2026-08-19
 
 A proper large-screen layout for each tab, instead of two phone screens side by side.
