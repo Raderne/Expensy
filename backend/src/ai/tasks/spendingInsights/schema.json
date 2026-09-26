@@ -1,58 +1,78 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "Monthly spending insights",
-  "description": "An AI read-out of a user's finances for one month: a headline, sentiment-tagged insights, and suggestions.",
+  "title": "Financial insights narrative",
+  "description": "Ranked commentary that may cite only fact and action ids from the analysis packet.",
   "properties": {
     "headline": {
       "type": "string",
-      "maxLength": 120,
-      "description": "The single most important takeaway for the month, in one plain-language sentence."
+      "minLength": 1,
+      "maxLength": 140,
+      "description": "The single most important takeaway, in one plain sentence."
     },
     "summary": {
       "type": "string",
-      "maxLength": 280,
-      "description": "One or two sentences expanding on the headline with the key numbers."
+      "minLength": 1,
+      "maxLength": 420,
+      "description": "Two sentences expanding the headline using only supplied figures."
     },
     "insights": {
       "type": "array",
       "minItems": 2,
       "maxItems": 5,
-      "description": "Two to five specific, quantified observations about the month.",
       "items": {
         "type": "object",
         "properties": {
+          "factId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "description": "Id copied from the packet facts array."
+          },
           "sentiment": {
             "type": "string",
-            "enum": ["positive", "warning", "neutral"],
-            "description": "Whether this observation is a good sign, something to watch, or a neutral fact."
+            "enum": ["positive", "warning", "neutral"]
           },
-          "title": {
-            "type": "string",
-            "maxLength": 70,
-            "description": "A short label for the insight, e.g. 'Under budget by $240'."
-          },
-          "detail": {
-            "type": "string",
-            "maxLength": 160,
-            "description": "One sentence explaining the insight with the relevant figure."
-          }
+          "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "detail": { "type": "string", "minLength": 1, "maxLength": 240 }
         },
-        "required": ["sentiment", "title", "detail"],
+        "required": ["factId", "sentiment", "title", "detail"],
         "additionalProperties": false
       }
     },
-    "suggestions": {
+    "actions": {
       "type": "array",
       "maxItems": 3,
-      "items": { "type": "string" },
-      "description": "Up to three concrete, actionable suggestions. Empty array if none are useful."
+      "items": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "description": "Id copied from the packet candidates array."
+          },
+          "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "detail": { "type": "string", "minLength": 1, "maxLength": 240 }
+        },
+        "required": ["candidateId", "title", "detail"],
+        "additionalProperties": false
+      }
     },
-    "savingsRatePct": {
-      "type": ["number", "null"],
-      "description": "The month's savings rate as a percentage (net ÷ income × 100). Null when income is zero."
+    "notes": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "properties": {
+          "factId": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "text": { "type": "string", "minLength": 1, "maxLength": 240 }
+        },
+        "required": ["factId", "text"],
+        "additionalProperties": false
+      }
     }
   },
-  "required": ["headline", "summary", "insights", "suggestions", "savingsRatePct"],
+  "required": ["headline", "summary", "insights", "actions", "notes"],
   "additionalProperties": false
 }

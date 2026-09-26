@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '../src/lib/prismaTypes.js';
+import { AppError } from '../src/lib/errors.js';
 
-// Selected-month + trend totals. Overridable per test via mockResolvedValueOnce.
 vi.mock('../src/repositories/transactionRepository.js', () => ({
   transactionRepository: {
     summarize: vi.fn(async () => ({ balance: 8000, income: 3000, expenses: 2000 })),
-    findMonths: vi.fn(async () => [{ month: '2026-06' }, { month: '2026-05' }]),
   },
 }));
 
@@ -17,7 +16,20 @@ vi.mock('../src/repositories/budgetRepository.js', () => ({
 
 vi.mock('../src/repositories/monthlyBudgetRepository.js', () => ({
   monthlyBudgetRepository: {
-    findByUserMonth: vi.fn(async () => ({ amount: new Prisma.Decimal(2_400) })),
+    findByUserMonths: vi.fn(async () => [{ month: '2026-06', amount: new Prisma.Decimal(2_400) }]),
+  },
+}));
+
+vi.mock('../src/repositories/goalRepository.js', () => ({
+  goalRepository: {
+    findByUser: vi.fn(async () => [
+      {
+        name: 'Trip',
+        savedAmount: new Prisma.Decimal(200),
+        targetAmount: new Prisma.Decimal(1_000),
+        targetDate: new Date('2026-12-01T00:00:00.000Z'),
+      },
+    ]),
   },
 }));
 
@@ -37,29 +49,11 @@ vi.mock('../src/services/analyticsService.js', () => ({
 vi.mock('../src/services/recurringExpenseService.js', () => ({
   recurringExpenseService: {
     list: vi.fn(async () => [
-      {
-        label: 'Rent',
-        amount: 1200,
-        frequency: 'MONTHLY',
-        intervalDays: null,
-        isActive: true,
-      },
-      {
-        label: 'Gym',
-        amount: 40,
-        frequency: 'WEEKLY',
-        intervalDays: null,
-        isActive: true,
-      },
-      {
-        label: 'Old plan',
-        amount: 99,
-        frequency: 'MONTHLY',
-        intervalDays: null,
-        isActive: false,
-      },
-    ],
-  ),
+      { label: 'Rent', amount: 1200, frequency: 'MONTHLY', intervalDays: null, isActive: true },
+      { label: 'Gym', amount: 40, frequency: 'WEEKLY', intervalDays: null, isActive: true },
+      { label: 'Old plan', amount: 99, frequency: 'MONTHLY', intervalDays: null, isActive: false },
+    ]),
+    listUpcoming: vi.fn(async () => []),
   },
 }));
 
@@ -78,58 +72,78 @@ vi.mock('../src/ai/aiService.js', () => ({
 }));
 
 const { insightsService } = await import('../src/services/insightsService.js');
-const { transactionRepository } = await import(
-  '../src/repositories/transactionRepository.js'
-);
+const { transactionRepository } = await import('../src/repositories/transactionRepository.js');
 
 const validAiResponse = {
-  headline: 'You saved 33% this month.',
-  summary: 'Income 3000, spend 2000 — a healthy month.',
+  headline: 'You saved this month.',
+  summary: 'Income covered spending with room left over.',
   insights: [
-    { sentiment: 'positive', title: 'Under budget', detail: 'Spent 2000 of a 2400 budget.' },
-    { sentiment: 'neutral', title: 'Food leads', detail: 'Food was 60% of spending.' },
+    { factId: 'savings_rate', sentiment: 'positive', title: 'Saving', detail: 'Net is positive.' },
+    { factId: 'top_category', sentiment: 'neutral', title: 'Food leads', detail: 'Food is the largest category.' },
   ],
-  suggestions: ['Automate a transfer to savings.'],
-  savingsRatePct: 33,
+  actions: [
+    { candidateId: 'review_category', title: 'Look at Food', detail: 'It is most of the month.' },
+  ],
+  notes: [],
 };
 
 beforeEach(() => {
   runAiTask.mockReset();
   runAiTask.mockResolvedValue(validAiResponse);
-  vi.mocked(transactionRepository.summarize).mockClear();
+  vi.mocked(transactionRepository.summarize).mockReset();
+  vi.mocked(transactionRepository.summarize).mockResolvedValue({
+    balance: 8000,
+    income: 3000,
+    expenses: 2000,
+  });
 });
 
 describe('insightsService.getInsights', () => {
-  it('feeds budget, trend, and recurring summaries to the model', async () => {
-    const dto = await insightsService.getInsights('u_vars', '2026-06', {});
+  it('sends a privacy-minimized packet and keeps the server savings rate', async () => {
+    const report = await insightsService.getInsights('u_vars', '2026-06', {});
 
     expect(runAiTask).toHaveBeenCalledOnce();
-    const vars = runAiTask.mock.calls[0]![1] as Record<string, unknown>;
-    expect(vars.income).toBe(3000);
-    expect(vars.expenses).toBe(2000);
-    expect(vars.net).toBe(1000);
-    // Recorded MonthlyBudget wins over the template.
-    expect(vars.budgetAmount).toBe(2400);
-    expect(vars.budgetPct).toBe(Math.round((2000 / 2400) * 100));
-    expect(vars.topCategories).toContain('Food');
-    // Trend has one line per month returned by findMonths.
-    expect(vars.monthlyTrend).toContain('2026-06');
-    expect(vars.monthlyTrend).toContain('2026-05');
-    // Active recurring only (excludes the inactive 'Old plan'); Gym normalised weekly→monthly.
-    expect(vars.recurringExpensesSummary).toContain('Rent');
-    expect(vars.recurringExpensesSummary).toContain('Gym');
-    expect(vars.recurringExpensesSummary).not.toContain('Old plan');
-    expect(vars.recurringIncomeSummary).toContain('Salary');
+    const vars = runAiTask.mock.calls[0]![1] as { analysisPacket: string };
+    const packet = JSON.parse(vars.analysisPacket) as {
+      facts: { id: string; text: string }[];
+      candidates: { id: string }[];
+    };
+    expect(packet.facts.find((f) => f.id === 'income')?.text).toContain('3000');
+    expect(packet.facts.find((f) => f.id === 'budget')?.text).toContain('2400');
+    expect(packet.facts.find((f) => f.id === 'top_category')?.text).toContain('Food');
+    expect(packet.facts.find((f) => f.id === 'recurring_coverage')?.text).toContain('Rent');
+    expect(packet.facts.find((f) => f.id === 'recurring_coverage')?.text).toContain('Gym');
+    expect(packet.facts.find((f) => f.id === 'goals')?.text).toContain('Trip');
+    expect(vars.analysisPacket).not.toContain('Old plan');
+    expect(vars.analysisPacket).not.toContain('c1');
+    expect(vars.analysisPacket).not.toContain('email');
+    expect(packet.candidates.map((c) => c.id)).toContain('review_category');
+    expect(report.scorecard.savingsRatePct).toBe(33);
+    expect(report.aiStatus).toBe('generated');
+    expect(report.currencyCode).toBe('USD');
+    expect(report.actions[0]?.categoryId).toBe('c1');
+    expect(report.generatedAt).toEqual(expect.any(String));
 
-    expect(dto.month).toBe('2026-06');
-    expect(dto.headline).toBe(validAiResponse.headline);
-    expect(dto.generatedAt).toEqual(expect.any(String));
+    const froms = vi.mocked(transactionRepository.summarize).mock.calls.map((call) => call[1] as Date);
+    expect(froms.some((d) => d.toISOString().startsWith('2026-01'))).toBe(true);
+    expect(froms.some((d) => d.toISOString().startsWith('2025-12'))).toBe(false);
   });
 
-  it('serves the cached insight on a second call without hitting the model', async () => {
+  it('serves the cached insight when the snapshot is unchanged', async () => {
     await insightsService.getInsights('u_cache', '2026-06', {});
     await insightsService.getInsights('u_cache', '2026-06', {});
     expect(runAiTask).toHaveBeenCalledOnce();
+  });
+
+  it('recomputes when the underlying figures change, without an explicit refresh', async () => {
+    await insightsService.getInsights('u_hash', '2026-06', {});
+    vi.mocked(transactionRepository.summarize).mockResolvedValue({
+      balance: 1000,
+      income: 5000,
+      expenses: 1000,
+    });
+    await insightsService.getInsights('u_hash', '2026-06', {});
+    expect(runAiTask).toHaveBeenCalledTimes(2);
   });
 
   it('recomputes when refresh is requested', async () => {
@@ -138,16 +152,49 @@ describe('insightsService.getInsights', () => {
     expect(runAiTask).toHaveBeenCalledTimes(2);
   });
 
-  it('throws INSUFFICIENT_DATA when the month has no activity', async () => {
+  it('throws INSUFFICIENT_DATA when the focal month has no activity', async () => {
     vi.mocked(transactionRepository.summarize).mockResolvedValueOnce({
       balance: 0,
       income: 0,
       expenses: 0,
     });
 
-    await expect(
-      insightsService.getInsights('u_empty', '2026-06', {}),
-    ).rejects.toMatchObject({ status: 422, code: 'INSUFFICIENT_DATA' });
+    await expect(insightsService.getInsights('u_empty', '2026-06', {})).rejects.toMatchObject({
+      status: 422,
+      code: 'INSUFFICIENT_DATA',
+    });
     expect(runAiTask).not.toHaveBeenCalled();
+  });
+
+  it('falls back to calculated copy when the model cites an unknown id', async () => {
+    runAiTask.mockResolvedValueOnce({
+      ...validAiResponse,
+      headline: 'Invented takeaway.',
+      insights: [
+        { factId: 'made_up', sentiment: 'warning', title: 'Nope', detail: 'Not real.' },
+        { factId: 'income', sentiment: 'neutral', title: 'Income', detail: 'Recorded.' },
+      ],
+    });
+
+    const report = await insightsService.getInsights('u_ground', '2026-06', {});
+    expect(report.aiStatus).toBe('unavailable');
+    expect(report.headline).not.toBe('Invented takeaway.');
+    expect(report.scorecard.income).toBe(3000);
+    expect(report.insights.length).toBeGreaterThanOrEqual(2);
+    expect(report.insights.every((item) => item.evidence.length > 0)).toBe(true);
+  });
+
+  it('falls back when Gemini is unavailable and does not cache that failure', async () => {
+    runAiTask.mockRejectedValueOnce(
+      new AppError({ status: 503, code: 'AI_UNAVAILABLE', message: 'down' }),
+    );
+    const first = await insightsService.getInsights('u_down', '2026-06', {});
+    expect(first.aiStatus).toBe('unavailable');
+    expect(first.scorecard.expenses).toBe(2000);
+
+    runAiTask.mockResolvedValueOnce(validAiResponse);
+    const second = await insightsService.getInsights('u_down', '2026-06', {});
+    expect(second.aiStatus).toBe('generated');
+    expect(runAiTask).toHaveBeenCalledTimes(2);
   });
 });

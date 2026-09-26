@@ -1,210 +1,193 @@
 import { AppError } from '../lib/errors.js';
 import { env } from '../config/env.js';
-import { monthRange, monthLabel } from '../lib/month.js';
+import { logger } from '../lib/logger.js';
+import { monthRange } from '../lib/month.js';
 import { defineAiTask, runAiTask } from '../ai/aiService.js';
 import { transactionRepository } from '../repositories/transactionRepository.js';
 import { budgetRepository } from '../repositories/budgetRepository.js';
 import { monthlyBudgetRepository } from '../repositories/monthlyBudgetRepository.js';
+import { goalRepository } from '../repositories/goalRepository.js';
 import { analyticsService } from './analyticsService.js';
 import { recurringExpenseService } from './recurringExpenseService.js';
 import { incomeService } from './incomeService.js';
+import {
+  assembleReport,
+  buildFinancialSnapshot,
+  contiguousMonthsEnding,
+  fallbackNarrative,
+  INSIGHTS_HISTORY_MONTHS,
+  resolveNarrative,
+  snapshotFingerprint,
+  toAnalysisPacket,
+  type AiNarrative,
+  type InsightsReport,
+  type SnapshotCategoryInput,
+} from './financialSnapshot.js';
 
-// Raw AI output for the spending-insights task (validated against
-// ai/tasks/spendingInsights/schema.json inside runAiTask). month/generatedAt are
-// added server-side and are NOT part of the model output.
-interface SpendingInsightsAi {
-  headline: string;
-  summary: string;
-  insights: {
-    sentiment: 'positive' | 'warning' | 'neutral';
-    title: string;
-    detail: string;
-  }[];
-  suggestions: string[];
-  savingsRatePct: number | null;
-}
+export type { InsightsReport };
 
-export interface InsightsDto extends SpendingInsightsAi {
-  month: string;
-  generatedAt: string;
-}
-
-const spendingInsightsTask = defineAiTask<SpendingInsightsAi>('spendingInsights', {
-  // Richer prompt than the goal estimate (trend + recurring summaries) and a
-  // larger response (up to 5 insight objects), so give it more room.
-  maxInputTokens: 3000,
-  maxOutputTokens: 1024,
-  // Pure structured analysis — no reasoning tokens needed. Keeps the output cap
-  // meaningful on 2.5+ thinking models.
+const spendingInsightsTask = defineAiTask<AiNarrative>('spendingInsights', {
+  maxInputTokens: 4500,
+  maxOutputTokens: 1536,
   thinkingBudget: 0,
 });
 
-// Trailing months of history summarised for trend context.
-const TREND_WINDOW_MONTHS = 6;
-const TOP_CATEGORIES = 5;
-const TOP_RECURRING = 6;
-
-// Approximate days per month, for normalising non-monthly recurring cadences.
 const DAYS_PER_MONTH = 365.25 / 12;
+const UPCOMING_DAYS = 30;
+const UPCOMING_FETCH = 12;
 
-const round2 = (n: number): number => Math.round(n * 100) / 100;
-
-// Convert a recurring expense's per-occurrence amount to an equivalent monthly
-// figure so committed outflow is comparable across cadences.
-const toMonthly = (
-  amount: number,
-  frequency: string,
-  intervalDays: number | null,
-): number => {
+const toMonthly = (amount: number, frequency: string, intervalDays: number | null): number => {
   switch (frequency) {
     case 'WEEKLY':
       return amount * (52 / 12);
     case 'BIWEEKLY':
       return amount * (26 / 12);
     case 'CUSTOM':
-      return intervalDays && intervalDays > 0
-        ? amount * (DAYS_PER_MONTH / intervalDays)
-        : amount;
+      return intervalDays && intervalDays > 0 ? amount * (DAYS_PER_MONTH / intervalDays) : amount;
     case 'MONTHLY':
     default:
       return amount;
   }
 };
 
-// Simple per-user+month TTL cache. Insights are moderately expensive (a Gemini
-// call), so within the TTL we serve the last result. Module-level like the
-// idempotency store — lost on restart, which only forces one recompute.
-const cache = new Map<string, { dto: InsightsDto; at: number }>();
-const cacheKey = (userId: string, month: string): string => `${userId}:${month}`;
+const cache = new Map<string, { report: InsightsReport; at: number }>();
+const cacheKey = (userId: string, month: string, fingerprint: string): string =>
+  `${userId}:${month}:v${fingerprint}`;
+
+const withinDays = (iso: string, now: Date, days: number): boolean => {
+  const at = Date.parse(iso);
+  if (Number.isNaN(at)) return false;
+  const delta = at - now.getTime();
+  return delta >= 0 && delta <= days * 86_400_000;
+};
 
 export const insightsService = {
   async getInsights(
     userId: string,
     month: string,
     opts: { refresh?: boolean } = {},
-  ): Promise<InsightsDto> {
-    const key = cacheKey(userId, month);
-    if (!opts.refresh) {
-      const hit = cache.get(key);
-      if (hit && Date.now() - hit.at < env.INSIGHTS_TTL_HOURS * 3_600_000) {
-        return hit.dto;
-      }
-    }
-
-    // Selected-month totals. No activity → nothing worth analysing.
-    const { from, to } = monthRange(month);
-    const totals = await transactionRepository.summarize(userId, from, to);
-    const income = totals.income;
-    const expenses = totals.expenses;
-    if (income === 0 && expenses === 0) {
+  ): Promise<InsightsReport> {
+    const window = contiguousMonthsEnding(month, INSIGHTS_HISTORY_MONTHS);
+    const focalRange = monthRange(month);
+    const focalTotals = await transactionRepository.summarize(
+      userId,
+      focalRange.from,
+      focalRange.to,
+    );
+    if (focalTotals.income === 0 && focalTotals.expenses === 0) {
       throw new AppError({
         status: 422,
         code: 'INSUFFICIENT_DATA',
         message: 'No activity in this month to analyse',
       });
     }
-    const net = income - expenses;
-    const savingsRatePct = income > 0 ? Math.round((net / income) * 100) : null;
 
-    // Budget cap for the month: recorded MonthlyBudget wins, else the template
-    // Budget (same fallback as dashboardService).
-    const [monthlyBudget, template, breakdown, recurringExpenses, recurringIncome] =
+    const priorMonths = window.slice(0, -1);
+    const now = new Date();
+    const [priorSummaries, budgets, template, breakdowns, recurringExpenses, recurringIncome, upcoming, goals] =
       await Promise.all([
-        monthlyBudgetRepository.findByUserMonth(userId, month),
+        Promise.all(
+          priorMonths.map(async (m) => {
+            const range = monthRange(m);
+            const totals = await transactionRepository.summarize(userId, range.from, range.to);
+            return { month: m, income: totals.income, expenses: totals.expenses };
+          }),
+        ),
+        monthlyBudgetRepository.findByUserMonths(userId, window),
         budgetRepository.findByUser(userId),
-        analyticsService.getBreakdown(userId, month),
+        Promise.all(window.map((m) => analyticsService.getBreakdown(userId, m))),
         recurringExpenseService.list(userId),
         incomeService.listRecurring(userId),
+        recurringExpenseService.listUpcoming(userId, UPCOMING_FETCH),
+        goalRepository.findByUser(userId),
       ]);
 
-    const budgetAmount = monthlyBudget
-      ? monthlyBudget.amount.toNumber()
-      : template
-        ? template.amount.toNumber()
-        : null;
-    const budgetPct =
-      budgetAmount && budgetAmount > 0
-        ? Math.round((expenses / budgetAmount) * 100)
-        : null;
+    const budgetByMonth = new Map(budgets.map((row) => [row.month, row.amount.toNumber()]));
+    const templateAmount = template ? template.amount.toNumber() : null;
+    const budgetFor = (m: string): number | null => {
+      const recorded = budgetByMonth.get(m);
+      if (recorded != null && recorded > 0) return recorded;
+      if (m === month && templateAmount != null && templateAmount > 0) return templateAmount;
+      return null;
+    };
 
-    const topCategories =
-      breakdown.breakdown
-        .slice(0, TOP_CATEGORIES)
-        .map((b) => `${b.label} ${Math.round(b.amount)} (${Math.round(b.pct * 100)}%)`)
-        .join(', ') || 'none';
-
-    // Per-month trend across the most recent months with data (newest first).
-    const trendMonths = (await transactionRepository.findMonths(userId)).slice(
-      0,
-      TREND_WINDOW_MONTHS,
-    );
-    const trendLines: string[] = [];
-    for (const { month: m } of trendMonths) {
-      const range = monthRange(m);
-      const t = await transactionRepository.summarize(userId, range.from, range.to);
-      trendLines.push(
-        `${m}: income ${Math.round(t.income)}, spent ${Math.round(t.expenses)}, net ${Math.round(
-          t.income - t.expenses,
-        )}`,
-      );
+    const categoriesByMonth: Record<string, SnapshotCategoryInput[]> = {};
+    for (const breakdown of breakdowns) {
+      categoriesByMonth[breakdown.month] = breakdown.breakdown.map((item) => ({
+        categoryId: item.categoryId,
+        label: item.label,
+        amount: item.amount,
+      }));
     }
-    const monthlyTrend = trendLines.join('; ') || 'none';
 
-    // Active recurring commitments, normalised to a monthly figure.
-    const activeExpenses = recurringExpenses.filter((r) => r.isActive);
-    const recurringExpenseTotal = activeExpenses.reduce(
-      (sum, r) => sum + toMonthly(r.amount, r.frequency, r.intervalDays),
-      0,
-    );
-    const recurringExpensesSummary =
-      activeExpenses.length === 0
-        ? 'none'
-        : `total ~${Math.round(recurringExpenseTotal)}/mo across ${activeExpenses.length} — ` +
-          activeExpenses
-            .map((r) => ({
-              label: r.label,
-              monthly: toMonthly(r.amount, r.frequency, r.intervalDays),
-            }))
-            .sort((a, b) => b.monthly - a.monthly)
-            .slice(0, TOP_RECURRING)
-            .map((r) => `${r.label} ${Math.round(r.monthly)}/mo`)
-            .join(', ');
-
-    const activeIncome = recurringIncome.filter((r) => r.isActive);
-    const recurringIncomeTotal = activeIncome.reduce((sum, r) => sum + r.amount, 0);
-    const recurringIncomeSummary =
-      activeIncome.length === 0
-        ? 'none'
-        : `total ~${Math.round(recurringIncomeTotal)}/mo across ${activeIncome.length} — ` +
-          activeIncome
-            .slice()
-            .sort((a, b) => b.amount - a.amount)
-            .slice(0, TOP_RECURRING)
-            .map((r) => `${r.label} ${Math.round(r.amount)}/mo`)
-            .join(', ');
-
-    const ai = await runAiTask(spendingInsightsTask, {
-      monthLabel: monthLabel(month),
-      income: round2(income),
-      expenses: round2(expenses),
-      net: round2(net),
-      savingsRatePct: savingsRatePct ?? 'n/a',
-      budgetAmount: budgetAmount != null ? round2(budgetAmount) : 'none set',
-      budgetSpent: round2(expenses),
-      budgetPct: budgetPct != null ? budgetPct : 'n/a',
-      topCategories,
-      monthlyTrend,
-      recurringExpensesSummary,
-      recurringIncomeSummary,
-      currency: '',
+    const snapshot = buildFinancialSnapshot({
+      month,
+      months: [
+        ...priorSummaries.map((row) => ({
+          month: row.month,
+          income: row.income,
+          expenses: row.expenses,
+          budgetAmount: budgetFor(row.month),
+        })),
+        {
+          month,
+          income: focalTotals.income,
+          expenses: focalTotals.expenses,
+          budgetAmount: budgetFor(month),
+        },
+      ],
+      categoriesByMonth,
+      recurringExpenses: recurringExpenses
+        .filter((row) => row.isActive)
+        .map((row) => ({
+          label: row.label,
+          monthlyAmount: toMonthly(row.amount, row.frequency, row.intervalDays),
+        })),
+      recurringIncome: recurringIncome
+        .filter((row) => row.isActive)
+        .map((row) => ({ label: row.label, monthlyAmount: row.amount })),
+      upcoming: upcoming
+        .filter((row) => withinDays(row.occurredAt, now, UPCOMING_DAYS))
+        .map((row) => ({ label: row.label, amount: row.amount, dueAt: row.occurredAt })),
+      goals: goals.map((row) => ({
+        name: row.name,
+        savedAmount: row.savedAmount.toNumber(),
+        targetAmount: row.targetAmount.toNumber(),
+        targetDate: row.targetDate ? row.targetDate.toISOString() : null,
+      })),
     });
 
-    const dto: InsightsDto = {
-      ...ai,
-      month,
-      generatedAt: new Date().toISOString(),
-    };
-    cache.set(key, { dto, at: Date.now() });
-    return dto;
+    const fingerprint = snapshotFingerprint(snapshot);
+    const key = cacheKey(userId, month, fingerprint);
+    if (!opts.refresh) {
+      const hit = cache.get(key);
+      if (hit && Date.now() - hit.at < env.INSIGHTS_TTL_HOURS * 3_600_000) {
+        return hit.report;
+      }
+    }
+
+    const generatedAt = new Date().toISOString();
+    let report: InsightsReport;
+    try {
+      const ai = await runAiTask(spendingInsightsTask, {
+        analysisPacket: JSON.stringify(toAnalysisPacket(snapshot)),
+      });
+      const narrative = resolveNarrative(ai, snapshot);
+      if (!narrative) {
+        logger.warn({ month }, 'AI insights failed grounding; using calculated report');
+        report = assembleReport(snapshot, fallbackNarrative(snapshot), 'unavailable', generatedAt);
+      } else {
+        report = assembleReport(snapshot, narrative, 'generated', generatedAt);
+      }
+    } catch (err) {
+      if (!(err instanceof AppError) || err.code !== 'AI_UNAVAILABLE') throw err;
+      logger.warn({ err, month }, 'AI insights unavailable; using calculated report');
+      report = assembleReport(snapshot, fallbackNarrative(snapshot), 'unavailable', generatedAt);
+    }
+
+    if (report.aiStatus === 'generated') {
+      cache.set(key, { report, at: Date.now() });
+    }
+    return report;
   },
 };

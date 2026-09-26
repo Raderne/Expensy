@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/widgets/bottom_nav.dart';
 import '../features/add_expense/presentation/add_expense_screen.dart';
 import '../features/analytics/presentation/analytics_screen.dart';
+import '../features/analytics/presentation/financial_insights_screen.dart';
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
@@ -101,6 +102,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             );
           },
         ),
+      ),
+      GoRoute(
+        path: '/analytics/insights/:month',
+        name: 'analytics-insights',
+        builder: (_, state) =>
+            FinancialInsightsScreen(month: state.pathParameters['month'] ?? ''),
       ),
       ShellRoute(
         builder: (context, state, child) {

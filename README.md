@@ -98,12 +98,13 @@ Copy `backend/.env.example` to `backend/.env` and fill in the values below. Neve
 | `RESET_CODE_TTL_MIN`       | Password-reset OTP lifetime in minutes (default `15`)              |
 | `SMTP_HOST` / `SMTP_PORT`  | Mail server for reset codes — when unset, codes are logged instead |
 | `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | SMTP credentials + sender address                 |
-| `GEMINI_API_KEY`           | Google Gemini key — powers the AI goal estimate (optional; feature returns 503 when unset) |
+| `GEMINI_API_KEY`           | Google Gemini key — powers the AI goal estimate and financial insights (optional; those features fall back or return 503 when unset) |
 | `GEMINI_MODEL`             | Gemini model id (default `gemini-2.0-flash`; use `gemini-2.5-flash`) |
 | `GEMINI_MAX_INPUT_TOKENS`  | Prompt-size guard (default `8000`)                                  |
 | `GEMINI_MAX_OUTPUT_TOKENS` | Response length cap (default `1024`)                                |
 | `GEMINI_THINKING_BUDGET`   | Thinking-token budget for 2.5+ models; `0` disables reasoning       |
 | `GOAL_ESTIMATE_TTL_HOURS`  | How long a goal estimate is cached before recompute (default `24`) |
+| `INSIGHTS_TTL_HOURS`       | How long a financial insights report is cached in memory (default `12`) |
 
 The Flutter app receives its API URL via `--dart-define=API_BASE_URL=<url>`. No hard-coded URLs.
 
@@ -205,7 +206,7 @@ All entities use cuid IDs, `createdAt`/`updatedAt` audit timestamps, and soft-de
 - **Dashboard** — Hero balance, budget progress bar, recent transactions
 - **Add Expense** — Custom numpad, 6 built-in categories + custom categories, note input
 - **Transactions** — Month navigator, grouped list (Today / Yesterday / date), income & expense summary
-- **Analytics** — Donut chart + horizontal spending bars by category
+- **Analytics** — Donut chart + horizontal spending bars by category, plus a user-initiated financial insights report (six-month scorecard, evidence, and educational next steps; Google Gemini explains the calculated figures and the report still shows them if AI is unavailable)
 - **Savings Goals** — Track progress toward goals, add funds, and an **AI time-to-reach estimate** (Google Gemini) with tips, shown in a draggable/expandable bottom sheet
 - **Shared Expenses** — Split bills with contacts, share recurring costs, track who owes what, and record reimbursements
 - **Recurring Income** — Manage monthly income sources
@@ -236,17 +237,18 @@ migrations) and builds a signed APK attached to a GitHub Release, with the versi
 
 ## Project phases
 
-| Phase                 | Scope                                             | Status      |
-| --------------------- | ------------------------------------------------- | ----------- |
-| 01 — Foundations      | API bootstrap, Flutter shell, CI                  | Done        |
-| 02 — Auth             | JWT auth, login/signup screens                    | Done        |
-| 03 — Dashboard        | Summary API, hero balance, budget bar             | Done        |
-| 04 — Add Expense      | `POST /transactions`, numpad UI                   | Done        |
-| 05 — Transactions     | Month nav, grouped list, pagination               | Done        |
-| 06 — Analytics        | Category breakdown API, donut chart               | Done        |
-| 07 — Polish & release | Offline cache, error states, OTA updates, signing | Done        |
-| 08 — Shared expenses  | Contacts, split bills, shares, reimbursements     | Done        |
-| 09 — Savings goals    | Goals, add funds, AI time-to-reach estimate       | Done        |
+| Phase                   | Scope                                                                 | Status |
+| ----------------------- | --------------------------------------------------------------------- | ------ |
+| 01 — Foundations        | API bootstrap, Flutter shell, CI                                      | Done   |
+| 02 — Auth               | JWT auth, login/signup screens                                        | Done   |
+| 03 — Dashboard          | Summary API, hero balance, budget bar                                 | Done   |
+| 04 — Add Expense        | `POST /transactions`, numpad UI                                       | Done   |
+| 05 — Transactions       | Month nav, grouped list, pagination                                   | Done   |
+| 06 — Analytics          | Category breakdown API, donut chart                                   | Done   |
+| 07 — Polish & release   | Offline cache, error states, OTA updates, signing                     | Done   |
+| 08 — Shared expenses    | Contacts, split bills, shares, reimbursements                         | Done   |
+| 09 — Savings goals      | Goals, add funds, AI time-to-reach estimate                           | Done   |
+| 10 — Financial insights | Deterministic scorecard plus Gemini narrative on `/analytics/insights` | Done   |
 
 Full plan details live in `plans/`.
 

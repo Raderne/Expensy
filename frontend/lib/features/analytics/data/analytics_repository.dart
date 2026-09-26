@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/cache/http_cache.dart';
 import '../../../core/network/dio_client.dart';
 import '../domain/analytics_breakdown.dart';
-import '../domain/spending_insights.dart';
+import '../domain/financial_insights.dart';
 
 class AnalyticsRepository {
   final Dio _dio;
@@ -39,11 +39,11 @@ class AnalyticsRepository {
     }
   }
 
-  /// Fetches the AI spending insights for [month]. The backend serves a cached
-  /// read-out within its TTL; pass [refresh] to force a recompute. Surfaces
-  /// `INSUFFICIENT_DATA` / `AI_UNAVAILABLE` as [AnalyticsApiException] so the UI
-  /// can branch on `code`.
-  Future<SpendingInsights> getInsights({
+  /// Fetches the financial-health report for [month]. The backend serves a
+  /// cached read-out within its TTL when the underlying figures are unchanged;
+  /// pass [refresh] to force a recompute. Surfaces `INSUFFICIENT_DATA` as
+  /// [AnalyticsApiException] so the UI can branch on `code`.
+  Future<FinancialInsightsReport> getInsights({
     required String month,
     bool refresh = false,
   }) async {
@@ -53,12 +53,10 @@ class AnalyticsRepository {
         queryParameters: {'month': month, if (refresh) 'refresh': 'true'},
       );
       _ensureOk(res);
-      return SpendingInsights.fromJson(
+      return FinancialInsightsReport.fromJson(
         res.data!['insights'] as Map<String, dynamic>,
       );
     } on DioException catch (e) {
-      // 5xx (e.g. 503 AI_UNAVAILABLE) throws before _ensureOk; map it here so
-      // the code from the JSON body still reaches the UI.
       throw _fromDioError(e);
     }
   }
