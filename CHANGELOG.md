@@ -11,13 +11,13 @@ sheet. A release with no matching section here fails rather than shipping an APK
 
 So the formatting matters. `SimpleMarkdown` renders a deliberate subset:
 
-| Syntax           | Renders as                          |
-| ---------------- | ----------------------------------- |
-| `### Added`      | section heading                      |
-| `- item`         | bullet (`*` and `•` also work)       |
-| `**bold**`       | bold inline                          |
-| `` `code` ``     | inline code                          |
-| `[text](url)`    | the text (the URL is dropped)        |
+| Syntax        | Renders as                     |
+| ------------- | ------------------------------ |
+| `### Added`   | section heading                |
+| `- item`      | bullet (`*` and `•` also work) |
+| `**bold**`    | bold inline                    |
+| `` `code` ``  | inline code                    |
+| `[text](url)` | the text (the URL is dropped)  |
 
 Use the standard Keep a Changelog headings — `### Added`, `### Changed`, `### Deprecated`,
 `### Removed`, `### Fixed`, `### Security` — and keep every item a single `- ` bullet on one line.
@@ -28,7 +28,7 @@ remain on the [GitHub releases page](https://github.com/Raderne/Expensy/releases
 
 ## [Unreleased]
 
-## [1.7.2] - 2026-09-26
+## [1.7.3] - 2026-09-26
 
 A financial review you open from Stats, written from your own totals.
 
