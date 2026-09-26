@@ -1,13 +1,15 @@
 name: Publish
 
 # Release pipeline. Triggered by pushing to PUBLISH_V.
-#  - A signed release APK is built and attached to a GitHub Release only when
-#    the version in frontend/pubspec.yaml is bumped. The version/tag is read from
-#    that file and the release is skipped if the tag already exists (idempotent).
+#  - A signed release APK is built and attached to a GitHub Release when the
+#    version in frontend/pubspec.yaml has no release tag yet. The version/tag is
+#    read from that file. A later push that only adds the changelog still
+#    releases, because the gate is the missing tag, not a version diff against
+#    the previous commit. Once the tag exists the job is skipped (idempotent).
 #  - The release body is the matching section of CHANGELOG.md, sliced by
 #    scripts/changelog-section.mjs. That same text is what the app shows in its
 #    update sheet and What's New sheet, so notes and changelog cannot drift.
-#    Bumping pubspec.yaml without adding a CHANGELOG section fails the run.
+#    Publishing a version without a CHANGELOG section fails the run.
 #
 # The backend is NOT deployed here. It is self-hosted on the Oracle VM and
 # deployed with scripts/deploy.sh, run on the box (over SSH). See VM/MIGRATION.md.
@@ -37,20 +39,19 @@ jobs:
     name: detect changes + version
     runs-on: ubuntu-latest
     outputs:
-      # A manual dispatch has no diff base, so detection returns nothing —
-      # fall back to the force_frontend input to make "force a publish" actually work.
-      # Frontend release is gated on a version bump in pubspec.yaml, not on any
-      # frontend file edit (and the tag-exists guard makes it idempotent).
-      frontend: ${{ steps.version.outputs.changed == 'true' || inputs.force_frontend == true }}
+      # Release when this version has no GitHub release yet. A follow-up push
+      # (changelog only, after the pubspec bump) still qualifies. force_frontend
+      # covers a manual dispatch. The APK job also skips if the tag exists.
+      frontend: ${{ steps.version.outputs.release_missing == 'true' || inputs.force_frontend == true }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # full history + tags so we can diff pubspec against the previous commit
 
       - id: version
-        name: Read version + detect bump in pubspec.yaml
+        name: Read version + see if its release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           file=frontend/pubspec.yaml
           parse() { grep -m1 '^version:' "$1" | sed -E 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*/\1/'; }
@@ -63,27 +64,22 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
-          # Compare the semver against the previous commit. A new/unknown base
-          # (e.g. first push) counts as a bump; dispatch is handled by force_*.
-          changed=false
-          if [ "${{ github.event_name }}" = "push" ]; then
-            before="${{ github.event.before }}"
-            prev=""
-            if git cat-file -e "$before:$file" 2>/dev/null; then
-              prev="$(git show "$before:$file" | parse /dev/stdin)"
-            fi
-            echo "Previous version: ${prev:-<none>} | current: $version"
-            [ "$prev" != "$version" ] && changed=true
+          # The pubspec bump and the changelog often land in different pushes.
+          # Comparing to the previous commit skips the second push. The release
+          # tag is the real "already shipped" signal.
+          release_missing=true
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            release_missing=false
           fi
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          echo "Release version: $version (tag v$version), frontend=$changed"
+          echo "release_missing=$release_missing" >> "$GITHUB_OUTPUT"
+          echo "Release version: $version (tag v$version), release_missing=$release_missing"
 
       # Fail here rather than after a ten-minute APK build. CHANGELOG.md is the
       # single source of the release body *and* of the notes the app shows in its
       # update sheet, so a release with no section for this version would ship an
       # APK whose "What's new" is blank.
       - name: Check CHANGELOG.md has a section for this version
-        if: steps.version.outputs.changed == 'true' || inputs.force_frontend == true
+        if: steps.version.outputs.release_missing == 'true' || inputs.force_frontend == true
         run: |
           node scripts/changelog-section.mjs "${{ steps.version.outputs.version }}" >/dev/null
 
